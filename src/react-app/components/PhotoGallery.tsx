@@ -13,15 +13,15 @@ interface Photo {
 }
 
 const photos: Photo[] = [
-  { id: 1, src: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400', alt: 'Live Performance', caption: 'Annual Gospel Concert 2023', category: 'performance' },
-  { id: 2, src: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400', alt: 'Choir Practice', caption: 'Weekly Rehearsal Session', category: 'rehearsal' },
+  { id: 1, src: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400', alt: 'Live Performance', caption: 'Annual Gospel Concert 2023', category: 'worship' },
+  { id: 2, src: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400', alt: 'Choir Practice', caption: 'Weekly Rehearsal Session', category: 'worship' },
   { id: 3, src: 'https://images.unsplash.com/photo-1529636798458-92182e662485?w=400', alt: 'Community Event', caption: 'Community Outreach Program', category: 'community' },
-  { id: 4, src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', alt: 'Studio Recording', caption: 'Recording "Great & Mighty"', category: 'studio' },
-  { id: 5, src: 'https://images.unsplash.com/photo-1529636644619-cf0d5a34e679?w=400', alt: 'Church Service', caption: 'Sunday Worship Service', category: 'performance' },
-  { id: 6, src: 'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=400', alt: 'Youth Ministry', caption: 'Youth Choir Workshop', category: 'community' },
+  { id: 4, src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', alt: 'Studio Recording', caption: 'Recording "Great & Mighty"', category: 'recording' },
+  { id: 5, src: 'https://images.unsplash.com/photo-1529636644619-cf0d5a34e679?w=400', alt: 'Church Service', caption: 'Sunday Worship Service', category: 'worship' },
+  { id: 6, src: 'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=400', alt: 'Youth Ministry', caption: 'Youth Choir Workshop', category: 'youth choir' },
 ];
 
-const categories = ['all', 'performance', 'rehearsal', 'community', 'studio'];
+const categories = ['all', 'worship', 'youth choir', 'community', 'recording'];
 
 const PhotoGallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');

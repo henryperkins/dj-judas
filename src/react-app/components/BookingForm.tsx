@@ -68,7 +68,8 @@ const BookingForm: React.FC = () => {
     
     if (!validateForm()) return;
     
-    // Simulate API call
+    // TODO: Send form data to V.O.J@icloud.com
+    // Simulate API call for now
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     setIsSubmitted(true);

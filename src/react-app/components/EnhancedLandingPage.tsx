@@ -28,10 +28,10 @@ const EnhancedLandingPage: React.FC = () => {
   }, []);
 
   const stats = [
-    { icon: Calendar, value: '15+', label: 'Years of Ministry' },
-    { icon: Music, value: '500+', label: 'Performances' },
-    { icon: Users, value: '10K+', label: 'Lives Touched' },
-    { icon: Award, value: '25+', label: 'Awards & Recognition' }
+    { icon: Calendar, value: '16+', label: 'Years of Ministry' },
+    { icon: Music, value: '4+', label: 'Released Singles' },
+    { icon: Users, value: '1.6K+', label: 'Facebook Followers' },
+    { icon: Award, value: '2020-2022', label: 'Latest Releases' }
   ];
 
   const scrollToTop = () => {
@@ -103,7 +103,7 @@ const EnhancedLandingPage: React.FC = () => {
             animate={heroInView ? { opacity: 1 } : {}}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            Anointed Gospel Music Ministry • Inspiring Hearts Through Powerful Worship
+            Gary, Indiana Gospel Choir • Ministering Through Music Since 2008
           </motion.p>
           <motion.div 
             className="location"
@@ -168,7 +168,7 @@ const EnhancedLandingPage: React.FC = () => {
           >
             <div className="about-text">
               <h2>Our Story</h2>
-              <p>Founded in 2008 in Gary, Indiana, DJ Lee & Voices of Judah began as a high school gospel choir and has grown into a powerful ministry that touches hearts and transforms lives through anointed worship.</p>
+              <p>DJ Lee & The Voices of Judah was established in 2008 in Gary, Indiana, when DJ Lee was given the opportunity to form a gospel choir within his high school. What began as a high school choir has evolved into a powerful ministry that continues to touch hearts through anointed worship.</p>
               <p>Under the leadership of DJ Lee, our choir has been blessed to minister God's love through song, creating music that uplifts, heals, and draws people closer to the Lord.</p>
               <div className="about-features">
                 <div className="feature">
@@ -230,12 +230,12 @@ const EnhancedLandingPage: React.FC = () => {
           <h2>Ministry Services</h2>
           <div className="services-grid">
             {[
-              { title: 'Worship Leading', desc: 'Anointed worship for churches and conferences', icon: '🎤' },
-              { title: 'Gospel Concerts', desc: 'Dynamic performances for special events', icon: '🎵' },
-              { title: 'Choir Training', desc: 'Professional direction and vocal coaching', icon: '🎼' },
-              { title: 'Recording Services', desc: 'Studio production for choirs and artists', icon: '🎙️' },
-              { title: 'Special Events', desc: 'Weddings, funerals, and celebrations', icon: '🎊' },
-              { title: 'Youth Ministry', desc: 'Inspiring the next generation through music', icon: '👥' }
+              { title: 'Church Services', desc: 'Anointed worship for Sunday services and revivals', icon: '🎤' },
+              { title: 'Special Events', desc: 'Weddings, funerals, and community celebrations', icon: '🎵' },
+              { title: 'Youth Programs', desc: 'Inspiring high school and youth choirs', icon: '🎼' },
+              { title: 'Gospel Concerts', desc: 'Dynamic performances throughout Indiana', icon: '🎙️' },
+              { title: 'Community Outreach', desc: 'Ministry in Gary and surrounding areas', icon: '🎊' },
+              { title: 'Recording', desc: 'Original gospel music and collaborations', icon: '👥' }
             ].map((service, index) => (
               <motion.div
                 key={index}
@@ -278,10 +278,17 @@ const EnhancedLandingPage: React.FC = () => {
             </div>
             <div className="footer-section">
               <h4>Connect</h4>
-              <a href="mailto:booking@djleevoicesofjudah.com">Email</a>
-              <a href="tel:+1234567890">Phone</a>
-              <a href="https://instagram.com/djleevoicesofjudah">Instagram</a>
-              <a href="https://soundcloud.com/djleevoicesofjudah">SoundCloud</a>
+              <a href="mailto:V.O.J@icloud.com">Email Booking</a>
+              <a href="https://www.facebook.com/MidWestScreamers/" target="_blank" rel="noopener noreferrer">Facebook</a>
+              <a href="https://instagram.com/dj_voj" target="_blank" rel="noopener noreferrer">Instagram</a>
+              <a href="https://soundcloud.com/dj-lee-voices-of-judah" target="_blank" rel="noopener noreferrer">SoundCloud</a>
+            </div>
+            <div className="footer-section">
+              <h4>Listen</h4>
+              <a href="https://open.spotify.com/search/dj%20lee%20voices%20of%20judah" target="_blank" rel="noopener noreferrer">Spotify</a>
+              <a href="https://music.apple.com/search?term=dj%20lee%20voices%20of%20judah" target="_blank" rel="noopener noreferrer">Apple Music</a>
+              <a href="https://music.amazon.com/search/dj+lee+voices+of+judah" target="_blank" rel="noopener noreferrer">Amazon Music</a>
+              <a href="https://soundcloud.com/dj-lee-voices-of-judah" target="_blank" rel="noopener noreferrer">SoundCloud</a>
             </div>
           </div>
           <div className="footer-bottom">

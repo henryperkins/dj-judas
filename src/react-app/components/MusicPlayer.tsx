@@ -12,10 +12,11 @@ interface Track {
 }
 
 const tracks: Track[] = [
-  { id: 1, title: "Great & Mighty", artist: "DJ Lee & Voices of Judah", duration: "4:32" },
-  { id: 2, title: "Blessed Assurance", artist: "DJ Lee & Voices of Judah", duration: "3:45" },
-  { id: 3, title: "Holy Spirit Flow", artist: "DJ Lee & Voices of Judah", duration: "5:21" },
-  { id: 4, title: "Victory in Jesus", artist: "DJ Lee & Voices of Judah", duration: "4:15" },
+  { id: 1, title: "I Love to Praise Him", artist: "DJ Lee & Voices of Judah", duration: "4:32" },
+  { id: 2, title: "Starting Point", artist: "DJ Lee & Voices of Judah", duration: "3:45" },
+  { id: 3, title: "Celebrate (feat. Christina Chelley Lindsey)", artist: "DJ Lee & Voices of Judah", duration: "4:47" },
+  { id: 4, title: "Great & Mighty (feat. Larry Jones)", artist: "DJ Lee & Voices of Judah", duration: "4:15" },
+  { id: 5, title: "King's Motorcade", artist: "DJ Lee & Voices of Judah", duration: "5:21" },
 ];
 
 const MusicPlayer: React.FC = () => {

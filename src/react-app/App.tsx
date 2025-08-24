@@ -1,9 +1,9 @@
 // src/App.tsx
 
-import LandingPage from "./components/LandingPage";
+import EnhancedLandingPage from "./components/EnhancedLandingPage";
 
 function App() {
-  return <LandingPage />;
+  return <EnhancedLandingPage />;
 }
 
 export default App;

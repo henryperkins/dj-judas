@@ -3,7 +3,11 @@
 import EnhancedLandingPage from "./components/EnhancedLandingPage";
 
 function App() {
-  return <EnhancedLandingPage />;
+  return (
+    <div className="bg-background text-foreground min-h-svh">
+      <EnhancedLandingPage />
+    </div>
+  );
 }
 
 export default App;

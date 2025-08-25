@@ -1,0 +1,366 @@
+/* Platform Launcher Styles */
+
+/* Inline Mode */
+.platform-launcher-inline {
+  padding: 2rem 0;
+}
+
+.platform-launcher-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.platform-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: var(--card-bg, #fff);
+  border: 2px solid var(--platform-color, #e0e0e0);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.platform-card:hover {
+  background: var(--platform-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.platform-icon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+}
+
+.platform-name {
+  flex: 1;
+  text-align: left;
+}
+
+.platform-external-icon {
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+
+.platform-card:hover .platform-external-icon {
+  opacity: 1;
+}
+
+/* Modal Mode */
+.platform-launcher-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+}
+
+.platform-launcher-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--modal-bg, white);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.modal-close:hover {
+  background: var(--hover-bg, #f0f0f0);
+}
+
+.platform-launcher-modal h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+}
+
+.platform-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.platform-modal-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--card-bg, #f8f8f8);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 120px;
+}
+
+.platform-modal-button:hover {
+  border-color: var(--platform-color);
+  background: var(--platform-color);
+  color: white;
+}
+
+.platform-modal-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.platform-modal-name {
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Floating FAB Mode */
+.platform-launcher-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 900;
+}
+
+.fab-trigger {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.fab-trigger:hover {
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.fab-trigger:active {
+  transform: scale(0.95);
+}
+
+.fab-menu {
+  background: var(--fab-menu-bg, white);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+}
+
+.fab-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.fab-close:hover {
+  background: var(--hover-bg, #f0f0f0);
+}
+
+.fab-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.fab-platform-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.fab-platform-btn:hover {
+  background: var(--platform-color);
+  border-color: var(--platform-color);
+  color: white;
+  transform: translateX(-4px);
+}
+
+.fab-platform-icon {
+  font-size: 1.25rem;
+  margin-right: 0.75rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+.fab-platform-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.fab-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: 899;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .platform-launcher-fab {
+    bottom: 5rem; /* Account for bottom nav */
+    right: 1rem;
+  }
+  
+  .fab-trigger {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .fab-menu {
+    position: fixed;
+    bottom: 8rem;
+    right: 1rem;
+    left: auto;
+    max-width: calc(100vw - 2rem);
+    width: 250px;
+  }
+  
+  .platform-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .platform-modal-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .platform-launcher-modal {
+    width: 95%;
+    padding: 1.5rem;
+  }
+}
+
+/* Tablet Optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .platform-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .platform-launcher-modal {
+    background: #1a1a1a;
+  }
+  
+  .platform-card {
+    background: #2a2a2a;
+    color: #e0e0e0;
+  }
+  
+  .fab-menu {
+    background: #2a2a2a;
+  }
+  
+  .fab-platform-btn {
+    color: #e0e0e0;
+    border-color: #404040;
+  }
+  
+  .platform-modal-button {
+    background: #2a2a2a;
+    color: #e0e0e0;
+  }
+}
+
+/* Animation Classes */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.fab-trigger.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Accessibility */
+.fab-platform-btn:focus,
+.platform-card:focus,
+.platform-modal-button:focus {
+  outline: 2px solid var(--focus-color, #667eea);
+  outline-offset: 2px;
+}
+
+/* Loading State */
+.platform-launcher-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: var(--text-secondary);
+}
+
+.platform-launcher-loading::after {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color, #667eea);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -2,14 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Calendar, Music, Users, Award, ChevronUp } from 'lucide-react';
-import MusicPlayer from './MusicPlayer';
+import MusicHub from './MusicHub';
 import PhotoGallery from './PhotoGallery';
 import BookingForm from './BookingForm';
 import ThemeToggle from './ThemeToggle';
-import './EnhancedLandingPage.css';
+import SocialProofWall from './SocialProofWall';
+import FacebookHub from './FacebookHub';
+import InstagramHub from './InstagramHub';
+// styles consolidated into src/react-app/styles.css
 
 const EnhancedLandingPage: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('home');
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
@@ -25,6 +29,32 @@ const EnhancedLandingPage: React.FC = () => {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Active section highlighting
+  useEffect(() => {
+    const ids = ['home', 'about', 'music', 'social', 'gallery', 'services', 'booking'];
+    const sections = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el);
+
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Choose the most visible entry
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (b.intersectionRatio || 0) - (a.intersectionRatio || 0))[0];
+        if (visible && visible.target.id) {
+          setActiveSection(visible.target.id);
+        }
+      },
+      { root: null, rootMargin: '0px 0px -60% 0px', threshold: [0.1, 0.25, 0.5, 0.75, 1] },
+    );
+
+    sections.forEach((s) => observer.observe(s));
+    return () => observer.disconnect();
   }, []);
 
   const stats = [
@@ -44,6 +74,7 @@ const EnhancedLandingPage: React.FC = () => {
 
   return (
     <div className="enhanced-landing-page">
+      <a href="#main" className="skip-link">Skip to content</a>
       <ThemeToggle />
       
       {/* Enhanced Header */}
@@ -54,20 +85,24 @@ const EnhancedLandingPage: React.FC = () => {
             className="mobile-menu-btn"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="primary-nav"
           >
             {isMobileMenuOpen ? '✕' : '☰'}
           </button>
-          <ul className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-            <li><a href="#home" onClick={handleNavClick}>Home</a></li>
-            <li><a href="#about" onClick={handleNavClick}>About</a></li>
-            <li><a href="#music" onClick={handleNavClick}>Music</a></li>
-            <li><a href="#gallery" onClick={handleNavClick}>Gallery</a></li>
-            <li><a href="#services" onClick={handleNavClick}>Services</a></li>
-            <li><a href="#booking" onClick={handleNavClick}>Book Us</a></li>
+          <ul id="primary-nav" className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+            <li><a href="#home" onClick={handleNavClick} className={activeSection==='home' ? 'active' : ''} aria-current={activeSection==='home' ? 'page' : undefined}>Home</a></li>
+            <li><a href="#about" onClick={handleNavClick} className={activeSection==='about' ? 'active' : ''} aria-current={activeSection==='about' ? 'page' : undefined}>About</a></li>
+            <li><a href="#music" onClick={handleNavClick} className={activeSection==='music' ? 'active' : ''} aria-current={activeSection==='music' ? 'page' : undefined}>Music</a></li>
+            <li><a href="#social" onClick={handleNavClick} className={activeSection==='social' ? 'active' : ''} aria-current={activeSection==='social' ? 'page' : undefined}>Connect</a></li>
+            <li><a href="#gallery" onClick={handleNavClick} className={activeSection==='gallery' ? 'active' : ''} aria-current={activeSection==='gallery' ? 'page' : undefined}>Gallery</a></li>
+            <li><a href="#services" onClick={handleNavClick} className={activeSection==='services' ? 'active' : ''} aria-current={activeSection==='services' ? 'page' : undefined}>Services</a></li>
+            <li><a href="#booking" onClick={handleNavClick} className={activeSection==='booking' ? 'active' : ''} aria-current={activeSection==='booking' ? 'page' : undefined}>Book Us</a></li>
           </ul>
         </nav>
       </header>
 
+      <main id="main" tabIndex={-1}>
       {/* Enhanced Hero Section */}
       <section id="home" className="enhanced-hero" ref={heroRef}>
         <motion.div 
@@ -131,6 +166,25 @@ const EnhancedLandingPage: React.FC = () => {
         >
           <span>↓</span>
         </motion.div>
+      </section>
+
+      {/* Social Proof Wall */}
+      <section className="social-proof-section">
+        <div className="container">
+          <SocialProofWall 
+            spotifyMonthlyListeners={850}
+            appleMusicPlays={1200}
+            facebookFollowers={1600}
+            instagramFollowers={2300}
+            totalStreams={15000}
+            showLiveMetrics={true}
+            featuredTestimonial={{
+              text: "Their music touches the soul and brings people closer to God. A truly anointed ministry!",
+              author: "Community Member",
+              platform: "Facebook"
+            }}
+          />
+        </div>
       </section>
 
       {/* Stats Section */}
@@ -208,12 +262,104 @@ const EnhancedLandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Music Player Section */}
+      {/* Music Hub Section */}
       <section id="music" className="music-section">
         <div className="container">
-          <h2>Experience Our Music</h2>
-          <p className="section-subtitle">Listen to our latest recordings and live performances</p>
-          <MusicPlayer />
+          <MusicHub 
+            tracks={[
+              {
+                id: '1',
+                title: 'I Love to Praise Him',
+                artist: 'DJ Lee & Voices of Judah',
+                spotifyUri: 'spotify:track:4gXPNZiP6QXLzkJQP0m9CK',
+                appleMusicUrl: 'https://music.apple.com/us/album/i-love-to-praise-him/1532345678',
+                releaseDate: '2020'
+              },
+              {
+                id: '2',
+                title: 'Starting Point',
+                artist: 'DJ Lee & Voices of Judah',
+                spotifyUri: 'spotify:track:5HKzPNZiP6QXLzkJQP1m8D',
+                appleMusicUrl: 'https://music.apple.com/us/album/starting-point/1532345679',
+                releaseDate: '2021'
+              },
+              {
+                id: '3',
+                title: 'Celebrate (feat. Christina Chelley Lindsey)',
+                artist: 'DJ Lee & Voices of Judah',
+                spotifyUri: 'spotify:track:6IJzPNZiP6QXLzkJQP2n7E',
+                appleMusicUrl: 'https://music.apple.com/us/album/celebrate/1532345680',
+                releaseDate: '2021'
+              },
+              {
+                id: '4',
+                title: 'Great & Mighty (feat. Larry Jones)',
+                artist: 'DJ Lee & Voices of Judah',
+                spotifyUri: 'spotify:track:7JKzPNZiP6QXLzkJQP3o6F',
+                appleMusicUrl: 'https://music.apple.com/us/album/great-mighty/1532345681',
+                releaseDate: '2022'
+              },
+              {
+                id: '5',
+                title: "King's Motorcade",
+                artist: 'DJ Lee & Voices of Judah',
+                spotifyUri: 'spotify:track:8KLzPNZiP6QXLzkJQP4p5G',
+                appleMusicUrl: 'https://music.apple.com/us/album/kings-motorcade/1532345682',
+                releaseDate: '2022'
+              }
+            ]}
+            featuredTrackId="1"
+          />
+        </div>
+      </section>
+
+      {/* Social Media Section */}
+      <section id="social" className="social-media-section">
+        <div className="container">
+          <h2>Connect With Us</h2>
+          <p className="section-subtitle">Follow our journey on social media</p>
+          
+          <div className="social-grid">
+            <div className="facebook-container">
+              <FacebookHub 
+                pageUrl="https://www.facebook.com/MidWestScreamers/"
+                showMusicCTA={true}
+                spotifyArtistId="YOUR_SPOTIFY_ARTIST_ID"
+                appleMusicArtistUrl="https://music.apple.com/artist/YOUR_ARTIST_ID"
+                upcomingEvents={[
+                  {
+                    title: "Sunday Worship Service",
+                    date: "Every Sunday",
+                    location: "Gary, Indiana"
+                  }
+                ]}
+              />
+            </div>
+            
+            <div className="instagram-container">
+              <InstagramHub 
+                posts={[
+                  {
+                    url: "https://www.instagram.com/p/YOUR_POST_ID_1/",
+                    type: "post",
+                    caption: "Ministry moments",
+                    engagement: { likes: 150, comments: 25, saves: 30 }
+                  },
+                  {
+                    url: "https://www.instagram.com/p/YOUR_POST_ID_2/",
+                    type: "reel",
+                    caption: "Performance highlights",
+                    musicTrack: "I Love to Praise Him",
+                    engagement: { likes: 320, comments: 45, saves: 60 }
+                  }
+                ]}
+                profileUrl="https://instagram.com/dj_voj"
+                spotifyPlaylistUrl="https://open.spotify.com/playlist/YOUR_PLAYLIST_ID"
+                appleMusicPlaylistUrl="https://music.apple.com/playlist/YOUR_PLAYLIST_ID"
+                showMusicDiscovery={true}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -261,6 +407,8 @@ const EnhancedLandingPage: React.FC = () => {
         </div>
       </section>
 
+      </main>
+
       {/* Footer */}
       <footer className="enhanced-footer">
         <div className="container">
@@ -281,14 +429,11 @@ const EnhancedLandingPage: React.FC = () => {
               <a href="mailto:V.O.J@icloud.com">Email Booking</a>
               <a href="https://www.facebook.com/MidWestScreamers/" target="_blank" rel="noopener noreferrer">Facebook</a>
               <a href="https://instagram.com/dj_voj" target="_blank" rel="noopener noreferrer">Instagram</a>
-              <a href="https://soundcloud.com/dj-lee-voices-of-judah" target="_blank" rel="noopener noreferrer">SoundCloud</a>
             </div>
             <div className="footer-section">
               <h4>Listen</h4>
               <a href="https://open.spotify.com/search/dj%20lee%20voices%20of%20judah" target="_blank" rel="noopener noreferrer">Spotify</a>
               <a href="https://music.apple.com/search?term=dj%20lee%20voices%20of%20judah" target="_blank" rel="noopener noreferrer">Apple Music</a>
-              <a href="https://music.amazon.com/search/dj+lee+voices+of+judah" target="_blank" rel="noopener noreferrer">Amazon Music</a>
-              <a href="https://soundcloud.com/dj-lee-voices-of-judah" target="_blank" rel="noopener noreferrer">SoundCloud</a>
             </div>
           </div>
           <div className="footer-bottom">

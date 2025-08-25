@@ -1,0 +1,221 @@
+.apple-music-embed-container {
+  background: linear-gradient(135deg, #fc3c44 0%, #000000 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.apple-music-embed-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(252, 60, 68, 0.2);
+}
+
+.apple-music-embed-container.light {
+  background: linear-gradient(135deg, #fc3c44 0%, #f5f5f7 100%);
+}
+
+.embed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.platform-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.open-apple-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fc3c44;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.open-apple-btn:hover {
+  background: #ff5257;
+  transform: scale(1.05);
+}
+
+.apple-iframe-container {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  position: relative;
+  min-height: 150px;
+}
+
+.embed-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: white;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fc3c44;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.embed-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.action-btn:hover {
+  background: rgba(252, 60, 68, 0.3);
+  border-color: #fc3c44;
+  transform: translateY(-2px);
+}
+
+.add-library-btn:hover {
+  background: rgba(252, 60, 68, 0.4);
+  border-color: #fc3c44;
+}
+
+.play-btn {
+  background: #fc3c44;
+  border-color: #fc3c44;
+}
+
+.play-btn:hover {
+  background: #ff5257;
+  transform: scale(1.05);
+}
+
+.purchase-btn {
+  background: linear-gradient(135deg, #007aff, #5856d6);
+  border-color: #007aff;
+}
+
+.purchase-btn:hover {
+  background: linear-gradient(135deg, #0051d5, #3e3c8f);
+  transform: scale(1.05);
+}
+
+.subscription-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  color: white;
+}
+
+.subscription-cta p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.subscribe-btn {
+  background: linear-gradient(135deg, #fc3c44, #ff6b6b);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.subscribe-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(252, 60, 68, 0.4);
+}
+
+.streaming-cta {
+  text-align: center;
+  margin-top: 15px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+}
+
+.streaming-cta p {
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .embed-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+  }
+  
+  .embed-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .open-apple-btn {
+    justify-content: center;
+  }
+  
+  .subscription-cta {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .subscribe-btn {
+    width: 100%;
+  }
+}

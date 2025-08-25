@@ -56,6 +56,33 @@ npm run dev
 
 Your application will be available at [http://localhost:5173](http://localhost:5173).
 
+### Environment Variables (Integrations)
+
+Configure these for social & music integrations:
+
+Server (Worker bindings / secrets):
+- `SPOTIFY_CLIENT_ID` — Spotify application client ID
+- `APPLE_TEAM_ID` — Apple Developer Team ID
+- `APPLE_KEY_ID` — MusicKit private key ID
+- `APPLE_PRIVATE_KEY` — MusicKit private key (PKCS8 PEM, newline escaped if set via CLI)
+
+Client (Vite-exposed):
+- `VITE_FACEBOOK_APP_ID`
+- `VITE_FACEBOOK_PIXEL_ID`
+- `VITE_SPOTIFY_ARTIST_ID` (optional)
+
+Endpoints:
+- Spotify PKCE: `/api/spotify/login` → `/api/spotify/callback` (sets `spotify_session` cookie)
+- Session check: `/api/spotify/session`
+- Save track: `POST /api/spotify/save` { ids: string[], type: 'tracks'|'albums' }
+- Follow artist: `POST /api/spotify/follow` { artistIds: string[] }
+- Apple developer token: `GET /api/apple/developer-token`
+- Aggregated metrics: `GET /api/metrics`
+
+Notes:
+- Never expose Apple private key or Spotify secrets to the client; this template uses PKCE (no client secret) and server-side token minting for Apple.
+- Add secrets with `wrangler secret put <NAME>`.
+
 ## Production
 
 Build your project for production:

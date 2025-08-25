@@ -10,13 +10,13 @@ interface SpotifySession {
 
 const pkceStore: Map<string, SpotifySession> = new Map();
 
-type WorkerEnv = Env & {
+interface Env {
 	SPOTIFY_CLIENT_ID: string;
 	APPLE_TEAM_ID: string;
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
-};
-const app = new Hono<{ Bindings: WorkerEnv }>();
+}
+const app = new Hono<{ Bindings: Env }>();
 
 app.get("/api/", (c) => c.json({ name: "Cloudflare" }));
 

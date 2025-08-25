@@ -1,6 +1,7 @@
 // src/App.tsx
 
-import EnhancedLandingPage from "./components/EnhancedLandingPage";
+import EnhancedLandingPage from "./components/EnhancedLandingPageV2";
+import "./styles/mobile-optimized.css";
 
 function App() {
   return (

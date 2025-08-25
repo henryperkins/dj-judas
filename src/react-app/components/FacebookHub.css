@@ -1,0 +1,312 @@
+.facebook-hub {
+  background: linear-gradient(135deg, #1877f2 0%, #0c5bbf 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 10px 30px rgba(24, 119, 242, 0.2);
+}
+
+.hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.platform-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-weight: 600;
+}
+
+.follower-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.follow-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  color: #1877f2;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.follow-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+}
+
+.facebook-embed-container,
+.facebook-events-container {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.facebook-events-container h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1877f2;
+  margin-bottom: 16px;
+  font-size: 1.2em;
+}
+
+.embed-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #1877f2;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(24, 119, 242, 0.2);
+  border-top-color: #1877f2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.music-cta-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  text-align: center;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.music-cta-section h3 {
+  color: #1877f2;
+  margin-bottom: 12px;
+  font-size: 1.3em;
+}
+
+.music-cta-section p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.music-platform-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.platform-btn.spotify {
+  background: #1db954;
+}
+
+.platform-btn.spotify:hover {
+  background: #1ed760;
+  transform: scale(1.05);
+}
+
+.platform-btn.apple {
+  background: #fc3c44;
+}
+
+.platform-btn.apple:hover {
+  background: #ff5257;
+  transform: scale(1.05);
+}
+
+.platform-btn svg:last-child {
+  position: absolute;
+  right: 12px;
+  opacity: 0.7;
+}
+
+.events-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+}
+
+.events-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1877f2;
+  margin-bottom: 16px;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.event-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border: 2px solid #e4e6eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.event-card:hover {
+  border-color: #1877f2;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.1);
+}
+
+.event-date {
+  min-width: 60px;
+  padding: 8px;
+  background: #1877f2;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.event-details {
+  flex: 1;
+}
+
+.event-details h4 {
+  margin: 0 0 4px 0;
+  color: #1c1e21;
+}
+
+.event-details p {
+  margin: 0;
+  color: #65676b;
+  font-size: 14px;
+}
+
+.ticket-btn {
+  padding: 8px 16px;
+  background: #42b883;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ticket-btn:hover {
+  background: #33a06f;
+}
+
+.social-proof {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin: 24px 0;
+}
+
+.proof-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 14px;
+}
+
+.video-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.video-section h3 {
+  color: #1877f2;
+  margin-bottom: 8px;
+}
+
+.video-hint {
+  color: #65676b;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .hub-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .follow-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .music-platform-buttons {
+    flex-direction: column;
+  }
+  
+  .platform-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .social-proof {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  
+  .event-card {
+    flex-direction: column;
+  }
+}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import * as Switch from '@radix-ui/react-switch';
-import './ThemeToggle.css';
 
 const ThemeToggle: React.FC = () => {
   const [isDark, setIsDark] = useState(false);

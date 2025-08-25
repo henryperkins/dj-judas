@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import './PhotoGallery.css';
 
 interface Photo {
   id: number;
@@ -49,6 +48,23 @@ const PhotoGallery: React.FC = () => {
     setSelectedPhoto(filteredPhotos[newIndex]);
   };
 
+  const buildSrcSet = (url: string) => {
+    try {
+      const u = new URL(url);
+      const w = u.searchParams.get('w');
+      const baseW = w ? parseInt(w, 10) : 400;
+      const w1 = baseW;
+      const w2 = Math.min(baseW * 2, 1600);
+      u.searchParams.set('w', String(w1));
+      const src1 = u.toString();
+      u.searchParams.set('w', String(w2));
+      const src2 = u.toString();
+      return `${src1} ${w1}w, ${src2} ${w2}w`;
+    } catch {
+      return `${url} 400w`;
+    }
+  };
+
   return (
     <div className="photo-gallery">
       <div className="gallery-header">
@@ -83,7 +99,16 @@ const PhotoGallery: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <img src={photo.src} alt={photo.alt} />
+              <img
+                src={photo.src}
+                srcSet={buildSrcSet(photo.src)}
+                sizes="(max-width: 768px) 50vw, 300px"
+                width={400}
+                height={300}
+                alt={photo.alt}
+                loading="lazy"
+                decoding="async"
+              />
               <div className="photo-overlay">
                 <p>{photo.caption}</p>
               </div>
@@ -106,7 +131,16 @@ const PhotoGallery: React.FC = () => {
                   <ChevronLeft size={32} />
                 </button>
                 
-                <img src={selectedPhoto.src} alt={selectedPhoto.alt} />
+                <img
+                  src={selectedPhoto.src}
+                  srcSet={buildSrcSet(selectedPhoto.src)}
+                  sizes="90vw"
+                  width={800}
+                  height={600}
+                  alt={selectedPhoto.alt}
+                  loading="lazy"
+                  decoding="async"
+                />
                 
                 <button className="lightbox-nav lightbox-next" onClick={nextPhoto}>
                   <ChevronRight size={32} />

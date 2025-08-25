@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

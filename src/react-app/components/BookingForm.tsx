@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, User, Mail, Phone, MessageSquare, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import './BookingForm.css';
 
 interface FormData {
   name: string;
@@ -118,9 +117,11 @@ const BookingForm: React.FC = () => {
                   value={formData.name}
                   onChange={handleChange}
                   className={errors.name ? 'error' : ''}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? 'name-error' : undefined}
                   placeholder="John Doe"
                 />
-                {errors.name && <span className="error-message">{errors.name}</span>}
+                {errors.name && <span id="name-error" className="error-message" role="alert">{errors.name}</span>}
               </div>
               
               <div className="form-group">
@@ -134,9 +135,11 @@ const BookingForm: React.FC = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className={errors.email ? 'error' : ''}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   placeholder="john@example.com"
                 />
-                {errors.email && <span className="error-message">{errors.email}</span>}
+                {errors.email && <span id="email-error" className="error-message" role="alert">{errors.email}</span>}
               </div>
               
               <div className="form-group">
@@ -150,9 +153,11 @@ const BookingForm: React.FC = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   className={errors.phone ? 'error' : ''}
+                  aria-invalid={!!errors.phone}
+                  aria-describedby={errors.phone ? 'phone-error' : undefined}
                   placeholder="(555) 123-4567"
                 />
-                {errors.phone && <span className="error-message">{errors.phone}</span>}
+                {errors.phone && <span id="phone-error" className="error-message" role="alert">{errors.phone}</span>}
               </div>
               
               <div className="form-group">
@@ -182,9 +187,11 @@ const BookingForm: React.FC = () => {
                   value={formData.eventDate}
                   onChange={handleChange}
                   className={errors.eventDate ? 'error' : ''}
+                  aria-invalid={!!errors.eventDate}
+                  aria-describedby={errors.eventDate ? 'eventDate-error' : undefined}
                   min={new Date().toISOString().split('T')[0]}
                 />
-                {errors.eventDate && <span className="error-message">{errors.eventDate}</span>}
+                {errors.eventDate && <span id="eventDate-error" className="error-message" role="alert">{errors.eventDate}</span>}
               </div>
               
               <div className="form-group">
@@ -198,8 +205,10 @@ const BookingForm: React.FC = () => {
                   value={formData.eventTime}
                   onChange={handleChange}
                   className={errors.eventTime ? 'error' : ''}
+                  aria-invalid={!!errors.eventTime}
+                  aria-describedby={errors.eventTime ? 'eventTime-error' : undefined}
                 />
-                {errors.eventTime && <span className="error-message">{errors.eventTime}</span>}
+                {errors.eventTime && <span id="eventTime-error" className="error-message" role="alert">{errors.eventTime}</span>}
               </div>
               
               <div className="form-group full-width">
@@ -213,9 +222,11 @@ const BookingForm: React.FC = () => {
                   value={formData.location}
                   onChange={handleChange}
                   className={errors.location ? 'error' : ''}
+                  aria-invalid={!!errors.location}
+                  aria-describedby={errors.location ? 'location-error' : undefined}
                   placeholder="Church name and address"
                 />
-                {errors.location && <span className="error-message">{errors.location}</span>}
+                {errors.location && <span id="location-error" className="error-message" role="alert">{errors.location}</span>}
               </div>
               
               <div className="form-group full-width">
@@ -241,6 +252,8 @@ const BookingForm: React.FC = () => {
           <motion.div
             key="success"
             className="success-message"
+            role="status"
+            aria-live="polite"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}

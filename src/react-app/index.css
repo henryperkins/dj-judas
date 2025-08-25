@@ -13,6 +13,14 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Improve mobile text rendering/zoom behavior */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html { scroll-behavior: smooth; }
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -24,15 +32,21 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: clamp(2rem, 5vw + 0.5rem, 3.2em);
   line-height: 1.1;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3.2vw + 0.5rem, 2.25rem);
+}
+
+h3 {
+  font-size: clamp(1.25rem, 2.2vw + 0.4rem, 1.5rem);
 }
 
 button {
@@ -65,4 +79,30 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* Theme tokens (defaults for light) */
+:root {
+  --bg: #ffffff;
+  --bg-elev: #f8f8f8;
+  --text: #111111;
+  --text-muted: #6b7280; /* gray-500 */
+  --border: rgba(0,0,0,0.12);
+  --accent: #FF69B4;
+  --accent-contrast: #ffffff;
+}
+
+/* Media-safe elements */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+iframe {
+  width: 100%;
+  border: 0;
+}
+
+body {
+  overflow-x: hidden;
 }

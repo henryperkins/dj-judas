@@ -9,9 +9,11 @@
   text-align: center;
   margin-bottom: 2rem;
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
+
+footer .platform-launcher-title { color: #ffffff; }
 
 .platform-grid {
   display: grid;
@@ -21,20 +23,7 @@
   margin: 0 auto;
 }
 
-.platform-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  background: var(--card-bg, #fff);
-  border: 2px solid var(--platform-color, #e0e0e0);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
+.platform-card { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--card-bg, #fff); border: 2px solid var(--platform-color, #e0e0e0); border-radius: 12px; cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
 
 .platform-card:hover {
   background: var(--platform-color);
@@ -127,7 +116,7 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 120px;
+  min-height: 96px;
 }
 
 .platform-modal-button:hover {
@@ -149,14 +138,15 @@
 /* Floating FAB Mode */
 .platform-launcher-fab {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  bottom: var(--fab-bottom-offset);
+  right: 1rem;
   z-index: 900;
+  transition: bottom 0.3s ease-in-out;
 }
 
 .fab-trigger {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -178,6 +168,13 @@
 }
 
 .fab-menu {
+  position: fixed;
+  bottom: calc(var(--fab-bottom-offset) + 3rem);
+  right: 1rem;
+  left: auto;
+  max-width: calc(100vw - 2rem);
+  width: 250px;
+  transition: bottom 0.3s ease-in-out;
   background: var(--fab-menu-bg, white);
   border-radius: 16px;
   padding: 1rem;
@@ -251,38 +248,22 @@
 }
 
 /* Mobile Optimizations */
-@media (max-width: 768px) {
-  .platform-launcher-fab {
-    bottom: 5rem; /* Account for bottom nav */
-    right: 1rem;
-  }
-  
-  .fab-trigger {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .fab-menu {
-    position: fixed;
-    bottom: 8rem;
-    right: 1rem;
-    left: auto;
-    max-width: calc(100vw - 2rem);
-    width: 250px;
-  }
-  
-  .platform-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .platform-modal-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .platform-launcher-modal {
-    width: 95%;
-    padding: 1.5rem;
-  }
+:root {
+  --fab-bottom-offset: 2rem; /* Default offset */
+}
+
+body.mobile-nav-visible {
+  --fab-bottom-offset: 5rem; /* Offset when bottom nav is visible */
+}
+
+/* Tablet and up overrides */
+@media (min-width: 769px) {
+  .platform-launcher-fab { bottom: 2rem; right: 2rem; }
+  .fab-trigger { width: 56px; height: 56px; }
+  .fab-menu { position: static; width: auto; max-width: none; }
+  .platform-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .platform-modal-grid { grid-template-columns: repeat(2, 1fr); }
+  .platform-launcher-modal { width: 90%; padding: 2rem; }
 }
 
 /* Tablet Optimizations */
@@ -327,6 +308,9 @@
     transform: scale(1.05);
   }
 }
+
+/* Section wrapper for inline launcher */
+.platform-section { padding: 3rem 0; background: var(--section-bg-alt, white); }
 
 .fab-trigger.pulse {
   animation: pulse 2s infinite;

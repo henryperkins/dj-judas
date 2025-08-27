@@ -1,0 +1,24 @@
+/* High-contrast defaults for the Social section */
+.social-section { background: #ffffff; }
+.social-section, .social-section * { color: #111111; }
+.social-section a { color: #0f172a; text-decoration: underline; }
+
+/* Force high-contrast in the audited section */
+#social, #social * { color: #111111 !important; }
+#social .platform-card,
+#social .live-metrics-ticker,
+#social .instagram-hub,
+#social .facebook-hub { background: #ffffff !important; }
+.social-section a { text-decoration: underline; }
+
+/* Preserve intended contrast for CTAs */
+.social-section .cta-primary { color: #ffffff !important; }
+.social-section .cta-secondary { color: #14532d !important; border-color: #14532d !important; }
+
+/* Make platform indicators readable on any bg */
+.social-section .platform-indicator { background: rgba(0,0,0,0.6); color: #ffffff !important; padding: 4px 8px; border-radius: 8px; }
+
+/* Generic follow/share buttons in this section */
+.social-section .follow-btn,
+.social-section .share-btn,
+.social-section .cta-btn { background: #111827; color: #ffffff !important; border-color: #111827; }

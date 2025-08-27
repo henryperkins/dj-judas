@@ -1,0 +1,298 @@
+/* Comprehensive Responsive Breakpoints for All Components (mobile-first) */
+
+/* Note: Converted to mobile-first min-width queries. Defaults target phones. */
+
+/* ========================================
+   Small Phones (321px - 375px)
+   ======================================== */
+@media (min-width: 375px) {
+  /* Container adjustments */
+  .container {
+    padding: var(--space-sm);
+  }
+  
+  /* Button adjustments */
+  .btn {
+    padding: 0.625rem 1.25rem;
+  }
+  
+  /* Grid adjustments */
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+}
+
+/* ========================================
+   Standard Phones (376px - 414px)
+   ======================================== */
+@media (min-width: 414px) {
+  /* Container adjustments */
+  .container {
+    padding: var(--space-md);
+  }
+  
+  /* Typography */
+  body {
+    font-size: 15px;
+  }
+  
+  /* Grid adjustments */
+  .platform-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ========================================
+   Large Phones (415px - 767px)
+   ======================================== */
+@media (min-width: 480px) {
+  /* Container adjustments */
+  .container {
+    padding: var(--space-lg);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  /* Typography */
+  body {
+    font-size: 16px;
+  }
+  
+  /* Grid adjustments */
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ========================================
+   Tablets (768px - 1023px)
+   ======================================== */
+@media (min-width: 768px) {
+  /* Container adjustments */
+  .container {
+    padding: var(--space-xl);
+    max-width: 750px;
+  }
+  
+  /* Grid adjustments */
+  .platform-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .services-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .gallery-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  /* Hide mobile-only elements */
+  .mobile-only {
+    display: none;
+  }
+  
+  /* Show tablet/desktop elements */
+  .tablet-up {
+    display: block;
+  }
+}
+
+/* ========================================
+   Small Laptops (1024px - 1439px)
+   ======================================== */
+@media (min-width: 1024px) {
+  /* Container adjustments */
+  .container {
+    max-width: 980px;
+  }
+  
+  /* Hide mobile bottom nav by default */
+  .mobile-bottom-nav:not(.show-on-desktop) {
+    display: none;
+  }
+}
+
+/* ========================================
+   Desktop (1440px+)
+   ======================================== */
+@media (min-width: 1440px) {
+  /* Container adjustments */
+  .container {
+    max-width: 1200px;
+  }
+}
+
+/* ========================================
+   Touch Device Specific Styles
+   ======================================== */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects and add touch feedback */
+  button:hover,
+  a:hover {
+    transform: none;
+  }
+  
+  button:active,
+  a:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+  
+  /* Ensure all interactive elements meet touch target size */
+  button, a, input, select, textarea, .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Disable text selection on buttons */
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Improve scroll performance */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Add touch-action for better gesture handling */
+  .swipeable {
+    touch-action: pan-y;
+  }
+  
+  .gallery-item,
+  .carousel-item {
+    touch-action: manipulation;
+  }
+}
+
+/* ========================================
+   Landscape Orientation
+   ======================================== */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Reduce vertical spacing */
+  .hero-section {
+    min-height: 100vh;
+    padding: var(--space-sm) var(--safe-area-inset-left) var(--space-sm) var(--safe-area-inset-right);
+  }
+  
+  /* Adjust navigation */
+  .mobile-bottom-nav {
+    height: 48px;
+  }
+  
+  /* Compact headers */
+  h1 { font-size: clamp(1.4rem, 3.2vh, 2rem); }
+  h2 { font-size: clamp(1.15rem, 2.6vh, 1.6rem); }
+}
+
+/* ========================================
+   Reduced Motion Support
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable parallax effects */
+  .parallax {
+    transform: none !important;
+  }
+  
+  /* Remove animation-based loading indicators */
+  .spinner {
+    animation: none;
+    border-color: currentColor transparent currentColor transparent;
+  }
+}
+
+/* ========================================
+   High Contrast Mode
+   ======================================== */
+@media (prefers-contrast: high) {
+  /* Increase contrast for better readability */
+  * {
+    border-width: 2px;
+  }
+  
+  button, a {
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  
+  /* Ensure focus indicators are visible */
+  *:focus {
+    outline: 3px solid currentColor !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+@media print {
+  /* Hide navigation and interactive elements */
+  .mobile-bottom-nav,
+  .platform-launcher-fab,
+  .theme-toggle,
+  button[type="submit"],
+  .nav-item {
+    display: none !important;
+  }
+  
+  /* Ensure content fits on page */
+  * {
+    overflow: visible !important;
+  }
+  
+  /* Reset backgrounds for print */
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+/* ========================================
+   Component-Specific Responsive Utilities
+   ======================================== */
+
+/* Visibility utilities */
+.mobile-only { display: block; }
+.tablet-up { display: none; }
+.desktop-only { display: none; }
+
+@media (min-width: 768px) {
+  .mobile-only { display: none; }
+  .tablet-up { display: block; }
+}
+
+@media (min-width: 1024px) {
+  .desktop-only { display: block; }
+}
+
+/* Spacing utilities */
+.p-responsive { padding: var(--spacing-md); }
+.m-responsive { margin: var(--spacing-md); }
+
+/* Text alignment utilities */
+.text-center-mobile { text-align: center; }
+@media (min-width: 768px) {
+  .text-center-mobile { text-align: left; }
+}
+
+/* Flexbox utilities */
+.flex-column-mobile { flex-direction: column; }
+@media (min-width: 768px) {
+  .flex-column-mobile { flex-direction: row; }
+}

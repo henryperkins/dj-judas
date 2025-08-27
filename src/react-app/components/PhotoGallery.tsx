@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 
 interface Photo {
   id: number;
@@ -26,6 +26,11 @@ const PhotoGallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
 
   const filteredPhotos = selectedCategory === 'all' 
     ? photos 
@@ -47,6 +52,52 @@ const PhotoGallery: React.FC = () => {
     setCurrentIndex(newIndex);
     setSelectedPhoto(filteredPhotos[newIndex]);
   };
+
+  // Handle swipe gestures for mobile
+  const handleDragEnd = (_event: any, info: PanInfo) => {
+    const threshold = 50;
+    if (info.offset.x > threshold) {
+      prevPhoto();
+    } else if (info.offset.x < -threshold) {
+      nextPhoto();
+    }
+  };
+
+  // Touch events for better mobile support
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      nextPhoto();
+    }
+    if (isRightSwipe) {
+      prevPhoto();
+    }
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedPhoto) return;
+      if (e.key === 'ArrowLeft') prevPhoto();
+      if (e.key === 'ArrowRight') nextPhoto();
+      if (e.key === 'Escape') setSelectedPhoto(null);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPhoto, currentIndex]);
 
   const buildSrcSet = (url: string) => {
     try {
@@ -98,11 +149,12 @@ const PhotoGallery: React.FC = () => {
               onClick={() => openLightbox(photo)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              style={{ cursor: 'pointer' }}
             >
               <img
                 src={photo.src}
                 srcSet={buildSrcSet(photo.src)}
-                sizes="(max-width: 768px) 50vw, 300px"
+                sizes="(min-width: 768px) 300px, 50vw"
                 width={400}
                 height={300}
                 alt={photo.alt}
@@ -126,8 +178,25 @@ const PhotoGallery: React.FC = () => {
             </Dialog.Close>
             
             {selectedPhoto && (
-              <>
-                <button className="lightbox-nav lightbox-prev" onClick={prevPhoto}>
+              <motion.div
+                ref={lightboxRef}
+                className="lightbox-image-container"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={handleDragEnd}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ x, opacity, touchAction: 'pan-y' }}
+                animate={{ x: 0 }}
+              >
+                <button 
+                  className="lightbox-nav lightbox-prev" 
+                  onClick={prevPhoto}
+                  aria-label="Previous photo"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
                   <ChevronLeft size={32} />
                 </button>
                 
@@ -140,9 +209,15 @@ const PhotoGallery: React.FC = () => {
                   alt={selectedPhoto.alt}
                   loading="lazy"
                   decoding="async"
+                  style={{ userSelect: 'none', pointerEvents: 'none' }}
                 />
                 
-                <button className="lightbox-nav lightbox-next" onClick={nextPhoto}>
+                <button 
+                  className="lightbox-nav lightbox-next" 
+                  onClick={nextPhoto}
+                  aria-label="Next photo"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
                   <ChevronRight size={32} />
                 </button>
                 
@@ -152,7 +227,7 @@ const PhotoGallery: React.FC = () => {
                     {currentIndex + 1} / {filteredPhotos.length}
                   </span>
                 </div>
-              </>
+              </motion.div>
             )}
           </Dialog.Content>
         </Dialog.Portal>

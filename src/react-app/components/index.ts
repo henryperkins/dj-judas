@@ -19,7 +19,7 @@ export { default as FacebookHub } from './FacebookHub';
 export { default as InstagramHub } from './InstagramHub';
 export { default as PhotoGallery } from './PhotoGallery';
 export { default as BookingForm } from './BookingForm';
-export { default as ThemeToggle } from './ThemeToggle';
+
 export { default as SocialProofWall } from './SocialProofWall';
 
 // Utilities

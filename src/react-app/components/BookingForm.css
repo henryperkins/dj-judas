@@ -1,18 +1,18 @@
 .booking-form-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem; /* mobile-first */
 }
 
 .booking-form {
   background: white;
   border-radius: 20px;
-  padding: 3rem;
+  padding: 2rem 1.5rem; /* mobile-first */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .booking-form h3 {
-  font-size: 2rem;
+  font-size: 1.5rem; /* mobile-first */
   color: #000;
   margin-bottom: 0.5rem;
   font-weight: 700;
@@ -26,7 +26,7 @@
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: 1fr; /* mobile-first */
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -58,12 +58,13 @@
 .form-group select,
 .form-group textarea {
   padding: 0.75rem 1rem;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #9ca3af; /* darker for contrast */
   border-radius: 10px;
   font-size: 1rem;
   transition: all 0.3s ease;
   font-family: inherit;
   background: white;
+  color: #111111;
 }
 
 .form-group input:focus,
@@ -94,6 +95,7 @@
 }
 
 .form-group select {
+  color: #111111;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -104,21 +106,26 @@
 }
 
 .form-group textarea {
+  color: #111111;
   resize: vertical;
   min-height: 100px;
 }
 
+/* Placeholder contrast */
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: #1f2937; }
+
 .submit-button {
   width: 100%;
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #FF69B4, #ff1493);
+  padding: 0.9rem 1.75rem;
+  background: #111827; /* high-contrast slate */
   color: white;
   border: none;
   border-radius: 50px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
@@ -165,7 +172,7 @@
 }
 
 .success-message h3 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   color: #000;
   margin-bottom: 1rem;
   font-weight: 700;
@@ -173,25 +180,14 @@
 
 .success-message p {
   color: #666;
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.6;
   margin-bottom: 0.5rem;
 }
 
-@media (max-width: 768px) {
-  .booking-form-container {
-    padding: 1rem;
-  }
-  
-  .booking-form {
-    padding: 2rem 1.5rem;
-  }
-  
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .booking-form h3 {
-    font-size: 1.5rem;
-  }
+@media (min-width: 768px) {
+  .booking-form-container { padding: 2rem; }
+  .booking-form { padding: 3rem; }
+  .form-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .booking-form h3 { font-size: 1.75rem; }
 }

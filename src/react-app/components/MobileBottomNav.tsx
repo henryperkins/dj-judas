@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Music, Calendar, Share2 } from 'lucide-react';
 import { isMobileDevice } from '../utils/platformDetection';
@@ -60,6 +60,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
   const navItems = customItems || defaultNavItems;
 
@@ -98,6 +99,22 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   useEffect(() => {
     setCurrentActive(activeItem);
   }, [activeItem]);
+
+  useEffect(() => {
+    if (isMobile || showOnDesktop) {
+      if (isVisible) {
+        document.body.classList.add('mobile-nav-visible');
+      } else {
+        document.body.classList.remove('mobile-nav-visible');
+      }
+    } else {
+      document.body.classList.remove('mobile-nav-visible');
+    }
+
+    return () => {
+      document.body.classList.remove('mobile-nav-visible');
+    };
+  }, [isVisible, isMobile, showOnDesktop]);
 
   const handleItemClick = (item: NavItem) => {
     if (item.id === 'listen' && onPlatformLauncherOpen) {
@@ -153,6 +170,27 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     }
   };
 
+  // Roving tabindex + arrow key navigation
+  const onKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"]; 
+    if (!keys.includes(e.key)) return;
+    const container = listRef.current;
+    if (!container) return;
+    const items = Array.from(container.querySelectorAll<HTMLButtonElement>(".nav-item"));
+    if (items.length === 0) return;
+    const activeIndex = Math.max(0, items.findIndex((el) => el.getAttribute("aria-current") === "page"));
+    let nextIndex = activeIndex;
+    if (e.key === "ArrowRight") nextIndex = (activeIndex + 1) % items.length;
+    if (e.key === "ArrowLeft") nextIndex = (activeIndex - 1 + items.length) % items.length;
+    if (e.key === "Home") nextIndex = 0;
+    if (e.key === "End") nextIndex = items.length - 1;
+    const next = items[nextIndex];
+    next?.focus();
+    const id = next?.dataset?.id;
+    if (id) setCurrentActive(id);
+    e.preventDefault();
+  };
+
   if (!isMobile && !showOnDesktop) {
     return null;
   }
@@ -163,56 +201,68 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {isVisible && (
           <motion.nav
             className="mobile-bottom-nav"
+            role="navigation"
+            aria-label="Primary"
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            <div className="nav-container">
+            <ul
+              ref={listRef}
+              className="nav-container nav-list"
+              onKeyDown={onKeyDown}
+            >
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentActive === item.id;
                 
+                const ariaControls = item.href && item.href.startsWith('#') ? item.href.slice(1) : undefined;
                 return (
-                  <motion.button
-                    key={item.id}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    onClick={() => handleItemClick(item)}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label={item.label}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <motion.div
-                      className="nav-item-content"
-                      animate={isActive ? { y: -2 } : { y: 0 }}
+                  <li className="nav-li" key={item.id}>
+                    <motion.button
+                      data-id={item.id}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      onClick={() => handleItemClick(item)}
+                      whileTap={{ scale: 0.9 }}
+                      aria-label={item.label}
+                      aria-current={isActive ? 'page' : undefined}
+                      aria-controls={ariaControls}
+                      tabIndex={isActive ? 0 : -1}
                     >
-                      <div className="nav-icon-wrapper">
-                        <Icon 
-                          size={24} 
-                          className="nav-icon"
-                        />
-                        {item.badge && item.badge > 0 && (
-                          <span className="nav-badge">{item.badge}</span>
+                      <motion.div
+                        className="nav-item-content"
+                        animate={isActive ? { y: -2 } : { y: 0 }}
+                      >
+                        <div className="nav-icon-wrapper" aria-hidden="true">
+                          <Icon 
+                            size={24} 
+                            className="nav-icon"
+                          />
+                          {item.badge && item.badge > 0 && (
+                            <span className="nav-badge">{item.badge}</span>
+                          )}
+                        </div>
+                        <span className="nav-label">{item.label}</span>
+                        {isActive && (
+                          <motion.div
+                            className="nav-indicator"
+                            layoutId="nav-indicator"
+                            initial={false}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 500,
+                              damping: 30
+                            }}
+                            aria-hidden="true"
+                          />
                         )}
-                      </div>
-                      <span className="nav-label">{item.label}</span>
-                      {isActive && (
-                        <motion.div
-                          className="nav-indicator"
-                          layoutId="nav-indicator"
-                          initial={false}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 500,
-                            damping: 30
-                          }}
-                        />
-                      )}
-                    </motion.div>
-                  </motion.button>
+                      </motion.div>
+                    </motion.button>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </motion.nav>
         )}
       </AnimatePresence>
@@ -225,6 +275,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
+            role="status"
+            aria-live="polite"
           >
             <span>Link copied to clipboard!</span>
           </motion.div>

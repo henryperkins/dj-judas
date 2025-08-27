@@ -35,6 +35,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
   const [selectedPost, setSelectedPost] = useState<number>(0);
   const [showPlaylistPrompt, setShowPlaylistPrompt] = useState(false);
   const [engagementScore, setEngagementScore] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState('grid');
 
   useEffect(() => {
     const loadInstagram = async () => {
@@ -185,14 +186,21 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
         </button>
       </div>
 
+      <div className="instagram-tabs">
+        <button className={activeTab === 'grid' ? 'active' : ''} onClick={() => setActiveTab('grid')}>Grid</button>
+        <button className={activeTab === 'music' ? 'active' : ''} onClick={() => setActiveTab('music')}>Music</button>
+        <button className={activeTab === 'explore' ? 'active' : ''} onClick={() => setActiveTab('explore')}>Explore</button>
+        <button className={activeTab === 'connect' ? 'active' : ''} onClick={() => setActiveTab('connect')}>Connect</button>
+      </div>
+
       {/* Instagram Grid */}
-      <div className="instagram-grid">
+      <div className={`instagram-grid ${activeTab === 'grid' ? 'active' : ''}`}>
         {posts.map((post, index) => renderInstagramEmbed(post, index))}
       </div>
 
       {/* Music Discovery Section */}
       {showMusicDiscovery && showPlaylistPrompt && (
-        <div className="music-discovery-section">
+        <div className={`music-discovery-section ${activeTab === 'music' ? 'active' : ''}`}>
           <h3>🎵 Discover Our Music</h3>
           <p>Love our Instagram content? Listen to the full tracks:</p>
           
@@ -225,7 +233,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
       )}
 
       {/* Content Categories */}
-      <div className="content-categories">
+      <div className={`content-categories ${activeTab === 'explore' ? 'active' : ''}`}>
         <h3>Explore Content</h3>
         <div className="category-tags">
           <button className="tag" onClick={() => handlePostInteraction(0, 'filter_performances')}>
@@ -244,7 +252,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
       </div>
 
       {/* Call to Action */}
-      <div className="instagram-cta">
+      <div className={`instagram-cta ${activeTab === 'connect' ? 'active' : ''}`}>
         <h4>Stay Connected</h4>
         <p>Follow us on Instagram for exclusive content, live performances, and ministry updates</p>
         <div className="cta-buttons">

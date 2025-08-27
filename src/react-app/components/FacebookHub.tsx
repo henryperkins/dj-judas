@@ -16,6 +16,13 @@ interface FacebookHubProps {
   }>;
 }
 
+interface UpcomingEvent {
+  title: string;
+  date: string;
+  location: string;
+  ticketUrl?: string;
+}
+
 const FacebookHub: React.FC<FacebookHubProps> = ({
   pageUrl,
   showMusicCTA = true,
@@ -27,6 +34,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [showMusicPrompt, setShowMusicPrompt] = useState(false);
+  const [activeTab, setActiveTab] = useState('timeline');
 
   useEffect(() => {
     const loadFacebook = async () => {
@@ -61,7 +69,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleEventClick = (event: any) => {
+  const handleEventClick = (event: UpcomingEvent & Record<string, unknown>) => {
     socialMetrics.trackSocialInteraction('facebook', 'event_interest', event);
     if (event.ticketUrl) {
       window.open(event.ticketUrl, '_blank', 'noopener,noreferrer');
@@ -90,8 +98,14 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
         </button>
       </div>
 
+      <div className="facebook-tabs">
+        <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>Timeline</button>
+        <button className={activeTab === 'events' ? 'active' : ''} onClick={() => setActiveTab('events')}>Events</button>
+        <button className={activeTab === 'music' ? 'active' : ''} onClick={() => setActiveTab('music')}>Music</button>
+      </div>
+
       {/* Facebook Page Plugin with Events Tab */}
-      <div className="facebook-embed-container">
+      <div className={`facebook-embed-container ${activeTab === 'timeline' ? 'active' : ''}`}>
         {!isLoaded && (
           <div className="embed-loading">
             <div className="loading-spinner"></div>
@@ -104,7 +118,6 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
             className="fb-page"
             data-href={pageUrl}
             data-tabs="timeline,events,messages"
-            data-width="500"
             data-height="700"
             data-small-header="false"
             data-adapt-container-width="true"
@@ -116,7 +129,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
       </div>
 
       {/* Dedicated Facebook Events Plugin for better visibility */}
-      <div className="facebook-events-container">
+      <div className={`facebook-events-container ${activeTab === 'events' ? 'active' : ''}`}>
         <h3>
           <Calendar size={20} />
           Facebook Events
@@ -126,7 +139,6 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
             className="fb-page"
             data-href={pageUrl}
             data-tabs="events"
-            data-width="500"
             data-height="400"
             data-small-header="true"
             data-adapt-container-width="true"
@@ -138,7 +150,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
 
       {/* Music Platform CTAs */}
       {showMusicCTA && showMusicPrompt && (
-        <div className="music-cta-section">
+        <div className={`music-cta-section ${activeTab === 'music' ? 'active' : ''}`}>
           <h3>🎵 Listen to Our Music</h3>
           <p>Enjoy our Facebook content? Stream our full catalog:</p>
           

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import './StatsSection.css';
 import { useInView } from 'react-intersection-observer';
 import { Calendar, Music, Users, Award } from 'lucide-react';
 

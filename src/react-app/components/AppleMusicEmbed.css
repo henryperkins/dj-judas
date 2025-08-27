@@ -21,6 +21,9 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  flex-direction: column; /* mobile-first */
+  gap: 10px;
+  align-items: stretch;
 }
 
 .platform-badge {
@@ -48,6 +51,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  justify-content: center; /* mobile-first */
 }
 
 .open-apple-btn:hover {
@@ -91,6 +95,7 @@
   gap: 10px;
   margin-top: 15px;
   flex-wrap: wrap;
+  flex-direction: column; /* mobile-first */
 }
 
 .action-btn {
@@ -109,6 +114,7 @@
   flex: 1;
   min-width: 140px;
   justify-content: center;
+  width: 100%; /* mobile-first */
 }
 
 .action-btn:hover {
@@ -144,8 +150,9 @@
 
 .subscription-cta {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
+  justify-content: center;
+  flex-direction: column; /* mobile-first */
   margin-top: 20px;
   padding: 15px;
   background: rgba(0, 0, 0, 0.3);
@@ -190,32 +197,13 @@
   font-weight: 500;
 }
 
-@media (max-width: 768px) {
-  .embed-actions {
-    flex-direction: column;
-  }
-  
-  .action-btn {
-    width: 100%;
-  }
-  
-  .embed-header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
-  }
-  
-  .open-apple-btn {
-    justify-content: center;
-  }
-  
-  .subscription-cta {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
-  }
-  
-  .subscribe-btn {
-    width: 100%;
-  }
+.subscribe-btn { width: 100%; }
+
+@media (min-width: 768px) {
+  .embed-actions { flex-direction: row; }
+  .action-btn { width: auto; }
+  .embed-header { flex-direction: row; align-items: center; gap: 0; }
+  .open-apple-btn { justify-content: flex-start; }
+  .subscription-cta { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; }
+  .subscribe-btn { width: auto; }
 }

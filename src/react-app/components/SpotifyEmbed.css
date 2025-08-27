@@ -25,6 +25,9 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  flex-direction: column; /* mobile-first */
+  gap: 10px;
+  align-items: stretch;
 }
 
 .platform-badge {
@@ -39,20 +42,7 @@
   border-radius: 20px;
 }
 
-.open-spotify-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #1db954;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+.open-spotify-btn { display: flex; align-items: center; gap: 6px; background: #1db954; color: white; border: none; padding: 8px 14px; border-radius: 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; justify-content: center; }
 
 .open-spotify-btn:hover {
   background: #1ed760;
@@ -95,25 +85,10 @@
   gap: 10px;
   margin-top: 15px;
   flex-wrap: wrap;
+  flex-direction: column; /* mobile-first */
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.2);
-  color: white;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  min-width: 140px;
-  justify-content: center;
-}
+.action-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border: 2px solid #111827; background: #0b1220; color: #ffffff; border-radius: 22px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; flex: 1; min-width: 120px; justify-content: center; width: 100%; }
 
 .action-btn:hover {
   background: rgba(29, 185, 84, 0.3);
@@ -126,10 +101,7 @@
   border-color: #ff0050;
 }
 
-.follow-btn:hover {
-  background: rgba(29, 185, 84, 0.4);
-  border-color: #1db954;
-}
+.follow-btn:hover { background: #1f2937; border-color: #1f2937; }
 
 .play-btn {
   background: #1db954;
@@ -156,22 +128,9 @@
   font-weight: 500;
 }
 
-@media (max-width: 768px) {
-  .embed-actions {
-    flex-direction: column;
-  }
-  
-  .action-btn {
-    width: 100%;
-  }
-  
-  .embed-header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
-  }
-  
-  .open-spotify-btn {
-    justify-content: center;
-  }
+@media (min-width: 768px) {
+  .embed-actions { flex-direction: row; }
+  .action-btn { width: auto; }
+  .embed-header { flex-direction: row; align-items: center; gap: 0; }
+  .open-spotify-btn { justify-content: flex-start; }
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import './AboutSection.css';
 import { useInView } from 'react-intersection-observer';
 
 const AboutSection: React.FC = () => {

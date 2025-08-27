@@ -14,14 +14,7 @@
   margin-bottom: 30px;
 }
 
-.total-reach h2 {
-  font-size: 3em;
-  margin: 0;
-  background: linear-gradient(135deg, #1db954, #fc3c44);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+.total-reach h2 { font-size: 2.25em; margin: 0; color: #111111 !important; background: none !important; -webkit-text-fill-color: initial !important; }
 
 .total-reach p {
   font-size: 1.1em;
@@ -84,7 +77,7 @@
 
 .platforms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: 1fr; /* mobile-first */
   gap: 20px;
   margin: 40px 0;
 }
@@ -99,6 +92,7 @@
   position: relative;
   overflow: hidden;
 }
+.platform-card, .platform-card * { color: #111111 !important; }
 
 .platform-card::before {
   content: '';
@@ -123,21 +117,13 @@
   margin-bottom: 15px;
 }
 
-.platform-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
+.platform-name { font-weight: 700; color: #111111 !important; }
 
 .follower-count {
   margin-bottom: 15px;
 }
 
-.follower-count .count {
-  display: block;
-  font-size: 2em;
-  font-weight: bold;
-  color: var(--platform-color);
-}
+.follower-count .count { display: block; font-size: 1.6em; font-weight: bold; color: #111111; }
 
 .follower-count .label {
   display: block;
@@ -161,22 +147,13 @@
   color: var(--text-primary);
 }
 
-.platform-metrics .label {
-  display: block;
-  font-size: 0.8em;
-  color: var(--text-secondary);
-}
+.platform-metrics .label { display: block; font-size: 0.9em; color: #374151 !important; }
 
 .metric.growth .value {
   color: #00c853;
 }
 
-.platform-cta {
-  text-align: right;
-  color: var(--platform-color);
-  font-weight: 500;
-  font-size: 0.9em;
-}
+.platform-cta { text-align: right; color: #0f172a !important; font-weight: 700; font-size: 0.95em; text-decoration: underline; }
 
 .live-metrics-ticker {
   background: rgba(255, 255, 255, 0.9);
@@ -185,6 +162,7 @@
   margin: 30px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+.live-metrics-ticker, .live-metrics-ticker * { color: #111111 !important; }
 
 .ticker-header {
   display: flex;
@@ -192,7 +170,7 @@
   gap: 10px;
   margin-bottom: 15px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #111111 !important;
 }
 
 .live-indicator {
@@ -278,7 +256,7 @@
 }
 
 .social-cta-section h3 {
-  font-size: 1.8em;
+  font-size: 1.4em;
   margin-bottom: 10px;
   color: var(--text-primary);
 }
@@ -297,22 +275,9 @@
 }
 
 .cta-primary,
-.cta-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 30px;
-  border-radius: 25px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
+.cta-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 24px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; border: none; font-size: 0.9rem; }
 
-.cta-primary {
-  background: linear-gradient(135deg, #1db954, #1ed760);
-  color: white;
-}
+.cta-primary { background: #14532d; color: #ffffff; }
 
 .cta-primary:hover {
   transform: scale(1.05);
@@ -321,8 +286,8 @@
 
 .cta-secondary {
   background: white;
-  color: #1db954;
-  border: 2px solid #1db954;
+  color: #14532d; /* darker green for contrast */
+  border: 2px solid #14532d;
 }
 
 .cta-secondary:hover {
@@ -366,37 +331,21 @@
   color: white;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .total-reach h2 {
-    font-size: 2em;
-  }
-  
-  .key-metrics {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .metric-card {
-    width: 100%;
-    max-width: 300px;
-  }
-  
-  .platforms-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .cta-buttons {
-    flex-direction: column;
-  }
-  
-  .cta-primary,
-  .cta-secondary {
-    width: 100%;
-  }
-  
-  .trust-indicators {
-    flex-direction: column;
-    align-items: center;
-  }
+/* Mobile-first defaults (were previously in max-width:768px) */
+.total-reach h2 { font-size: 1.75em; }
+.key-metrics { flex-direction: column; align-items: center; }
+.metric-card { width: 100%; max-width: 300px; }
+.cta-buttons { flex-direction: column; }
+.cta-primary, .cta-secondary { width: 100%; }
+.trust-indicators { flex-direction: column; align-items: center; }
+
+/* Tablet and up */
+@media (min-width: 768px) {
+  .total-reach h2 { font-size: 2.25em; }
+  .key-metrics { flex-direction: row; }
+  .metric-card { width: auto; max-width: none; }
+  .platforms-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .cta-buttons { flex-direction: row; }
+  .cta-primary, .cta-secondary { width: auto; }
+  .trust-indicators { flex-direction: row; }
 }

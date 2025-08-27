@@ -28,6 +28,12 @@
 :root {
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;
+  
+  /* Safe area support for modern devices */
+  --safe-area-inset-top: env(safe-area-inset-top, 0);
+  --safe-area-inset-right: env(safe-area-inset-right, 0);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0);
+  --safe-area-inset-left: env(safe-area-inset-left, 0);
 
   --card: 0 0% 100%;
   --card-foreground: 240 10% 3.9%;
@@ -75,7 +81,7 @@
   --secondary-foreground: 0 0% 98%;
 
   --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted-foreground: 240 6% 72%;
 
   --accent: 240 3.7% 15.9%;
   --accent-foreground: 0 0% 98%;
@@ -89,14 +95,17 @@
 
   --radius: 0.5rem;
 }
+/* Mobile-first base + responsive rules (import after theme tokens) */
+@import "./styles/mobile-first-base.css";
+@import "./styles/responsive-breakpoints.css";
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -112,14 +121,9 @@ html {
 
 html { scroll-behavior: smooth; }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+/* Link fallback colors if CSS variables are missing */
+a { font-weight: 500; color: var(--link, #1d4ed8); text-decoration: inherit; }
+a:hover { color: var(--link-hover, #1e40af); }
 
 body {
   margin: 0;
@@ -127,35 +131,28 @@ body {
   min-height: 100vh;
 }
 
-h1 {
-  font-size: clamp(2rem, 5vw + 0.5rem, 3.2em);
-  line-height: 1.1;
-}
+h1 { font-size: clamp(1.5rem, 3.2vw, 2rem); line-height: 1.2; }
 
-h2 {
-  font-size: clamp(1.5rem, 3.2vw + 0.5rem, 2.25rem);
-}
+h2 { font-size: clamp(1.1rem, 2.6vw, 1.5rem); }
 
-h3 {
-  font-size: clamp(1.25rem, 2.2vw + 0.4rem, 1.5rem);
-}
+h3 { font-size: clamp(1rem, 2vw, 1.125rem); }
 
-button {
+button:not([class]) {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+  padding: 0.5em 1em;
+  font-size: 0.95em;
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
+button:not([class]):hover {
   border-color: #646cff;
 }
-button:focus,
-button:focus-visible {
+button:not([class]):focus,
+button:not([class]):focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
@@ -167,7 +164,7 @@ button:focus-visible {
   a:hover {
     color: #747bff;
   }
-  button {
+  button:not([class]) {
     background-color: #f9f9f9;
   }
 }
@@ -200,11 +197,7 @@ body {
 }
 
 /* Consolidated imports from legacy styles.css */
-@import "./components/EnhancedLandingPage.css";
-@import "./components/LandingPage.css";
-@import "./components/ThemeToggle.css";
 @import "./components/MusicHub.css";
-@import "./components/MusicPlayer.css";
 @import "./components/SpotifyEmbed.css";
 @import "./components/AppleMusicEmbed.css";
 @import "./components/SocialProofWall.css";

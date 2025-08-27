@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import './ServicesSection.css';
 import { useInView } from 'react-intersection-observer';
 import { Church, Mic, Music2, Heart } from 'lucide-react';
 

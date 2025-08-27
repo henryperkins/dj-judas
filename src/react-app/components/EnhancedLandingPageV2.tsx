@@ -1,11 +1,12 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useScroll } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+
 import HeroSection from './sections/HeroSection';
 import StatsSection from './sections/StatsSection';
 import AboutSection from './sections/AboutSection';
 import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
+import './Footer.css';
 import MobileBottomNav from './MobileBottomNav';
 import { isMobileDevice } from '../utils/platformDetection';
 
@@ -13,9 +14,7 @@ import { isMobileDevice } from '../utils/platformDetection';
 const MusicHub = lazy(() => import('./MusicHub'));
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
 const BookingForm = lazy(() => import('./BookingForm'));
-const SocialProofWall = lazy(() => import('./SocialProofWall'));
-const FacebookHub = lazy(() => import('./FacebookHub'));
-const InstagramHub = lazy(() => import('./InstagramHub'));
+// Social section removed
 
 const LoadingFallback = () => (
   <div className="loading-section">
@@ -42,7 +41,7 @@ const EnhancedLandingPageV2: React.FC = () => {
 
   // Track active section for mobile nav
   useEffect(() => {
-    const sections = ['home', 'about', 'music', 'social', 'gallery', 'services', 'booking'];
+    const sections = ['home', 'about', 'music', 'gallery', 'services', 'booking'];
     const observers = new Map();
 
     sections.forEach(id => {
@@ -75,88 +74,75 @@ const EnhancedLandingPageV2: React.FC = () => {
   return (
     <div className="enhanced-landing-page-v2">
       <a href="#main" className="skip-link">Skip to content</a>
-      <ThemeToggle />
-      
+
       {/* Hero Section */}
       <HeroSection scrollY={scrollY} />
-      
-      {/* Stats Section */}
-      <StatsSection />
-      
-      {/* Platform Launcher - Inline for desktop, FAB for mobile */}
-      {!isMobile && (
-        <section className="platform-section">
+
+      <main id="main" tabIndex={-1}>
+        {/* Stats Section */}
+        <StatsSection />
+
+        {/* Platform Launcher - Inline for desktop, FAB for mobile */}
+        {!isMobile && (
+          <section className="platform-section">
+            <div className="container">
+              <PlatformLauncher mode="inline" simplified={isMobile} />
+            </div>
+          </section>
+        )}
+
+        {/* About Section */}
+        <AboutSection />
+
+        {/* Music Section - Lazy loaded */}
+        <section id="music" className="music-section">
           <div className="container">
-            <PlatformLauncher mode="inline" simplified={isMobile} />
+            <h2 className="section-title">Our Music</h2>
+            <Suspense fallback={<LoadingFallback />}>
+              {isMobile ? (
+                // Simplified music section for mobile
+                <div className="mobile-music-cta">
+                  <p>Experience our gospel music on your favorite platform</p>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handlePlatformLauncherOpen}
+                  >
+                    Open Music Platforms
+                  </button>
+                </div>
+              ) : (
+                <MusicHub tracks={[]} />
+              )}
+            </Suspense>
           </div>
         </section>
-      )}
-      
-      {/* About Section */}
-      <AboutSection />
-      
-      {/* Music Section - Lazy loaded */}
-      <section id="music" className="music-section">
-        <div className="container">
-          <h2 className="section-title">Our Music</h2>
-          <Suspense fallback={<LoadingFallback />}>
-            {isMobile ? (
-              // Simplified music section for mobile
-              <div className="mobile-music-cta">
-                <p>Experience our gospel music on your favorite platform</p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={handlePlatformLauncherOpen}
-                >
-                  Open Music Platforms
-                </button>
-              </div>
-            ) : (
-              <MusicHub tracks={[]} />
-            )}
-          </Suspense>
-        </div>
-      </section>
-      
-      {/* Social Section - Lazy loaded */}
-      <section id="social" className="social-section">
-        <div className="container">
-          <h2 className="section-title">Connect With Us</h2>
-          <Suspense fallback={<LoadingFallback />}>
-            <SocialProofWall />
-            {!isMobile && (
-              <>
-                <FacebookHub pageUrl="https://www.facebook.com/djleevoicesofjudah" />
-                <InstagramHub posts={[]} profileUrl="https://www.instagram.com/djleevoicesofjudah" />
-              </>
-            )}
-          </Suspense>
-        </div>
-      </section>
-      
-      {/* Gallery Section - Lazy loaded */}
-      <section id="gallery" className="gallery-section">
-        <div className="container">
-          <h2 className="section-title">Photo Gallery</h2>
-          <Suspense fallback={<LoadingFallback />}>
-            <PhotoGallery />
-          </Suspense>
-        </div>
-      </section>
-      
-      {/* Services Section */}
-      <ServicesSection />
-      
-      {/* Booking Section - Lazy loaded */}
-      <section id="booking" className="booking-section">
-        <div className="container">
-          <h2 className="section-title">Book Us</h2>
-          <Suspense fallback={<LoadingFallback />}>
-            <BookingForm />
-          </Suspense>
-        </div>
-      </section>
-      
+
+        {/* Social Section removed as per request */}
+
+        {/* Gallery Section - Lazy loaded */}
+        <section id="gallery" className="gallery-section">
+          <div className="container">
+            <h2 className="section-title">Photo Gallery</h2>
+            <Suspense fallback={<LoadingFallback />}>
+              <PhotoGallery />
+            </Suspense>
+          </div>
+        </section>
+
+        {/* Services Section */}
+        <ServicesSection />
+
+        {/* Booking Section - Lazy loaded */}
+        <section id="booking" className="booking-section">
+          <div className="container">
+            <h2 className="section-title">Book Us</h2>
+            <Suspense fallback={<LoadingFallback />}>
+              <BookingForm />
+            </Suspense>
+          </div>
+        </section>
+      </main>
+
       {/* Footer */}
       <footer className="site-footer">
         <div className="container">
@@ -173,7 +159,8 @@ const EnhancedLandingPageV2: React.FC = () => {
             </div>
             <div className="footer-social">
               <p>Follow us on social media</p>
-              <PlatformLauncher mode="inline" simplified={true} />
+              {/* Avoid duplicating the Connect & Listen block: it's already rendered above for desktop
+                  and available via FAB on mobile. Omit inline launcher here. */}
             </div>
           </div>
           <div className="footer-bottom">
@@ -181,7 +168,7 @@ const EnhancedLandingPageV2: React.FC = () => {
           </div>
         </div>
       </footer>
-      
+
       {/* Mobile-specific components */}
       {isMobile && (
         <>

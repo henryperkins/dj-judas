@@ -87,10 +87,10 @@
 }
 
 .photo-overlay p {
-  color: white !important;
+  color: #ffffff !important;
   font-size: 0.95rem;
   font-weight: 600;
-  background: rgba(0,0,0,0.6);
+  background: #000000; /* solid for reliable contrast */
   display: inline-block;
   padding: 0.2rem 0.5rem;
   border-radius: 6px;

@@ -53,7 +53,7 @@
 }
 
 .nav-item.active {
-  color: var(--nav-active-color, #667eea);
+  color: var(--nav-active-color, #FF69B4);
 }
 
 .nav-item-content {
@@ -87,7 +87,7 @@
   top: -4px;
   width: 4px;
   height: 4px;
-  background: var(--nav-active-color, #667eea);
+  background: var(--nav-active-color, #FF69B4);
   border-radius: 50%;
 }
 
@@ -182,11 +182,11 @@
   }
   
   .nav-item.active {
-    color: #8a92ff;
+    color: #FF69B4;
   }
   
   .nav-indicator {
-    background: #8a92ff;
+    background: #FF69B4;
   }
   
   .share-popup {
@@ -242,7 +242,7 @@
 }
 
 .nav-item:focus-visible {
-  outline: 2px solid var(--focus-color, #667eea);
+  outline: 2px solid var(--focus-color, #FF69B4);
   outline-offset: -2px;
   border-radius: 8px;
 }

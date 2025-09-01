@@ -17,22 +17,22 @@ const ServicesSection: React.FC = () => {
     {
       icon: Church,
       title: 'Church Services',
-      description: 'Bringing powerful worship to your congregation'
+      description: 'Anointed worship ministry for Sunday services, revivals, and special church events throughout Northwest Indiana'
     },
     {
       icon: Mic,
-      title: 'Concerts & Events',
-      description: 'Professional gospel performances for any occasion'
+      title: 'Gospel Concerts & Festivals',
+      description: 'Dynamic performances for gospel concerts, community festivals, and Christian conferences'
     },
     {
       icon: Music2,
-      title: 'Recording & Production',
-      description: 'Studio-quality gospel music production'
+      title: 'Youth Choir Training',
+      description: 'Mentoring and developing young voices in gospel music through workshops and masterclasses'
     },
     {
       icon: Heart,
       title: 'Special Occasions',
-      description: 'Weddings, anniversaries, and celebrations'
+      description: 'Ministry through music for weddings, funerals, anniversaries, and milestone celebrations'
     }
   ];
 

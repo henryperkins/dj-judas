@@ -1,6 +1,6 @@
 .social-proof-wall {
   padding: 40px 20px;
-  background: linear-gradient(135deg, rgba(29, 185, 84, 0.05), rgba(252, 60, 68, 0.05));
+  background: linear-gradient(135deg, rgba(255, 105, 180, 0.06), rgba(0, 0, 0, 0.03));
   border-radius: 16px;
   margin: 20px 0;
 }
@@ -91,6 +91,15 @@
   border: 2px solid transparent;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  text-align: left;
+  /* reset native button styles */
+  border-width: 2px;
+  border-style: solid;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-clip: padding-box;
 }
 .platform-card, .platform-card * { color: #111111 !important; }
 

@@ -9,6 +9,7 @@ import PlatformLauncher from './PlatformLauncher';
 import './Footer.css';
 import MobileBottomNav from './MobileBottomNav';
 import { isMobileDevice } from '../utils/platformDetection';
+import { tracks as musicTracks } from '../data/tracks';
 
 // Lazy load heavy components
 const MusicHub = lazy(() => import('./MusicHub'));
@@ -99,19 +100,19 @@ const EnhancedLandingPageV2: React.FC = () => {
           <div className="container">
             <h2 className="section-title">Our Music</h2>
             <Suspense fallback={<LoadingFallback />}>
-              {isMobile ? (
-                // Simplified music section for mobile
+              {musicTracks.length > 0 && !isMobile ? (
+                <MusicHub tracks={musicTracks as any} />
+              ) : (
                 <div className="mobile-music-cta">
                   <p>Experience our gospel music on your favorite platform</p>
                   <button 
                     className="btn btn-primary"
                     onClick={handlePlatformLauncherOpen}
+                    aria-label="Open music platforms"
                   >
                     Open Music Platforms
                   </button>
                 </div>
-              ) : (
-                <MusicHub tracks={[]} />
               )}
             </Suspense>
           </div>

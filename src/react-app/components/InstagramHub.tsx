@@ -266,7 +266,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
               socialMetrics.trackSocialInteraction('instagram', 'share_intent', {});
               navigator.share({
                 title: 'Check out our Instagram',
-                text: 'Amazing gospel music content',
+                text: 'DJ Lee & Voices of Judah - Gospel Ministry from Gary, Indiana',
                 url: profileUrl
               });
             }}

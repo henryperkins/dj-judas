@@ -57,7 +57,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       engagement: 45.2,
       growth: 12,
       color: '#1db954',
-      url: 'https://open.spotify.com/artist/YOUR_ARTIST_ID'
+      url: 'https://open.spotify.com/artist/4ZxOuNHhpyOj3MOSE23KxR'
     },
     {
       platform: 'Apple Music',
@@ -66,7 +66,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       engagement: 38.5,
       growth: 8,
       color: '#fc3c44',
-      url: 'https://music.apple.com/artist/YOUR_ARTIST_ID'
+      url: 'https://music.apple.com/us/artist/dj-lee-voices-of-judah/1540816224'
     },
     {
       platform: 'Facebook',
@@ -75,7 +75,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       engagement: 8.5,
       growth: 5,
       color: '#1877f2',
-      url: 'https://facebook.com/YOUR_PAGE'
+      url: 'https://www.facebook.com/MidWestScreamers'
     },
     {
       platform: 'Instagram',
@@ -84,7 +84,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       engagement: 12.3,
       growth: 15,
       color: '#833ab4',
-      url: 'https://instagram.com/YOUR_PROFILE'
+      url: 'https://www.instagram.com/iam_djlee'
     }
   ];
 
@@ -200,8 +200,9 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       {/* Platform Grid */}
       <div className="platforms-grid">
         {platforms.map((platform, index) => (
-          <motion.div
+          <motion.button
             key={platform.platform}
+            type="button"
             className="platform-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -209,6 +210,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
             whileHover={{ y: -5 }}
             onClick={() => handlePlatformClick(platform)}
             style={{ '--platform-color': platform.color } as React.CSSProperties}
+            aria-label={`Open ${platform.platform}`}
           >
             <div className="platform-header">
               <platform.icon size={24} />
@@ -238,7 +240,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
             <div className="platform-cta">
               <span>Connect →</span>
             </div>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
 

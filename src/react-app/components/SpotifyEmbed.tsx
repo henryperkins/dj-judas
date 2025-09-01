@@ -60,6 +60,14 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
               trackEngagement('spotify_play', { uri, contentType });
             }
           });
+
+          // Ensure the generated iframe has an accessible title
+          setTimeout(() => {
+            const iframe = embedRef.current?.querySelector('iframe');
+            if (iframe && !iframe.getAttribute('title')) {
+              iframe.setAttribute('title', 'Spotify player');
+            }
+          }, 0);
         });
       };
     };
@@ -71,6 +79,15 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
       }
     };
   }, [uri, embedHeight, theme, onPlay, contentType]);
+
+  // Fallback: try setting the iframe title when load state changes
+  useEffect(() => {
+    if (!isLoaded) return;
+    const iframe = embedRef.current?.querySelector('iframe');
+    if (iframe && !iframe.getAttribute('title')) {
+      iframe.setAttribute('title', 'Spotify player');
+    }
+  }, [isLoaded]);
 
   // Check session status
   useEffect(() => {
@@ -154,7 +171,10 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   };
 
   return (
-    <div className={`spotify-embed-container ${compact ? 'compact' : ''} ${theme}`}>
+    <div 
+      className={`spotify-embed-container ${compact ? 'compact' : ''} ${theme}`}
+      aria-label="Spotify player"
+    >
       <div className="embed-header">
         <div className="platform-badge">
           <Music size={16} />

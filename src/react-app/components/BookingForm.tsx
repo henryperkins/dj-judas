@@ -67,9 +67,36 @@ const BookingForm: React.FC = () => {
     
     if (!validateForm()) return;
     
-    // TODO: Send form data to V.O.J@icloud.com
-    // Simulate API call for now
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    let sent = false;
+    try {
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        sent = true;
+      }
+    } catch {}
+
+    // Fallback: prefilled email if API unavailable
+    if (!sent) {
+      try {
+        const subject = encodeURIComponent(`Booking Request: ${formData.eventType} on ${formData.eventDate}`);
+        const body = encodeURIComponent([
+          `Name: ${formData.name}`,
+          `Email: ${formData.email}`,
+          `Phone: ${formData.phone}`,
+          `Event Type: ${formData.eventType}`,
+          `Date: ${formData.eventDate} ${formData.eventTime}`,
+          `Location: ${formData.location}`,
+          '',
+          'Message:',
+          formData.message
+        ].join('\n'));
+        window.location.href = `mailto:V.O.J@icloud.com?subject=${subject}&body=${body}`;
+      } catch {}
+    }
     
     setIsSubmitted(true);
     

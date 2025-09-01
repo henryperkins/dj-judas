@@ -15,6 +15,12 @@ interface Env {
 	APPLE_TEAM_ID: string;
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
+  RESEND_API_KEY?: string;
+  RESEND_FROM?: string; // e.g., 'Ministry <no-reply@yourdomain>'
+  RESEND_TO?: string;   // destination inbox
+  SENDGRID_API_KEY?: string;
+  SENDGRID_FROM?: string;
+  SENDGRID_TO?: string;
 }
 const app = new Hono<{ Bindings: Env }>();
 
@@ -181,3 +187,89 @@ app.post('/api/spotify/follow', async (c) => {
 });
 
 export default app;
+
+// --- Booking endpoint ---
+app.post('/api/booking', async (c) => {
+  try {
+    const body = await c.req.json<{
+      name: string;
+      email: string;
+      phone: string;
+      eventType: string;
+      eventDate: string;
+      eventTime: string;
+      location: string;
+      message?: string;
+    }>();
+
+    const required = ['name','email','phone','eventType','eventDate','eventTime','location'] as const;
+    for (const k of required) {
+      if (!body[k] || String(body[k]).trim() === '') {
+        return c.json({ error: `missing_${k}` }, 400);
+      }
+    }
+
+    const summary = [
+      `Name: ${body.name}`,
+      `Email: ${body.email}`,
+      `Phone: ${body.phone}`,
+      `Event Type: ${body.eventType}`,
+      `Date: ${body.eventDate} ${body.eventTime}`,
+      `Location: ${body.location}`,
+      '',
+      'Message:',
+      body.message || '(none)'
+    ].join('\n');
+
+    // Prefer Resend if configured
+    const toResend = c.env.RESEND_TO || 'V.O.J@icloud.com';
+    const fromResend = c.env.RESEND_FROM || 'DJ Lee Website <no-reply@djlee.local>';
+    if (c.env.RESEND_API_KEY) {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: fromResend,
+          to: [toResend],
+          subject: `Booking Request: ${body.eventType} on ${body.eventDate}`,
+          text: summary
+        })
+      });
+      if (!res.ok) {
+        return c.json({ error: 'email_send_failed', provider: 'resend', status: res.status }, 500);
+      }
+      return c.json({ ok: true, provider: 'resend' });
+    }
+
+    // Fallback: SendGrid
+    if (c.env.SENDGRID_API_KEY) {
+      const to = c.env.SENDGRID_TO || 'V.O.J@icloud.com';
+      const from = c.env.SENDGRID_FROM || 'no-reply@djlee.local';
+      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${c.env.SENDGRID_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to }] }],
+          from: { email: from, name: 'DJ Lee Website' },
+          subject: `Booking Request: ${body.eventType} on ${body.eventDate}`,
+          content: [{ type: 'text/plain', value: summary }]
+        })
+      });
+      if (!res.ok) {
+        return c.json({ error: 'email_send_failed', provider: 'sendgrid', status: res.status }, 500);
+      }
+      return c.json({ ok: true, provider: 'sendgrid' });
+    }
+
+    // If no provider configured, instruct client to fallback
+    return c.json({ ok: false, error: 'no_email_provider' }, 501);
+  } catch (e) {
+    return c.json({ error: 'invalid_request' }, 400);
+  }
+});

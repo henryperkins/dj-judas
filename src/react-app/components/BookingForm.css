@@ -113,7 +113,7 @@
 
 /* Placeholder contrast */
 .form-group input::placeholder,
-.form-group textarea::placeholder { color: #1f2937; }
+.form-group textarea::placeholder { color: #1f2937; opacity: 1; }
 
 .submit-button {
   width: 100%;

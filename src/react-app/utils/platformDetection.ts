@@ -92,7 +92,7 @@ export const PLATFORM_CONFIGS = {
     name: 'Spotify',
     color: '#1DB954',
     icon: '🎵',
-    artistId: '5J1Fn8aSPwEZgQFRhgdcrJ', // Replace with actual artist ID
+    artistId: '4ZxOuNHhpyOj3MOSE23KxR', // DJ Lee & Voices of Judah Spotify ID
     deepLinkPrefix: 'spotify:artist:',
     webLinkPrefix: 'https://open.spotify.com/artist/'
   },
@@ -100,7 +100,7 @@ export const PLATFORM_CONFIGS = {
     name: 'Apple Music',
     color: '#FA233B',
     icon: '🎧',
-    artistId: '1234567890', // Replace with actual artist ID
+    artistId: '1540816224', // DJ Lee & Voices of Judah Apple Music ID
     deepLinkPrefix: 'music://music.apple.com/artist/',
     webLinkPrefix: 'https://music.apple.com/us/artist/'
   },
@@ -108,7 +108,7 @@ export const PLATFORM_CONFIGS = {
     name: 'Facebook',
     color: '#1877F2',
     icon: '👥',
-    pageId: 'djleevoicesofjudah', // Replace with actual page ID
+    pageId: 'MidWestScreamers', // Facebook page ID
     deepLinkPrefix: 'fb://page/',
     webLinkPrefix: 'https://www.facebook.com/'
   },
@@ -116,7 +116,7 @@ export const PLATFORM_CONFIGS = {
     name: 'Instagram',
     color: '#E4405F',
     icon: '📷',
-    username: 'djleevoicesofjudah', // Replace with actual username
+    username: 'iam_djlee', // Instagram username
     deepLinkPrefix: 'instagram://user?username=',
     webLinkPrefix: 'https://www.instagram.com/'
   }

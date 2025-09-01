@@ -148,19 +148,19 @@ footer .platform-launcher-title { color: #ffffff; }
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #FF69B4 100%);
   color: white;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.4);
   transition: all 0.3s ease;
 }
 
 .fab-trigger:hover {
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 6px 20px rgba(255, 105, 180, 0.6);
 }
 
 .fab-trigger:active {
@@ -320,7 +320,7 @@ body.mobile-nav-visible {
 .fab-platform-btn:focus,
 .platform-card:focus,
 .platform-modal-button:focus {
-  outline: 2px solid var(--focus-color, #667eea);
+  outline: 2px solid var(--focus-color, #FF69B4);
   outline-offset: 2px;
 }
 
@@ -338,7 +338,7 @@ body.mobile-nav-visible {
   width: 40px;
   height: 40px;
   border: 3px solid var(--border-color);
-  border-top-color: var(--primary-color, #667eea);
+  border-top-color: var(--primary-color, #FF69B4);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

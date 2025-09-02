@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import './AboutSection.css';
 import { useInView } from 'react-intersection-observer';
+import artistPianoImage from '../../assets/images/artist-piano.jpeg';
 
 const AboutSection: React.FC = () => {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true });
@@ -34,8 +35,8 @@ const AboutSection: React.FC = () => {
             </div>
             <div className="about-image">
               <img 
-                src="/images/group-photo.jpg" 
-                alt="DJ Lee & Voices of Judah" 
+                src={artistPianoImage} 
+                alt="DJ Lee at the piano" 
                 loading="lazy"
               />
             </div>

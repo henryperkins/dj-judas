@@ -1,0 +1,378 @@
+/* =================================================================
+   SHARED STYLES - Consolidated from duplicate patterns
+   ================================================================= */
+
+/* =================================================================
+   ANIMATIONS (used by multiple components)
+   ================================================================= */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.7;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =================================================================
+   LOADING STATES (used by SpotifyEmbed, AppleMusicEmbed, FacebookHub)
+   ================================================================= */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid hsl(var(--border) / 0.3);
+  border-top-color: hsl(var(--accent));
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.embed-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: hsl(var(--foreground));
+}
+
+/* =================================================================
+   PLATFORM COMPONENTS (used by SpotifyEmbed, AppleMusicEmbed)
+   ================================================================= */
+.platform-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  font-size: 14px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.platform-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* =================================================================
+   HUB HEADERS (used by MusicHub, InstagramHub, FacebookHub)
+   ================================================================= */
+.hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid hsl(var(--border) / 0.2);
+}
+
+/* Mobile-first hub header */
+@media (max-width: 767px) {
+  .hub-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .hub-header {
+    flex-direction: row;
+    gap: 0;
+  }
+}
+
+/* =================================================================
+   EMBED CONTAINERS (used by multiple embed components)
+   ================================================================= */
+.embed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .embed-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+}
+
+.embed-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .embed-actions {
+    flex-direction: row;
+  }
+}
+
+/* =================================================================
+   BUTTONS - Unified button system
+   ================================================================= */
+
+/* Base action button (used by SpotifyEmbed, AppleMusicEmbed) */
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid hsl(var(--border));
+  background: var(--card);
+  color: hsl(var(--foreground));
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex: 1;
+  min-width: 120px;
+  justify-content: center;
+  width: 100%;
+}
+
+.action-btn:hover {
+  background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%));
+}
+
+@media (min-width: 768px) {
+  .action-btn {
+    width: auto;
+  }
+}
+
+/* Play button variant */
+.play-btn {
+  background: hsl(var(--accent));
+  border-color: hsl(var(--accent));
+  color: hsl(0 0% 100%);
+}
+
+.play-btn:hover {
+  filter: brightness(1.05);
+}
+
+/* Platform-specific open buttons */
+.open-spotify-btn,
+.open-apple-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: transparent;
+  color: hsl(var(--accent));
+  border: 1px solid hsl(var(--accent));
+  transition: background 0.2s ease;
+}
+
+.open-spotify-btn:hover,
+.open-apple-btn:hover {
+  background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%));
+}
+
+@media (min-width: 768px) {
+  .open-spotify-btn,
+  .open-apple-btn {
+    justify-content: flex-start;
+  }
+}
+
+/* Platform buttons (used in multiple hubs) */
+.platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+  background: hsl(var(--card));
+  width: 100%;
+  justify-content: center;
+}
+
+.platform-btn:hover {
+  background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%));
+}
+
+@media (min-width: 768px) {
+  .platform-btn {
+    width: auto;
+  }
+}
+
+/* Platform brand accents */
+.platform-btn.spotify::before,
+.platform-btn.apple::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-left: 4px solid transparent;
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+.platform-btn.spotify::before {
+  border-left-color: hsl(var(--brand-spotify));
+}
+
+.platform-btn.apple::before {
+  border-left-color: hsl(var(--accent));
+}
+
+/* =================================================================
+   TAB NAVIGATION (used by InstagramHub, FacebookHub)
+   ================================================================= */
+.hub-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.hub-tabs button {
+  background: none;
+  border: none;
+  color: hsl(var(--foreground));
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.hub-tabs button.active {
+  border-bottom: 2px solid hsl(var(--accent));
+}
+
+/* Hide tabs on desktop */
+@media (min-width: 768px) {
+  .hub-tabs {
+    display: none;
+  }
+}
+
+/* =================================================================
+   MOBILE-FIRST RESPONSIVE PATTERNS
+   ================================================================= */
+
+/* Mobile-first button groups */
+.playlist-buttons,
+.cta-buttons,
+.music-platform-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .playlist-buttons,
+  .cta-buttons,
+  .music-platform-buttons {
+    flex-direction: row;
+  }
+}
+
+/* Special button variants */
+.playlist-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background: hsl(var(--card));
+  position: relative;
+}
+
+.playlist-btn:hover {
+  background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%));
+}
+
+/* Mobile-first full-width buttons */
+.follow-btn,
+.profile-btn,
+.playlist-btn,
+.cta-btn,
+.subscribe-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .follow-btn,
+  .profile-btn,
+  .playlist-btn,
+  .cta-btn,
+  .subscribe-btn {
+    width: auto;
+  }
+}
+
+/* =================================================================
+   UTILITY CLASSES
+   ================================================================= */
+
+/* Hide extra chrome */
+.streaming-cta {
+  display: none;
+}
+
+/* Text utilities */
+.text-primary {
+  color: hsl(var(--foreground));
+}
+
+.text-secondary {
+  color: hsl(var(--text-secondary));
+}
+
+.text-muted {
+  color: hsl(var(--text-muted));
+}

@@ -1,136 +1,37 @@
-.spotify-embed-container {
-  background: linear-gradient(135deg, #1db954 0%, #191414 100%);
-  border-radius: 12px;
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease;
-}
+.spotify-embed-container { background: var(--card, #fff); border-radius: var(--radius); padding: 16px; margin: 20px 0; border: 1px solid hsl(var(--border)); transition: transform 0.2s ease; }
 
-.spotify-embed-container:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 40px rgba(29, 185, 84, 0.2);
-}
+.spotify-embed-container:hover { transform: translateY(-1px); }
 
 .spotify-embed-container.compact {
   padding: 15px;
 }
 
-.spotify-embed-container.light {
-  background: linear-gradient(135deg, #1db954 0%, #f0f0f0 100%);
-}
+/* Light variant no-op: use tokens */
+.spotify-embed-container.light { background: var(--card, #fff); }
 
-.embed-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  flex-direction: column; /* mobile-first */
-  gap: 10px;
-  align-items: stretch;
-}
+/* Moved to shared.css */
 
-.platform-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 6px 12px;
-  border-radius: 20px;
-}
+/* Moved to shared.css */
 
-.open-spotify-btn { display: flex; align-items: center; gap: 6px; background: #1db954; color: white; border: none; padding: 8px 14px; border-radius: 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; justify-content: center; }
+/* Moved to shared.css */
 
-.open-spotify-btn:hover {
-  background: #1ed760;
-  transform: scale(1.05);
-}
+.spotify-iframe-container { width: 100%; border-radius: 8px; overflow: hidden; background: #000; position: relative; min-height: 152px; }
 
-.spotify-iframe-container {
-  width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #000;
-  position: relative;
-  min-height: 152px;
-}
+/* Loading states moved to shared.css */
 
-.embed-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: white;
-}
+/* Moved to shared.css */
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #1db954;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.embed-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  flex-wrap: wrap;
-  flex-direction: column; /* mobile-first */
-}
-
-.action-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border: 2px solid #111827; background: #0b1220; color: #ffffff; border-radius: 22px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; flex: 1; min-width: 120px; justify-content: center; width: 100%; }
-
-.action-btn:hover {
-  background: rgba(29, 185, 84, 0.3);
-  border-color: #1db954;
-  transform: translateY(-2px);
-}
+/* Moved to shared.css */
 
 .save-btn:hover {
   background: rgba(255, 0, 80, 0.2);
   border-color: #ff0050;
 }
 
-.follow-btn:hover { background: #1f2937; border-color: #1f2937; }
+.follow-btn:hover { background: color-mix(in oklab, white 90%, rgb(0 0 0 / 10%)); border-color: hsl(var(--border)); }
 
-.play-btn {
-  background: #1db954;
-  border-color: #1db954;
-}
+/* Moved to shared.css */
 
-.play-btn:hover {
-  background: #1ed760;
-  transform: scale(1.05);
-}
+/* Moved to shared.css */
 
-.streaming-cta {
-  text-align: center;
-  margin-top: 20px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
-}
-
-.streaming-cta p {
-  margin: 0;
-  font-weight: 500;
-}
-
-@media (min-width: 768px) {
-  .embed-actions { flex-direction: row; }
-  .action-btn { width: auto; }
-  .embed-header { flex-direction: row; align-items: center; gap: 0; }
-  .open-spotify-btn { justify-content: flex-start; }
-}
+/* Responsive styles moved to shared.css */

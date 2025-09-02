@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import './HeroSection.css';
 import { ChevronDown } from 'lucide-react';
+import pattern1 from '../../assets/images/pattern1.jpeg';
+import logoImage from '../../assets/images/logo.jpeg';
 
 interface HeroSectionProps {
   scrollY?: any;
@@ -17,10 +19,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
-      <div className="hero-background">
+      <div className="hero-background with-pattern" style={{ backgroundImage: `url(${pattern1})` }}>
         <div className="hero-overlay"></div>
       </div>
       <div className="hero-content">
+        <motion.img
+          src={logoImage}
+          alt="DJ Lee & Voices of Judah"
+          style={{ maxWidth: '250px', marginBottom: '1.5rem', display: 'block', margin: '0 auto 1.5rem' }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.8 }}
+        />
         <motion.h1 
           className="hero-title"
           initial={{ y: 30 }}

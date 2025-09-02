@@ -58,12 +58,17 @@ class MetaSDKLoader {
           XFBML?: { parse: (el?: HTMLElement) => void };
           ui?: (cfg: Record<string, unknown>, cb: (resp: unknown) => void) => void;
         };
-        FB.init({
-          appId: this.config.appId,
+        const initCfg: Record<string, unknown> = {
           cookie: true,
-          xfbml: true,
+          // Prefer explicit parsing on containers we pass in
+          // to avoid double-parsing race conditions.
+          xfbml: false,
           version: this.config.version
-        });
+        };
+        if (this.config.appId) {
+          initCfg.appId = this.config.appId;
+        }
+        FB.init(initCfg);
 
         // Track page view
         if (this.config.enableAnalytics) {

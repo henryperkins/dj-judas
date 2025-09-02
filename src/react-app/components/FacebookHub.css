@@ -1,108 +1,31 @@
-.facebook-hub { background: #ffffff; border-radius: 16px; padding: 24px; margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.facebook-hub { background: hsl(var(--card)); border-radius: var(--radius); padding: 24px; margin: 20px 0; border: 1px solid hsl(var(--border)); }
 
-.hub-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
+/* Moved to shared.css */
 
-.platform-indicator {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #111111;
-  font-weight: 700;
-}
+/* Moved to shared.css - using font-weight: 700 variant */
 
-.follower-count { background: #e5e7eb; color: #111111; padding: 4px 12px; border-radius: 20px; font-size: 14px; }
+.follower-count { background: hsl(var(--muted)); color: hsl(var(--foreground)); padding: 4px 12px; border-radius: 999px; font-size: 14px; }
 
-.follow-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #0a3a8f;
-  color: #ffffff;
-  border: 1px solid #0a3a8f;
-  padding: 10px 20px;
-  border-radius: 25px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.follow-btn:hover { transform: scale(1.03); box-shadow: 0 5px 12px rgba(0,0,0,0.12); }
+.follow-btn { display: flex; align-items: center; gap: 8px; background: transparent; color: hsl(var(--accent)); border: 1px solid hsl(var(--accent)); padding: 10px 16px; border-radius: var(--radius); font-weight: 600; cursor: pointer; transition: background 0.2s ease; }
+.follow-btn:hover { background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%)); }
 
 .facebook-embed-container,
-.facebook-events-container {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 24px;
-  overflow: hidden;
-}
+.facebook-events-container { background: hsl(var(--card)); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; overflow: hidden; border: 1px solid hsl(var(--border)); }
 
-.facebook-events-container h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #0a3a8f;
-  margin-bottom: 16px;
-  font-size: 1.2em;
-}
+.facebook-events-container h3 { display: flex; align-items: center; gap: 8px; color: hsl(var(--foreground)); margin-bottom: 16px; font-size: 1.2em; }
 
-.embed-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 300px;
-  color: #0a3a8f;
-}
+/* Moved to shared.css */
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(10, 58, 143, 0.2);
-  border-top-color: #0a3a8f;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+/* Loading states moved to shared.css */
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+.music-cta-section { background: hsl(var(--card)); border-radius: var(--radius); padding: 24px; margin: 24px 0; text-align: center; border: 1px solid hsl(var(--border)); }
 
-.music-cta-section {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 24px;
-  margin: 24px 0;
-  text-align: center;
-  animation: slideUp 0.5s ease-out;
-}
+/* Animation moved to shared.css */
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.music-cta-section h3 {
-  color: #0a3a8f;
-  margin-bottom: 12px;
-  font-size: 1.3em;
-}
+.music-cta-section h3 { color: hsl(var(--foreground)); margin-bottom: 12px; font-size: 1.3em; }
 
 .music-cta-section p {
-  color: #666;
+  color: hsl(var(--text-secondary));
   margin-bottom: 20px;
 }
 
@@ -113,38 +36,9 @@
   flex-wrap: wrap;
 }
 
-.platform-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 25px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
+/* Moved to shared.css */
 
-.platform-btn.spotify {
-  background: #1db954;
-}
-
-.platform-btn.spotify:hover {
-  background: #1ed760;
-  transform: scale(1.05);
-}
-
-.platform-btn.apple {
-  background: #fc3c44;
-}
-
-.platform-btn.apple:hover {
-  background: #ff5257;
-  transform: scale(1.05);
-}
+/* Platform brand accents moved to shared.css */
 
 .platform-btn svg:last-child {
   position: absolute;
@@ -152,18 +46,13 @@
   opacity: 0.7;
 }
 
-.events-section {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 20px;
-  margin: 24px 0;
-}
+.events-section { background: hsl(var(--card)); border-radius: var(--radius); padding: 20px; margin: 24px 0; border: 1px solid hsl(var(--border)); }
 
 .events-section h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1877f2;
+  color: hsl(var(--foreground));
   margin-bottom: 16px;
 }
 
@@ -177,49 +66,33 @@
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: white;
-  border: 2px solid #e4e6eb;
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--border));
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.event-card:hover {
-  border-color: #1877f2;
-  transform: translateX(5px);
-  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.1);
-}
+.event-card:hover { border-color: hsl(var(--brand-facebook)); transform: translateX(2px); }
 
-.event-date {
-  min-width: 60px;
-  padding: 8px;
-  background: #1877f2;
-  color: white;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: bold;
-  font-size: 14px;
-}
+.event-date { min-width: 60px; padding: 8px; background: hsl(var(--brand-facebook)); color: hsl(0 0% 100%); border-radius: 8px; text-align: center; font-weight: bold; font-size: 14px; }
 
 .event-details {
   flex: 1;
 }
 
-.event-details h4 {
-  margin: 0 0 4px 0;
-  color: #1c1e21;
-}
+.event-details h4 { margin: 0 0 4px 0; color: hsl(var(--foreground)); }
 
 .event-details p {
   margin: 0;
-  color: #65676b;
+  color: hsl(var(--text-muted));
   font-size: 14px;
 }
 
 .ticket-btn {
   padding: 8px 16px;
-  background: #42b883;
-  color: white;
+  background: hsl(var(--accent));
+  color: hsl(0 0% 100%);
   border: none;
   border-radius: 6px;
   font-weight: 600;
@@ -227,15 +100,13 @@
   transition: all 0.3s ease;
 }
 
-.ticket-btn:hover {
-  background: #33a06f;
-}
+.ticket-btn:hover { background: hsl(var(--accent-700)); }
 
 .social-proof {
   display: flex;
   justify-content: space-around;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in oklab, hsl(var(--foreground)) 8%, transparent);
   border-radius: 12px;
   margin: 24px 0;
 }
@@ -244,21 +115,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: white;
+  color: hsl(var(--foreground));
   font-size: 14px;
 }
 
-.video-section {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 24px;
-}
+.video-section { background: hsl(var(--card)); border-radius: var(--radius); padding: 20px; margin-top: 24px; border: 1px solid hsl(var(--border)); }
 
-.video-section h3 { color: #0a3a8f; margin-bottom: 8px; }
+.video-section h3 { color: hsl(var(--foreground)); margin-bottom: 8px; }
 
 .video-hint {
-  color: #65676b;
+  color: hsl(var(--text-muted));
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -268,10 +134,9 @@
   max-width: 500px;
 }
 
-.facebook-tabs { display: flex; justify-content: space-around; margin-bottom: 20px; }
+/* Using shared .hub-tabs class */
 
-.facebook-tabs button { background: none; border: none; color: #0a3a8f; font-size: 16px; font-weight: 700; padding: 10px; cursor: pointer; }
-.facebook-tabs button.active { border-bottom: 2px solid #0a3a8f; }
+/* Tab styles moved to shared.css */
 
 /* Mobile-first: show tabs, hide sections unless .active */
 .facebook-embed-container,
@@ -287,26 +152,18 @@
 .social-proof.active,
 .video-section.active { display: block; }
 
-/* Mobile-first adjustments */
-.hub-header { flex-direction: column; gap: 12px; }
-.follow-btn { width: 100%; justify-content: center; }
-.music-platform-buttons { flex-direction: column; }
-.platform-btn { width: 100%; justify-content: center; }
+/* Mobile-first styles moved to shared.css */
 .social-proof { flex-direction: column; gap: 12px; align-items: center; }
 .event-card { flex-direction: column; }
 
-/* Tablet and up: show all sections, desktop layout */
 @media (min-width: 768px) {
-  .facebook-tabs { display: none; }
   .facebook-embed-container,
   .facebook-events-container,
   .music-cta-section,
   .events-section,
   .social-proof,
   .video-section { display: block; }
-  .hub-header { flex-direction: row; gap: 0; }
-  .follow-btn, .platform-btn { width: auto; }
-  .music-platform-buttons { flex-direction: row; }
   .social-proof { flex-direction: row; gap: 0; align-items: center; }
   .event-card { flex-direction: row; }
+  /* Other responsive styles moved to shared.css */
 }

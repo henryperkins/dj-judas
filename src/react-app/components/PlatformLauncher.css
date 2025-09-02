@@ -23,14 +23,9 @@ footer .platform-launcher-title { color: #ffffff; }
   margin: 0 auto;
 }
 
-.platform-card { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--card-bg, #fff); border: 2px solid var(--platform-color, #e0e0e0); border-radius: 12px; cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+.platform-card { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--card, #fff); border: 1px solid var(--platform-color, hsl(var(--border))); border-radius: var(--radius); cursor: pointer; transition: background 0.2s ease; font-size: 0.9rem; font-weight: 600; color: hsl(var(--foreground)); }
 
-.platform-card:hover {
-  background: var(--platform-color);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+.platform-card:hover { background: color-mix(in oklab, white 92%, rgb(0 0 0 / 8%)); }
 
 .platform-icon {
   font-size: 1.5rem;
@@ -52,29 +47,9 @@ footer .platform-launcher-title { color: #ffffff; }
 }
 
 /* Modal Mode */
-.platform-launcher-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 999;
-}
+.platform-launcher-overlay { position: fixed; inset: 0; background: hsl(0 0% 0% / 0.5); backdrop-filter: blur(4px); z-index: 999; }
 
-.platform-launcher-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--modal-bg, white);
-  border-radius: 20px;
-  padding: 2rem;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
+.platform-launcher-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: hsl(var(--card)); border-radius: var(--radius); padding: 2rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; z-index: 1000; border: 1px solid hsl(var(--border)); }
 
 .modal-close {
   position: absolute;
@@ -89,9 +64,7 @@ footer .platform-launcher-title { color: #ffffff; }
   transition: all 0.3s;
 }
 
-.modal-close:hover {
-  background: var(--hover-bg, #f0f0f0);
-}
+.modal-close:hover { background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%)); }
 
 .platform-launcher-modal h2 {
   text-align: center;
@@ -111,19 +84,15 @@ footer .platform-launcher-title { color: #ffffff; }
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: var(--card-bg, #f8f8f8);
-  border: 2px solid transparent;
-  border-radius: 12px;
+  background: var(--card, #fff);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.3s ease;
   min-height: 96px;
 }
 
-.platform-modal-button:hover {
-  border-color: var(--platform-color);
-  background: var(--platform-color);
-  color: white;
-}
+.platform-modal-button:hover { border-color: var(--platform-color, hsl(var(--accent))); background: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%)); }
 
 .platform-modal-icon {
   font-size: 2rem;
@@ -148,7 +117,7 @@ footer .platform-launcher-title { color: #ffffff; }
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #000000 0%, #FF69B4 100%);
+  background: linear-gradient(135deg, #000000 0%, hsl(var(--accent)) 100%);
   color: white;
   border: none;
   cursor: pointer;
@@ -273,44 +242,13 @@ body.mobile-nav-visible {
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .platform-launcher-modal {
-    background: #1a1a1a;
-  }
-  
-  .platform-card {
-    background: #2a2a2a;
-    color: #e0e0e0;
-  }
-  
-  .fab-menu {
-    background: #2a2a2a;
-  }
-  
-  .fab-platform-btn {
-    color: #e0e0e0;
-    border-color: #404040;
-  }
-  
-  .platform-modal-button {
-    background: #2a2a2a;
-    color: #e0e0e0;
-  }
-}
+/* Dark mode follows .dark tokens; removed media query overrides */
 
 /* Animation Classes */
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
+/* Animation moved to shared.css */
 
 /* Section wrapper for inline launcher */
-.platform-section { padding: 3rem 0; background: var(--section-bg-alt, white); }
+.platform-section { padding: 3rem 0; background: hsl(var(--section-bg-alt)); }
 
 .fab-trigger.pulse {
   animation: pulse 2s infinite;
@@ -320,7 +258,7 @@ body.mobile-nav-visible {
 .fab-platform-btn:focus,
 .platform-card:focus,
 .platform-modal-button:focus {
-  outline: 2px solid var(--focus-color, #FF69B4);
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
@@ -338,13 +276,9 @@ body.mobile-nav-visible {
   width: 40px;
   height: 40px;
   border: 3px solid var(--border-color);
-  border-top-color: var(--primary-color, #FF69B4);
+  border-top-color: hsl(var(--ring));
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* Animation moved to shared.css */

@@ -1,63 +1,14 @@
-.apple-music-embed-container {
-  background: linear-gradient(135deg, #fc3c44 0%, #000000 100%);
-  border-radius: 12px;
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease;
-}
+.apple-music-embed-container { background: var(--card, #fff); border-radius: var(--radius); padding: 16px; margin: 20px 0; border: 1px solid hsl(var(--border)); transition: transform 0.2s ease; }
 
-.apple-music-embed-container:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 40px rgba(252, 60, 68, 0.2);
-}
+.apple-music-embed-container:hover { transform: translateY(-1px); }
 
-.apple-music-embed-container.light {
-  background: linear-gradient(135deg, #fc3c44 0%, #f5f5f7 100%);
-}
+.apple-music-embed-container.light { background: var(--card, #fff); }
 
-.embed-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  flex-direction: column; /* mobile-first */
-  gap: 10px;
-  align-items: stretch;
-}
+/* Moved to shared.css */
 
-.platform-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 6px 12px;
-  border-radius: 20px;
-}
+/* Moved to shared.css */
 
-.open-apple-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fc3c44;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  justify-content: center; /* mobile-first */
-}
-
-.open-apple-btn:hover {
-  background: #ff5257;
-  transform: scale(1.05);
-}
+/* Moved to shared.css */
 
 .apple-iframe-container {
   width: 100%;
@@ -68,75 +19,15 @@
   min-height: 150px;
 }
 
-.embed-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: white;
-}
+/* Loading states moved to shared.css */
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fc3c44;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+/* Moved to shared.css */
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+/* Moved to shared.css */
 
-.embed-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  flex-wrap: wrap;
-  flex-direction: column; /* mobile-first */
-}
+.add-library-btn:hover { background: color-mix(in oklab, white 92%, rgb(0 0 0 / 8%)); border-color: hsl(var(--accent)); }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.2);
-  color: white;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  min-width: 140px;
-  justify-content: center;
-  width: 100%; /* mobile-first */
-}
-
-.action-btn:hover {
-  background: rgba(252, 60, 68, 0.3);
-  border-color: #fc3c44;
-  transform: translateY(-2px);
-}
-
-.add-library-btn:hover {
-  background: rgba(252, 60, 68, 0.4);
-  border-color: #fc3c44;
-}
-
-.play-btn {
-  background: #fc3c44;
-  border-color: #fc3c44;
-}
-
-.play-btn:hover {
-  background: #ff5257;
-  transform: scale(1.05);
-}
+/* Moved to shared.css */
 
 .purchase-btn {
   background: linear-gradient(135deg, #007aff, #5856d6);
@@ -148,62 +39,26 @@
   transform: scale(1.05);
 }
 
-.subscription-cta {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  flex-direction: column; /* mobile-first */
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  color: white;
-}
+.subscription-cta { display: flex; align-items: stretch; justify-content: center; flex-direction: column; margin-top: 20px; padding: 15px; background: var(--card, #fff); border-radius: var(--radius); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
 
 .subscription-cta p {
   margin: 0;
   font-size: 14px;
 }
 
-.subscribe-btn {
-  background: linear-gradient(135deg, #fc3c44, #ff6b6b);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+.subscribe-btn { background: hsl(var(--accent)); color: #fff; border: 1px solid hsl(var(--accent)); padding: 10px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: filter 0.2s ease; }
+.subscribe-btn:hover { filter: brightness(1.05); }
 
-.subscribe-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(252, 60, 68, 0.4);
-}
-
-.streaming-cta {
-  text-align: center;
-  margin-top: 15px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
-}
+/* Moved to shared.css */
 
 .streaming-cta p {
   margin: 0;
   font-weight: 500;
 }
 
-.subscribe-btn { width: 100%; }
+/* Moved to shared.css */
 
 @media (min-width: 768px) {
-  .embed-actions { flex-direction: row; }
-  .action-btn { width: auto; }
-  .embed-header { flex-direction: row; align-items: center; gap: 0; }
-  .open-apple-btn { justify-content: flex-start; }
   .subscription-cta { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; }
-  .subscribe-btn { width: auto; }
+  /* Other responsive styles moved to shared.css */
 }

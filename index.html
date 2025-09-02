@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
-  <meta name="theme-color" content="#FF69B4" />
+  <meta name="theme-color" content="#9d174d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="DJ Lee & Voices of Judah — A gospel music ministry bringing uplifting worship through powerful vocals and live performances. Book us for services, concerts, and special events." />
@@ -26,6 +26,18 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <script>
+    // Apply saved or system theme ASAP to avoid FOUC
+    (function () {
+      try {
+        var stored = localStorage.getItem('theme');
+        var useDark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        root.classList.toggle('dark', useDark);
+        root.style.colorScheme = useDark ? 'dark' : 'light';
+      } catch (_) {}
+    })();
+  </script>
 </head>
 
 <body>

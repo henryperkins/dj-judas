@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Users, TrendingUp, Music, Heart, Share2, PlayCircle, 
+  Users, TrendingUp, Music, Heart, PlayCircle, 
   Facebook, Instagram, Calendar, MapPin, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,7 +56,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       followers: spotifyMonthlyListeners,
       engagement: 45.2,
       growth: 12,
-      color: '#1db954',
+      color: 'hsl(var(--brand-spotify))',
       url: 'https://open.spotify.com/artist/4ZxOuNHhpyOj3MOSE23KxR'
     },
     {
@@ -74,7 +74,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       followers: facebookFollowers,
       engagement: 8.5,
       growth: 5,
-      color: '#1877f2',
+      color: 'hsl(var(--brand-facebook))',
       url: 'https://www.facebook.com/MidWestScreamers'
     },
     {
@@ -83,7 +83,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       followers: instagramFollowers,
       engagement: 12.3,
       growth: 15,
-      color: '#833ab4',
+      color: 'hsl(var(--brand-instagram-start))',
       url: 'https://www.instagram.com/iam_djlee'
     }
   ];
@@ -293,18 +293,12 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       <div className="social-cta-section">
         <h3>Join Our Growing Community</h3>
         <p>Be part of our ministry through music across all platforms</p>
-        
         <div className="cta-buttons">
-          <button className="cta-primary">
+          <a href="#media" className="btn btn-primary">
             <Music size={20} />
             Listen Now
-          </button>
-          <button className="cta-secondary">
-            <Share2 size={20} />
-            Share Our Music
-          </button>
+          </a>
         </div>
-
         <div className="trust-indicators">
           <span><Calendar size={14} /> Active since 2008</span>
           <span><MapPin size={14} /> Gary, Indiana</span>

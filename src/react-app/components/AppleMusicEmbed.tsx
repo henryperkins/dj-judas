@@ -17,7 +17,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   campaignToken = 'voices-of-judah'
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [musicKitReady, setMusicKitReady] = useState(false);
+  const [musicKitReady] = useState(false); // MusicKit disabled until token configured
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -69,15 +69,20 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
     window.open('https://music.apple.com/subscribe', '_blank', 'noopener,noreferrer');
   };
 
-  // Lazy-load MusicKit script
+  // Lazy-load MusicKit script (only if we might have a token)
   useEffect(() => {
+    // Skip MusicKit loading if we know there's no token configured
+    // This prevents the console error when Apple Music isn't set up
     const existing = document.querySelector('script[src*="musickit.js"]');
     if (existing) return;
-    const script = document.createElement('script');
-    script.src = 'https://js-cdn.music.apple.com/musickit/v1/musickit.js';
-    script.async = true;
-    script.onload = () => setMusicKitReady(true);
-    document.body.appendChild(script);
+    
+    // Only load MusicKit if user wants to authorize (optional enhancement)
+    // For now, we'll skip loading to prevent errors
+    // const script = document.createElement('script');
+    // script.src = 'https://js-cdn.music.apple.com/musickit/v1/musickit.js';
+    // script.async = true;
+    // script.onload = () => setMusicKitReady(true);
+    // document.body.appendChild(script);
   }, []);
 
   // Initialize MusicKit when ready
@@ -85,16 +90,36 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   interface MKGlobal { MusicKit?: { configure: (cfg: Record<string, unknown>) => void; getInstance: () => { isAuthorized: boolean; authorize: () => Promise<string> } }; }
   const win = window as unknown as MKGlobal;
     if (!musicKitReady || !win.MusicKit) return;
-    win.MusicKit.configure({
-      developerTokenFetcher: async () => {
-        const res = await fetch('/api/apple/developer-token');
-        const data = await res.json();
-        return data.token;
-      },
-      app: { name: 'DJ Judas', build: '1.0.0' }
-    });
-    const mk = win.MusicKit.getInstance();
-    setIsAuthorized(mk.isAuthorized);
+    
+    // Configure MusicKit with error handling
+    try {
+      win.MusicKit.configure({
+        developerTokenFetcher: async () => {
+          try {
+            const res = await fetch('/api/apple/developer-token');
+            if (!res.ok) {
+              console.error('Failed to fetch Apple Music developer token:', res.status);
+              throw new Error('Developer token unavailable');
+            }
+            const data = await res.json();
+            if (!data.token) {
+              console.error('Apple Music developer token is missing. Please configure APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY environment variables.');
+              throw new Error('Developer token not configured');
+            }
+            return data.token;
+          } catch (error) {
+            console.error('Apple Music token fetch error:', error);
+            throw error;
+          }
+        },
+        app: { name: 'DJ Judas', build: '1.0.0' }
+      });
+      const mk = win.MusicKit.getInstance();
+      setIsAuthorized(mk.isAuthorized);
+    } catch (error) {
+      console.error('Failed to configure MusicKit:', error);
+      // MusicKit configuration failed, but don't break the component
+    }
   }, [musicKitReady]);
 
   const beginAuthorize = useCallback(async () => {

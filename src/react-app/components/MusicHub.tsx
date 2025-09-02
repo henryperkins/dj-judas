@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Music, Heart, Share2, ExternalLink } from 'lucide-react';
+import { Music, ExternalLink } from 'lucide-react';
 import SpotifyEmbed from './SpotifyEmbed';
 import AppleMusicEmbed from './AppleMusicEmbed';
 
@@ -93,30 +93,13 @@ const MusicHub: React.FC<MusicHubProps> = ({
     }
   };
 
-  const handleShare = (track: Track) => {
-    const shareData = {
-      title: track.title,
-      text: `Listen to "${track.title}" by ${track.artist}`,
-      url: window.location.href
-    };
-
-    if (navigator.share && navigator.canShare(shareData)) {
-      navigator.share(shareData);
-      trackEngagement('share_native', { trackId: track.id, trackTitle: track.title });
-    } else {
-      // Fallback to copying link
-      navigator.clipboard.writeText(window.location.href);
-      trackEngagement('share_copy', { trackId: track.id, trackTitle: track.title });
-      alert('Link copied to clipboard!');
-    }
-  };
 
   const platformButtons = [
     { 
       id: 'spotify', 
       name: 'Spotify', 
       icon: Music, 
-      color: '#1db954',
+      color: 'hsl(var(--brand-spotify))',
       available: (t: Track) => !!t.spotifyUri 
     },
     { 
@@ -189,7 +172,6 @@ const MusicHub: React.FC<MusicHubProps> = ({
         {(preferredPlatform === 'all' || preferredPlatform === 'spotify') && selectedTrack.spotifyUri && (
           <SpotifyEmbed 
             uri={selectedTrack.spotifyUri}
-            showFollowButton={true}
             theme="dark"
             onPlay={() => trackEngagement('spotify_embed_play', {
               trackId: selectedTrack.id,
@@ -232,26 +214,7 @@ const MusicHub: React.FC<MusicHubProps> = ({
         </div>
       </div>
 
-      <div className="engagement-actions">
-        <button 
-          className="engagement-btn save-btn"
-          onClick={() => trackEngagement('save_for_later', {
-            trackId: selectedTrack.id,
-            trackTitle: selectedTrack.title
-          })}
-        >
-          <Heart size={20} />
-          <span>Save for Later</span>
-        </button>
-        
-        <button 
-          className="engagement-btn share-btn"
-          onClick={() => handleShare(selectedTrack)}
-        >
-          <Share2 size={20} />
-          <span>Share Track</span>
-        </button>
-      </div>
+      {/* Engagement actions centralized in CreatorMediaPanel; removing duplicates here. */}
 
       <div className="support-message">
         <div className="message-content">

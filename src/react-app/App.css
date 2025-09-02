@@ -40,6 +40,4 @@
   padding: 2em;
 }
 
-.read-the-docs {
-  color: #888;
-}
+.read-the-docs { color: hsl(var(--text-muted)); }

@@ -6,10 +6,12 @@ import StatsSection from './sections/StatsSection';
 import AboutSection from './sections/AboutSection';
 import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
+import CreatorMediaPanel from './CreatorMediaPanel';
 import './Footer.css';
 import MobileBottomNav from './MobileBottomNav';
 import { isMobileDevice } from '../utils/platformDetection';
 import { tracks as musicTracks } from '../data/tracks';
+import logoImage from '../assets/images/logo.jpeg';
 
 // Lazy load heavy components
 const MusicHub = lazy(() => import('./MusicHub'));
@@ -95,8 +97,25 @@ const EnhancedLandingPageV2: React.FC = () => {
         {/* About Section */}
         <AboutSection />
 
-        {/* Music Section - Lazy loaded */}
-        <section id="music" className="music-section">
+        {/* Creator Media Panel - Modern unified interface */}
+        <section id="media" className="media-section">
+          <div className="container">
+            <CreatorMediaPanel
+              artist="DJ Lee & The Voices of Judah"
+              tagline="Gospel Ministry from Gary, Indiana • Established 2008"
+              // Actual music content
+              spotifyUrl="https://open.spotify.com/embed/artist/5WICYLl8MXvOY2x3mkoSqK" // DJ Lee & Voices of Judah artist page
+              appleMusicUrl="https://music.apple.com/us/artist/dj-lee/18270857"
+              // Social media - actual verified accounts
+              facebookPageUrl="https://www.facebook.com/MidWestScreamers/"
+              instagramPermalink="https://www.instagram.com/iam_djlee/"
+              // Additional content can be added here as needed
+            />
+          </div>
+        </section>
+
+        {/* Legacy Music Section - Keep for reference but hidden */}
+        <section id="music" className="music-section" style={{ display: 'none' }}>
           <div className="container">
             <h2 className="section-title">Our Music</h2>
             <Suspense fallback={<LoadingFallback />}>
@@ -149,6 +168,7 @@ const EnhancedLandingPageV2: React.FC = () => {
         <div className="container">
           <div className="footer-content">
             <div className="footer-info">
+              <img src={logoImage} alt="DJ Lee & Voices of Judah" className="footer-logo" style={{ maxWidth: '200px', marginBottom: '1rem' }} />
               <h3>DJ Lee & Voices of Judah</h3>
               <p>Spreading the Gospel Through Music</p>
             </div>

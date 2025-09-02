@@ -30,33 +30,30 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
   appleMusicArtistUrl,
   upcomingEvents = []
 }) => {
-  const pageRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const eventsRef = useRef<HTMLDivElement>(null);
+  const [isLoaded, setIsLoaded] = useState({ timeline: false, events: false });
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [showMusicPrompt, setShowMusicPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
 
   useEffect(() => {
-    const loadFacebook = async () => {
+    const loadAndParse = async () => {
       await metaSDK.loadFacebookSDK();
-      if (pageRef.current) {
-        await parseFBML(pageRef.current);
-        setIsLoaded(true);
-        
-        // Track page view
-        socialMetrics.trackSocialInteraction('facebook', 'page_view', { pageUrl });
+      const container = activeTab === 'events' ? eventsRef.current : timelineRef.current;
+      if (container) {
+        await parseFBML(container);
+        setIsLoaded((s) => ({ ...s, [activeTab]: true }));
+
+        socialMetrics.trackSocialInteraction('facebook', 'page_view', { pageUrl, tab: activeTab });
       }
     };
 
-    loadFacebook();
+    loadAndParse();
 
-    // Show music prompt after user engages with content
-    const timer = setTimeout(() => {
-      setShowMusicPrompt(true);
-    }, 15000); // Show after 15 seconds
-
+    const timer = setTimeout(() => setShowMusicPrompt(true), 15000);
     return () => clearTimeout(timer);
-  }, [pageUrl]);
+  }, [pageUrl, activeTab]);
 
   // Simulate fetching follower count (in production, use Graph API)
   useEffect(() => {
@@ -106,14 +103,14 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
 
       {/* Facebook Page Plugin with Events Tab */}
       <div className={`facebook-embed-container ${activeTab === 'timeline' ? 'active' : ''}`}>
-        {!isLoaded && (
+        {!isLoaded.timeline && (
           <div className="embed-loading">
             <div className="loading-spinner"></div>
             <p>Loading Facebook content...</p>
           </div>
         )}
         
-        <div ref={pageRef}>
+        <div ref={timelineRef}>
           <div 
             className="fb-page"
             data-href={pageUrl}
@@ -123,7 +120,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
             data-adapt-container-width="true"
             data-hide-cover="false"
             data-show-facepile="true"
-            data-lazy="false"
+            data-lazy="true"
           />
         </div>
       </div>
@@ -134,7 +131,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
           <Calendar size={20} />
           Facebook Events
         </h3>
-        <div ref={pageRef}>
+        <div ref={eventsRef}>
           <div 
             className="fb-page"
             data-href={pageUrl}
@@ -144,6 +141,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
             data-adapt-container-width="true"
             data-hide-cover="true"
             data-show-facepile="false"
+            data-lazy="true"
           />
         </div>
       </div>

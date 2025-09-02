@@ -260,19 +260,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
             <Heart size={18} />
             Follow on Instagram
           </button>
-          <button 
-            className="cta-btn share"
-            onClick={() => {
-              socialMetrics.trackSocialInteraction('instagram', 'share_intent', {});
-              navigator.share({
-                title: 'Check out our Instagram',
-                text: 'DJ Lee & Voices of Judah - Gospel Ministry from Gary, Indiana',
-                url: profileUrl
-              });
-            }}
-          >
-            Share Profile
-          </button>
+          {/* Share centralized in CreatorMediaPanel */}
         </div>
       </div>
     </div>

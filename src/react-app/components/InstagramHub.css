@@ -1,24 +1,8 @@
-.instagram-hub { background: #ffffff; border-radius: 16px; padding: 24px; margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.instagram-hub { background: var(--card, #fff); border-radius: var(--radius); padding: 24px; margin: 20px 0; border: 1px solid hsl(var(--border)); }
 
-.hub-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
+/* Moved to shared.css */
 
-.platform-indicator {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: white;
-  font-weight: 600;
-  background: rgba(0,0,0,0.35);
-  padding: 4px 8px;
-  border-radius: 8px;
-}
+/* Moved to shared.css */
 
 .engagement-badge {
   display: flex;
@@ -30,7 +14,7 @@
   font-size: 14px;
 }
 
-.profile-btn { display: flex; align-items: center; gap: 8px; background: #ffffff; color: #3b0764; border: 1px solid #3b0764; padding: 8px 16px; border-radius: 22px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 0.95rem; }
+.profile-btn { display: flex; align-items: center; gap: 8px; background: transparent; color: hsl(var(--accent)); border: 1px solid hsl(var(--accent)); padding: 8px 16px; border-radius: var(--radius); font-weight: 700; cursor: pointer; transition: background 0.2s ease; font-size: 0.95rem; }
 
 .profile-btn:hover {
   transform: scale(1.05);
@@ -44,23 +28,11 @@
   margin-bottom: 30px;
 }
 
-.instagram-post-container {
-  position: relative;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+.instagram-post-container { position: relative; background: var(--card, #fff); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease; border: 1px solid hsl(var(--border)); }
 
-.instagram-post-container:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
+.instagram-post-container:hover { transform: translateY(-2px); }
 
-.instagram-post-container.selected {
-  border: 3px solid #fcb045;
-}
+.instagram-post-container.selected { outline: 2px solid hsl(var(--accent)); }
 
 .reel-indicator {
   position: absolute;
@@ -94,16 +66,7 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.7;
-  }
-}
+/* Animation moved to shared.css */
 
 .instagram-embed-wrapper {
   min-height: 400px;
@@ -133,7 +96,7 @@
   position: absolute;
   bottom: 10px;
   right: 10px;
-  background: linear-gradient(135deg, #1db954, #191414);
+  background: rgba(0,0,0,0.7);
   color: white;
   padding: 6px 12px;
   border-radius: 20px;
@@ -176,25 +139,22 @@
   margin-bottom: 20px;
 }
 
-.playlist-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border: none; border-radius: 22px; font-weight: 700; color: white; cursor: pointer; transition: all 0.3s ease; font-size: 0.95rem; }
-
-.playlist-btn.spotify {
-  background: #1db954;
+/* Base playlist-btn styles inherited from platform-btn in shared.css */
+.playlist-btn { 
+  font-weight: 700; 
+  font-size: 0.95rem; 
 }
 
-.playlist-btn.spotify:hover {
-  background: #1ed760;
-  transform: scale(1.05);
-}
+.playlist-btn.spotify { background: var(--card, #fff); }
 
-.playlist-btn.apple {
-  background: #fc3c44;
-}
+.playlist-btn.spotify:hover { background: color-mix(in oklab, white 92%, rgb(0 0 0 / 8%)); }
 
-.playlist-btn.apple:hover {
-  background: #ff5257;
-  transform: scale(1.05);
-}
+.playlist-btn.apple { background: var(--card, #fff); }
+
+.playlist-btn.apple:hover { background: color-mix(in oklab, white 92%, rgb(0 0 0 / 8%)); }
+
+.playlist-btn.apple::before { border-left-color: #fc3c44; }
+/* Platform brand accents base in shared.css */
 
 .discovery-stats {
   padding: 12px;
@@ -202,11 +162,7 @@
   border-radius: 8px;
 }
 
-.discovery-stats p {
-  margin: 0;
-  color: #833ab4;
-  font-weight: 500;
-}
+.discovery-stats p { margin: 0; color: hsl(var(--foreground)); font-weight: 500; }
 
 .content-categories {
   background: rgba(255, 255, 255, 0.95);
@@ -215,10 +171,7 @@
   margin: 24px 0;
 }
 
-.content-categories h3 {
-  color: #833ab4;
-  margin-bottom: 16px;
-}
+.content-categories h3 { color: hsl(var(--foreground)); margin-bottom: 16px; }
 
 .category-tags {
   display: flex;
@@ -226,14 +179,11 @@
   flex-wrap: wrap;
 }
 
-.tag { padding: 8px 16px; background: #ffffff; border: 2px solid #833ab4; border-radius: 20px; color: #4a148c; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+.tag { padding: 8px 16px; background: var(--card, #fff); border: 1px solid hsl(var(--border)); border-radius: var(--radius); color: hsl(var(--foreground)); font-weight: 600; cursor: pointer; transition: background 0.2s ease; }
 
-.tag:hover {
-  border-color: #833ab4;
-  transform: translateY(-2px);
-}
+.tag:hover { background: color-mix(in oklab, white 92%, rgb(0 0 0 / 8%)); }
 
-.instagram-cta { background: #ffffff; border-radius: 12px; padding: 24px; text-align: center; color: #111111; }
+.instagram-cta { background: var(--card, #fff); border-radius: var(--radius); padding: 24px; text-align: center; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
 
 .instagram-cta h4 { margin-bottom: 8px; font-size: 1.2em; color: #111111; }
 
@@ -246,22 +196,17 @@
   flex-wrap: wrap;
 }
 
-.cta-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border: 2px solid #6b21a8; background: #ffffff; color: #6b21a8; border-radius: 22px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 0.95rem; }
+.cta-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid hsl(var(--accent)); background: transparent; color: hsl(var(--accent)); border-radius: var(--radius); font-weight: 700; cursor: pointer; transition: background 0.2s ease; font-size: 0.95rem; }
 
-.cta-btn:hover { background: #f5f5f5; color: #6b21a8; transform: scale(1.05); }
+.cta-btn:hover { background: color-mix(in oklab, white 92%, rgb(0 0 0 / 8%)); }
 
 .instagram-tabs { display: flex; justify-content: space-around; margin-bottom: 20px; }
+/* Using shared .hub-tabs styles */
 
 /* Mobile-first styles */
 .instagram-grid { grid-template-columns: 1fr; }
-.hub-header { flex-direction: column; gap: 12px; }
-.profile-btn { width: 100%; justify-content: center; }
-.playlist-buttons { flex-direction: column; }
-.playlist-btn { width: 100%; justify-content: center; }
-.cta-buttons { flex-direction: column; }
-.cta-btn { width: 100%; justify-content: center; }
-.instagram-tabs button { background: none; border: none; color: #3b0764; font-size: 16px; font-weight: 700; padding: 10px; cursor: pointer; }
-.instagram-tabs button.active { border-bottom: 2px solid #3b0764; }
+/* Button responsive styles moved to shared.css */
+/* Tab button styles moved to shared.css */
 /* Show single section via tabs on mobile */
 .instagram-grid,
 .music-discovery-section,
@@ -276,11 +221,9 @@
 @media (min-width: 768px) {
   .instagram-tabs { display: none; }
   .instagram-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-  .hub-header { flex-direction: row; gap: 0; }
-  .profile-btn, .playlist-btn, .cta-btn { width: auto; justify-content: center; }
-  .playlist-buttons, .cta-buttons { flex-direction: row; }
   .instagram-grid,
   .music-discovery-section,
   .content-categories,
   .instagram-cta { display: block; }
+  /* Other responsive styles moved to shared.css */
 }

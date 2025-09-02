@@ -1,21 +1,23 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ExternalLink, Music, Heart, Play, LogIn } from 'lucide-react';
+import { ExternalLink, Music, Play, LogIn } from 'lucide-react';
 
 interface SpotifyEmbedProps {
-  uri: string; // spotify:track:ID or spotify:album:ID
-  showFollowButton?: boolean;
+  url?: string; // Full Spotify URL or URI format
+  uri?: string; // Legacy support for spotify:track:ID format
   compact?: boolean;
   theme?: 'light' | 'dark';
   onPlay?: () => void;
 }
 
 const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
+  url,
   uri,
-  showFollowButton = true,
   compact = false,
   theme = 'dark',
   onPlay
 }) => {
+  // Normalize input to URI format
+  const spotifyUri = uri || (url ? normalizeToSpotifyUri(url) : '');
   const embedRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   interface SpotifyEmbedController {
@@ -25,10 +27,9 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const [controller, setController] = useState<SpotifyEmbedController | null>(null);
   const [isAuthed, setIsAuthed] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const spotifyId = uri.split(':').pop();
-  const contentType = uri.includes('track') ? 'track' : uri.includes('album') ? 'album' : 'artist';
+  const spotifyId = spotifyUri.split(':').pop();
+  const contentType = spotifyUri.includes('track') ? 'track' : spotifyUri.includes('album') ? 'album' : 'artist';
 
   const spotifyUrl = `https://open.spotify.com/${contentType}/${spotifyId}`;
   const embedHeight = compact ? 152 : contentType === 'album' ? 380 : 232;
@@ -44,7 +45,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
         if (!embedRef.current) return;
 
         const options = {
-          uri,
+          uri: spotifyUri,
           width: '100%',
           height: embedHeight,
           theme: theme === 'dark' ? 0 : 1,
@@ -57,7 +58,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           EmbedController.addListener('playback_update', (e) => {
             if (e.data.isPaused === false && onPlay) {
               onPlay();
-              trackEngagement('spotify_play', { uri, contentType });
+              trackEngagement('spotify_play', { uri: spotifyUri, contentType });
             }
           });
 
@@ -78,7 +79,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
         script.parentNode.removeChild(script);
       }
     };
-  }, [uri, embedHeight, theme, onPlay, contentType]);
+  }, [spotifyUri, embedHeight, theme, onPlay, contentType]);
 
   // Fallback: try setting the iframe title when load state changes
   useEffect(() => {
@@ -125,50 +126,11 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   };
 
   const handleSpotifyOpen = () => {
-    trackEngagement('spotify_open', { uri, contentType });
+    trackEngagement('spotify_open', { uri: spotifyUri, contentType });
     window.open(spotifyUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleFollow = async () => {
-    trackEngagement('spotify_follow_attempt', { uri });
-    if (!isAuthed) return beginLogin();
-    setActionLoading('follow');
-    try {
-      const artistId = contentType === 'artist' ? spotifyId : undefined;
-      if (!artistId) return;
-      const res = await fetch('/api/spotify/follow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistIds: [artistId] })
-      });
-      if (!res.ok) throw new Error('follow_failed');
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
-  const handleSaveToLibrary = async () => {
-    trackEngagement('spotify_save_attempt', { uri, contentType });
-    if (!isAuthed) return beginLogin();
-    setActionLoading('save');
-    try {
-      if (contentType === 'track') {
-        const res = await fetch('/api/spotify/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: [spotifyId], type: 'tracks' })
-        });
-        if (!res.ok) throw new Error('save_failed');
-      }
-      // TODO: handle albums if needed
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   return (
     <div 
@@ -210,26 +172,6 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
         ) : (
           <>
             <button
-              className="action-btn save-btn"
-              onClick={handleSaveToLibrary}
-              aria-label="Save to Your Library"
-              disabled={actionLoading === 'save'}
-            >
-              <Heart size={18} />
-              <span>{actionLoading === 'save' ? 'Saving...' : 'Save to Library'}</span>
-            </button>
-            {showFollowButton && contentType === 'artist' && (
-              <button
-                className="action-btn follow-btn"
-                onClick={handleFollow}
-                aria-label="Follow Artist"
-                disabled={actionLoading === 'follow'}
-              >
-                <Music size={18} />
-                <span>{actionLoading === 'follow' ? 'Following...' : 'Follow Artist'}</span>
-              </button>
-            )}
-            <button
               className="action-btn play-btn"
               onClick={() => controller?.togglePlay()}
               aria-label="Play on Spotify"
@@ -247,5 +189,22 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     </div>
   );
 };
+
+// Helper function to normalize URLs/URIs
+function normalizeToSpotifyUri(urlOrUri: string): string {
+  // If it's already a URI, return as-is
+  if (urlOrUri.startsWith('spotify:')) {
+    return urlOrUri;
+  }
+  
+  // Convert URL to URI format
+  const match = urlOrUri.match(/open\.spotify\.com\/(?:embed\/)?(\w+)\/([a-zA-Z0-9]+)/);
+  if (match) {
+    const [, type, id] = match;
+    return `spotify:${type}:${id}`;
+  }
+  
+  return urlOrUri;
+}
 
 export default SpotifyEmbed;

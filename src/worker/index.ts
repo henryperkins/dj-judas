@@ -130,21 +130,41 @@ app.get('/api/apple/developer-token', async (c) => {
 	if (cachedAppleToken && cachedAppleToken.exp - 60 > now) {
 		return c.json({ token: cachedAppleToken.token, cached: true });
 	}
+	
+	// Check if required environment variables are configured
 	const teamId = c.env.APPLE_TEAM_ID;
 	const keyId = c.env.APPLE_KEY_ID;
-	const privateKeyPem = c.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
-	const alg = 'ES256';
-	const iat = now;
-	const exp = iat + 60 * 60 * 12; // 12h validity (max 6 months allowed; keep shorter)
-	const pk = await importPKCS8(privateKeyPem, alg);
-	const token = await new SignJWT({})
-		.setProtectedHeader({ alg, kid: keyId })
-		.setIssuedAt(iat)
-		.setExpirationTime(exp)
-		.setIssuer(teamId)
-		.sign(pk);
-	cachedAppleToken = { token, exp };
-	return c.json({ token, cached: false, exp });
+	const privateKey = c.env.APPLE_PRIVATE_KEY;
+	
+	if (!teamId || !keyId || !privateKey) {
+		console.error('Apple Music configuration missing. Required: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY');
+		return c.json({ 
+			error: 'apple_music_not_configured',
+			message: 'Apple Music developer token not configured. Please set up APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY environment variables.'
+		}, 501);
+	}
+	
+	try {
+		const privateKeyPem = privateKey.replace(/\\n/g, '\n');
+		const alg = 'ES256';
+		const iat = now;
+		const exp = iat + 60 * 60 * 12; // 12h validity (max 6 months allowed; keep shorter)
+		const pk = await importPKCS8(privateKeyPem, alg);
+		const token = await new SignJWT({})
+			.setProtectedHeader({ alg, kid: keyId })
+			.setIssuedAt(iat)
+			.setExpirationTime(exp)
+			.setIssuer(teamId)
+			.sign(pk);
+		cachedAppleToken = { token, exp };
+		return c.json({ token, cached: false, exp });
+	} catch (error) {
+		console.error('Failed to generate Apple Music developer token:', error);
+		return c.json({ 
+			error: 'token_generation_failed',
+			message: 'Failed to generate Apple Music developer token'
+		}, 500);
+	}
 });
 
 function getSessionFromCookie(cookieHeader: string | null): SpotifySession | null {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Facebook, Music, Users, Calendar, ExternalLink, Heart, Share2 } from 'lucide-react';
 import { metaSDK, parseFBML } from '../utils/metaSdk';
 import { socialMetrics, trackSocialClick, trackMusicAction } from '../utils/socialMetrics';
+import './index.css';
 
 interface FacebookHubProps {
   pageUrl: string;

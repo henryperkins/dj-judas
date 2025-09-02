@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import './index.css';
 
 interface Photo {
   id: number;

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { metaSDK } from '../utils/metaSdk';
+import './index.css';
 
 interface FacebookVideoProps {
   href: string; // Facebook video URL
@@ -67,7 +68,7 @@ const FacebookVideo: React.FC<FacebookVideoProps> = ({
     <div className="facebook-video-container">
       {!isLoaded && (
         <div className="embed-loading">
-          <div className="loading-spinner"></div>
+          <div className="spinner"></div>
           <p>Loading Facebook video...</p>
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { metaSDK } from '../utils/metaSdk';
+import './index.css';
 
 interface FacebookPageProps {
   pageUrl: string;
@@ -66,10 +67,10 @@ const FacebookPage: React.FC<FacebookPageProps> = ({
   }
 
   return (
-    <div className="facebook-page-container">
+    <div className="facebook-embed-container">
       {!isLoaded && (
         <div className="embed-loading">
-          <div className="loading-spinner"></div>
+          <div className="spinner"></div>
           <p>Loading Facebook page...</p>
         </div>
       )}

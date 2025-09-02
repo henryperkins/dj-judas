@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Instagram, Music, Play, Heart, MessageCircle, Bookmark, TrendingUp } from 'lucide-react';
 import { metaSDK, processInstagramEmbeds } from '../utils/metaSdk';
 import { socialMetrics, trackSocialClick, trackMusicAction, generateSocialLink } from '../utils/socialMetrics';
+import './index.css';
 
 interface InstagramPost {
   url: string;

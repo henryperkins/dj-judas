@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import './index.css';
 import {
   PlayCircle, Music, Share2, Facebook, Instagram, Copy, Check, Link2, Globe, Mic2
 } from "lucide-react";

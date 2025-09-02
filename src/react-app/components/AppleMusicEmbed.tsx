@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Music, ExternalLink, Plus, Play, LogIn } from 'lucide-react';
+import './index.css';
 
 interface AppleMusicEmbedProps {
   url: string; // Full Apple Music URL
@@ -144,7 +145,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
           <span>Apple Music</span>
         </div>
         <button
-          className="open-apple-btn"
+          className="btn btn-ghost"
           onClick={handleOpenInAppleMusic}
           aria-label="Open in Apple Music"
         >
@@ -156,7 +157,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
       <div className="apple-iframe-container">
         {!isLoaded && (
           <div className="embed-loading">
-            <div className="loading-spinner"></div>
+            <div className="spinner"></div>
             <p>Loading Apple Music player...</p>
           </div>
         )}

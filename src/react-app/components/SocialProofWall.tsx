@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { socialMetrics } from '../utils/socialMetrics';
+import './index.css';
 
 interface PlatformMetric {
   platform: string;

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ExternalLink, Music, Play, LogIn } from 'lucide-react';
+import './index.css';
 
 interface SpotifyEmbedProps {
   url?: string; // Full Spotify URL or URI format
@@ -143,7 +144,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           <span>Spotify</span>
         </div>
         <button
-          className="open-spotify-btn"
+          className="btn btn-ghost"
           onClick={handleSpotifyOpen}
           aria-label="Open in Spotify"
         >
@@ -155,7 +156,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
       <div ref={embedRef} className="spotify-iframe-container">
         {!isLoaded && (
           <div className="embed-loading">
-            <div className="loading-spinner"></div>
+            <div className="spinner"></div>
             <p>Loading Spotify player...</p>
           </div>
         )}

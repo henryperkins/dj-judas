@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { metaSDK } from '../utils/metaSdk';
+import './index.css';
 
 interface InstagramEmbedProps {
   url: string;

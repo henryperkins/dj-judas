@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Music, ExternalLink } from 'lucide-react';
 import SpotifyEmbed from './SpotifyEmbed';
 import AppleMusicEmbed from './AppleMusicEmbed';
+import './index.css';
 
 interface Track {
   id: string;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, User, Mail, Phone, MessageSquare, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import './index.css';
 
 interface FormData {
   name: string;

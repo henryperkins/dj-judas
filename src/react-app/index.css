@@ -236,8 +236,8 @@ h3 {
 .shadow-lg { box-shadow: var(--shadow-2); }
 .outline-none { outline: none; }
 .focus-visible\:border-ring:focus-visible { border-color: hsl(var(--ring)); }
-.focus-visible\:ring-\[3px\]:focus-visible,
-.focus-visible\:ring-ring\/50:focus-visible { box-shadow: 0 0 0 3px hsl(var(--ring) / 0.5); }
+[class*="focus-visible:ring-[3px]"]:focus-visible,
+[class*="focus-visible:ring-ring/50"]:focus-visible { box-shadow: 0 0 0 3px hsl(var(--ring) / 0.5); }
 
 .container {
   width: 100%;
@@ -1857,7 +1857,6 @@ body.mobile-nav-visible {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     transform: scale(1);

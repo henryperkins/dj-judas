@@ -10,11 +10,9 @@ import PlatformLauncher from './PlatformLauncher';
 import CreatorMediaPanel from './CreatorMediaPanel';
 import MobileBottomNav from './MobileBottomNav';
 import { isMobileDevice } from '../utils/platformDetection';
-import { tracks as musicTracks } from '../data/tracks';
 import logoImage from '../assets/images/logo.jpeg';
 
-// Lazy load heavy components
-const MusicHub = lazy(() => import('./MusicHub'));
+ // Lazy load heavy components
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
 const BookingForm = lazy(() => import('./BookingForm'));
 // Social section removed
@@ -114,28 +112,6 @@ const EnhancedLandingPageV2: React.FC = () => {
           </div>
         </section>
 
-        {/* Legacy Music Section - Keep for reference but hidden */}
-        <section id="music" className="music-section" style={{ display: 'none' }}>
-          <div className="container">
-            <h2 className="section-title">Our Music</h2>
-            <Suspense fallback={<LoadingFallback />}>
-              {musicTracks.length > 0 && !isMobile ? (
-                <MusicHub tracks={musicTracks as any} />
-              ) : (
-                <div className="mobile-music-cta">
-                  <p>Experience our gospel music on your favorite platform</p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={handlePlatformLauncherOpen}
-                    aria-label="Open music platforms"
-                  >
-                    Open Music Platforms
-                  </button>
-                </div>
-              )}
-            </Suspense>
-          </div>
-        </section>
 
         {/* Social Section removed as per request */}
 

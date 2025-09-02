@@ -15,12 +15,9 @@ export { default as ServicesSection } from './sections/ServicesSection';
 export { default as MusicHub } from './MusicHub';
 export { default as SpotifyEmbed } from './SpotifyEmbed';
 export { default as AppleMusicEmbed } from './AppleMusicEmbed';
-export { default as FacebookHub } from './FacebookHub';
-export { default as InstagramHub } from './InstagramHub';
 export { default as PhotoGallery } from './PhotoGallery';
 export { default as BookingForm } from './BookingForm';
 
-export { default as SocialProofWall } from './SocialProofWall';
 
 // Utilities
 export * from '../utils/platformDetection';

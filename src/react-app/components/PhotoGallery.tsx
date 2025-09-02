@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
+import { Dialog as UIDialog, DialogPortal, DialogOverlay, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import './index.css';
@@ -170,13 +170,13 @@ const PhotoGallery: React.FC = () => {
         </AnimatePresence>
       </motion.div>
 
-      <Dialog.Root open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="lightbox-overlay" />
-          <Dialog.Content className="lightbox-content">
-            <Dialog.Close className="lightbox-close">
+      <UIDialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
+        <DialogPortal>
+          <DialogOverlay className="lightbox-overlay" />
+          <DialogContent className="lightbox-content">
+            <DialogClose className="lightbox-close">
               <X size={24} />
-            </Dialog.Close>
+            </DialogClose>
             
             {selectedPhoto && (
               <motion.div
@@ -230,9 +230,9 @@ const PhotoGallery: React.FC = () => {
                 </div>
               </motion.div>
             )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </DialogContent>
+        </DialogPortal>
+      </UIDialog>
     </div>
   );
 };

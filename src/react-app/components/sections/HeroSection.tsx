@@ -1,6 +1,7 @@
+import './index.css';
 import React from 'react';
 import { motion } from 'framer-motion';
-import './HeroSection.css';
+
 import { ChevronDown } from 'lucide-react';
 import pattern1 from '../../assets/images/pattern1.jpeg';
 import logoImage from '../../assets/images/logo.jpeg';
@@ -12,8 +13,8 @@ interface HeroSectionProps {
 
 const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
   return (
-    <motion.section 
-      id="home" 
+    <motion.section
+      id="home"
       className={`hero-section ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -31,7 +32,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.8 }}
         />
-        <motion.h1 
+        <motion.h1
           className="hero-title"
           initial={{ y: 30 }}
           animate={{ y: 0 }}
@@ -39,7 +40,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
         >
           DJ Lee & Voices of Judah
         </motion.h1>
-        <motion.p 
+        <motion.p
           className="hero-subtitle"
           initial={{ y: 30 }}
           animate={{ y: 0 }}
@@ -47,7 +48,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
         >
           Spreading the Gospel Through Music Since 2008 • Gary, Indiana
         </motion.p>
-        <motion.div 
+        <motion.div
           className="hero-cta"
           initial={{ y: 30 }}
           animate={{ y: 0 }}
@@ -57,7 +58,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           <a href="#booking" className="btn btn-secondary">Book Us</a>
         </motion.div>
       </div>
-      <motion.div 
+      <motion.div
         className="scroll-indicator"
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 2 }}

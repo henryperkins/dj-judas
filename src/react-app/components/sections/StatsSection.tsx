@@ -1,6 +1,7 @@
+import './index.css';
 import React from 'react';
 import { motion } from 'framer-motion';
-import './StatsSection.css';
+
 import { useInView } from 'react-intersection-observer';
 import { Calendar, Music, Users, Award } from 'lucide-react';
 
@@ -12,7 +13,7 @@ interface StatItem {
 
 const StatsSection: React.FC = () => {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true });
-  
+
   const stats: StatItem[] = [
     { icon: Calendar, value: '16+', label: 'Years of Ministry' },
     { icon: Music, value: '4+', label: 'Released Singles' },

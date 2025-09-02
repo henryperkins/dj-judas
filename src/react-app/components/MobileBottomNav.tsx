@@ -1,8 +1,9 @@
+import './index.css';
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Music, Calendar, Share2 } from 'lucide-react';
 import { isMobileDevice } from '../utils/platformDetection';
-import './MobileBottomNav.css';
+
 
 export interface NavItem {
   id: string;
@@ -70,7 +71,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       setIsMobile(mobile);
       setIsVisible(mobile || showOnDesktop);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -81,14 +82,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       // Hide on scroll down, show on scroll up
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
         setIsVisible(false);
       } else {
         setIsVisible(true);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
@@ -128,7 +129,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     }
 
     setCurrentActive(item.id);
-    
+
     if (onItemClick) {
       onItemClick(item.id);
     }
@@ -162,7 +163,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       // Fallback: Show share menu
       setShareMenuOpen(true);
       setTimeout(() => setShareMenuOpen(false), 3000);
-      
+
       // Copy to clipboard as fallback
       if (navigator.clipboard) {
         navigator.clipboard.writeText(window.location.href);
@@ -172,7 +173,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   // Roving tabindex + arrow key navigation
   const onKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
-    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"]; 
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
     if (!keys.includes(e.key)) return;
     const container = listRef.current;
     if (!container) return;
@@ -216,7 +217,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentActive === item.id;
-                
+
                 const ariaControls = item.href && item.href.startsWith('#') ? item.href.slice(1) : undefined;
                 return (
                   <li className="nav-li" key={item.id}>
@@ -235,8 +236,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                         animate={isActive ? { y: -2 } : { y: 0 }}
                       >
                         <div className="nav-icon-wrapper" aria-hidden="true">
-                          <Icon 
-                            size={24} 
+                          <Icon
+                            size={24}
                             className="nav-icon"
                           />
                           {item.badge && item.badge > 0 && (

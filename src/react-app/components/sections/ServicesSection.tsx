@@ -1,6 +1,6 @@
+import './index.css';
 import React from 'react';
 import { motion } from 'framer-motion';
-import './ServicesSection.css';
 import { useInView } from 'react-intersection-observer';
 import { Church, Mic, Music2, Heart } from 'lucide-react';
 
@@ -39,7 +39,7 @@ const ServicesSection: React.FC = () => {
   return (
     <section id="services" className="services-section" ref={ref}>
       <div className="container">
-        <motion.h2 
+        <motion.h2
           className="section-title"
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}

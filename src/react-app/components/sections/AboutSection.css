@@ -1,9 +1,0 @@
-/* About Section (mobile-first) */
-.about-section { padding: 4rem 0; }
-.about-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: center; }
-.about-text p { margin-bottom: 1rem; line-height: 1.8; color: hsl(var(--text-primary)); }
-.about-image img { width: 100%; height: auto; border-radius: 12px; box-shadow: var(--shadow-2); }
-
-@media (min-width: 768px) {
-  .about-grid { grid-template-columns: 1fr 1fr; }
-}

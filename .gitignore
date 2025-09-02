@@ -75,3 +75,5 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+.aider*
+.env

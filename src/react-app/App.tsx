@@ -1,8 +1,9 @@
 // src/App.tsx
 
+// Main CSS styles
+import './index.css';
 import EnhancedLandingPage from "./components/EnhancedLandingPageV2";
 import ThemeToggle from './components/ThemeToggle';
-import './components/ThemeToggle.css';
 
 function App() {
   return (

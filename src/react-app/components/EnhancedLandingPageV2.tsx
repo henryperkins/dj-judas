@@ -1,3 +1,4 @@
+import './index.css';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useScroll } from 'framer-motion';
 
@@ -7,7 +8,6 @@ import AboutSection from './sections/AboutSection';
 import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
 import CreatorMediaPanel from './CreatorMediaPanel';
-import './Footer.css';
 import MobileBottomNav from './MobileBottomNav';
 import { isMobileDevice } from '../utils/platformDetection';
 import { tracks as musicTracks } from '../data/tracks';
@@ -36,7 +36,7 @@ const EnhancedLandingPageV2: React.FC = () => {
     const checkMobile = () => {
       setIsMobile(isMobileDevice());
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -124,7 +124,7 @@ const EnhancedLandingPageV2: React.FC = () => {
               ) : (
                 <div className="mobile-music-cta">
                   <p>Experience our gospel music on your favorite platform</p>
-                  <button 
+                  <button
                     className="btn btn-primary"
                     onClick={handlePlatformLauncherOpen}
                     aria-label="Open music platforms"
@@ -193,12 +193,12 @@ const EnhancedLandingPageV2: React.FC = () => {
       {/* Mobile-specific components */}
       {isMobile && (
         <>
-          <PlatformLauncher 
-            mode="floating" 
+          <PlatformLauncher
+            mode="floating"
             simplified={true}
             onPlatformClick={() => setPlatformLauncherOpen(false)}
           />
-          <MobileBottomNav 
+          <MobileBottomNav
             activeItem={activeSection}
             onPlatformLauncherOpen={handlePlatformLauncherOpen}
           />

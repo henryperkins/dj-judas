@@ -1,3 +1,4 @@
+import './index.css';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Music, X, ExternalLink } from 'lucide-react';
@@ -9,7 +10,6 @@ import {
   PLATFORM_CONFIGS,
   type PlatformLink
 } from '../utils/platformDetection';
-import './PlatformLauncher.css';
 
 export interface PlatformLauncherProps {
   mode?: 'floating' | 'inline' | 'modal';
@@ -32,7 +32,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
     const checkMobile = () => {
       setIsMobile(isMobileDevice());
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -40,11 +40,11 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
 
   const handlePlatformClick = (link: PlatformLink) => {
     trackPlatformClick(link.platform, mode);
-    
+
     if (onPlatformClick) {
       onPlatformClick(link.platform);
     }
-    
+
     if (simplified || isMobile) {
       // In simplified mode or on mobile, just open the platform
       openPlatform(link, () => {
@@ -55,7 +55,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
       // For now, still just open the platform
       openPlatform(link);
     }
-    
+
     // Close the launcher after clicking
     if (mode === 'floating') {
       setTimeout(() => setIsOpen(false), 300);
@@ -214,8 +214,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                     className="fab-platform-btn"
                     onClick={() => handlePlatformClick(link)}
                     initial={{ opacity: 0, y: 10 }}
-                    animate={{ 
-                      opacity: 1, 
+                    animate={{
+                      opacity: 1,
                       y: 0,
                       transition: { delay: index * 0.05 }
                     }}
@@ -237,7 +237,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
           )}
         </AnimatePresence>
       </motion.div>
-      
+
       {/* Backdrop for mobile when FAB is open */}
       <AnimatePresence>
         {isOpen && isMobile && (

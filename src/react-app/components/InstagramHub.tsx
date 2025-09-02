@@ -121,8 +121,8 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
         )}
         
         {!isLoaded && (
-          <div className="post-loading">
-            <div className="loading-pulse"></div>
+          <div className="embed-loading">
+            <div className="spinner"></div>
           </div>
         )}
         
@@ -181,13 +181,13 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
           )}
         </div>
         
-        <button className="profile-btn" onClick={handleProfileClick}>
+        <button className="btn btn-secondary" onClick={handleProfileClick}>
           <Instagram size={16} />
           View Profile
         </button>
       </div>
 
-      <div className="instagram-tabs">
+      <div className="hub-tabs">
         <button className={activeTab === 'grid' ? 'active' : ''} onClick={() => setActiveTab('grid')}>Grid</button>
         <button className={activeTab === 'music' ? 'active' : ''} onClick={() => setActiveTab('music')}>Music</button>
         <button className={activeTab === 'explore' ? 'active' : ''} onClick={() => setActiveTab('explore')}>Explore</button>
@@ -208,7 +208,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
           <div className="playlist-buttons">
             {spotifyPlaylistUrl && (
               <button 
-                className="playlist-btn spotify"
+                className="platform-btn spotify"
                 onClick={() => handleMusicDiscovery('spotify', spotifyPlaylistUrl)}
               >
                 <Music size={20} />
@@ -218,7 +218,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
             
             {appleMusicPlaylistUrl && (
               <button 
-                className="playlist-btn apple"
+                className="platform-btn apple"
                 onClick={() => handleMusicDiscovery('apple', appleMusicPlaylistUrl)}
               >
                 <Music size={20} />
@@ -257,7 +257,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
         <h4>Stay Connected</h4>
         <p>Follow us on Instagram for exclusive content, live performances, and ministry updates</p>
         <div className="cta-buttons">
-          <button className="cta-btn follow" onClick={handleProfileClick}>
+          <button className="btn btn-primary" onClick={handleProfileClick}>
             <Heart size={18} />
             Follow on Instagram
           </button>

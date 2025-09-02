@@ -90,13 +90,13 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
           )}
         </div>
         
-        <button className="follow-btn" onClick={handleFollowClick}>
+        <button className="btn btn-secondary" onClick={handleFollowClick}>
           <Heart size={16} />
           Follow on Facebook
         </button>
       </div>
 
-      <div className="facebook-tabs">
+      <div className="hub-tabs">
         <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>Timeline</button>
         <button className={activeTab === 'events' ? 'active' : ''} onClick={() => setActiveTab('events')}>Events</button>
         <button className={activeTab === 'music' ? 'active' : ''} onClick={() => setActiveTab('music')}>Music</button>
@@ -106,7 +106,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
       <div className={`facebook-embed-container ${activeTab === 'timeline' ? 'active' : ''}`}>
         {!isLoaded.timeline && (
           <div className="embed-loading">
-            <div className="loading-spinner"></div>
+            <div className="spinner"></div>
             <p>Loading Facebook content...</p>
           </div>
         )}
@@ -205,7 +205,7 @@ const FacebookHub: React.FC<FacebookHubProps> = ({
                   <p>{event.location}</p>
                 </div>
                 {event.ticketUrl && (
-                  <button className="ticket-btn">Get Tickets</button>
+                  <button className="btn btn-primary">Get Tickets</button>
                 )}
               </div>
             ))}

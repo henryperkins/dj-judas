@@ -65,7 +65,7 @@ const FacebookVideo: React.FC<FacebookVideoProps> = ({
   }
 
   return (
-    <div className="facebook-video-container">
+    <div className="facebook-embed-container">
       {!isLoaded && (
         <div className="embed-loading">
           <div className="spinner"></div>

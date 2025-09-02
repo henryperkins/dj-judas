@@ -49,7 +49,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
     <div className="instagram-embed-container">
       {!isLoaded && (
         <div className="embed-loading" style={{ height: skeletonHeight }}>
-          <div className="loading-spinner"></div>
+          <div className="spinner"></div>
           <p>Loading Instagram post...</p>
         </div>
       )}

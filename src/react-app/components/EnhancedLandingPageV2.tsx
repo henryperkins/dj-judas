@@ -110,6 +110,8 @@ const EnhancedLandingPageV2: React.FC = () => {
               appleMusicUrl="https://music.apple.com/us/artist/dj-lee/18270857"
               // Social media - actual verified accounts
               facebookPageUrl="https://www.facebook.com/MidWestScreamers/"
+              // Sample public video for demo purposes
+              facebookVideoHref="https://www.facebook.com/facebookapp/videos/10153231379946729/"
               instagramPermalink="https://www.instagram.com/iam_djlee/"
               // Additional content can be added here as needed
             />

@@ -15,7 +15,7 @@ export const tracks: TrackItem[] = [
     title: 'I Love to Praise Him',
     artist: 'DJ Lee & Voices of Judah',
     spotifyUri: 'spotify:track:2VTudgmPqyqO9lJ1FMULc7',
-    appleMusicUrl: 'https://music.apple.com/us/album/i-love-to-praise-him/1612314848?i=1612314849',
+    appleMusicUrl: 'https://music.apple.com/us/album/i-love-to-praise-him/1612314848',
     releaseDate: '2022-01-01',
     albumArt: '/images/covers/i-love-to-praise-him.jpg'
   },
@@ -24,7 +24,7 @@ export const tracks: TrackItem[] = [
     title: "Starting Point",
     artist: 'DJ Lee',
     spotifyUri: 'spotify:track:4vlipJtap5vgkfhuYXHTzA', // Update this if you have the correct Spotify URI
-    appleMusicUrl: 'https://music.apple.com/us/artist/dj-lee/18270857',
+    appleMusicUrl: 'https://music.apple.com/us/album/starting-point-single/1540816225',
     releaseDate: '2020-01-01',
     albumArt: '/images/covers/starting-point.jpg'
   },
@@ -33,7 +33,7 @@ export const tracks: TrackItem[] = [
     title: 'Trust in God',
     artist: 'DJ Lee',
     spotifyUri: 'spotify:track:3xQZ7uX9vNngNXBgEQWVd7', // Update this if you have the correct Spotify URI
-    appleMusicUrl: 'https://music.apple.com/us/artist/dj-lee/18270857',
+    appleMusicUrl: 'https://music.apple.com/us/album/trust-in-god-single/1815332243',
     releaseDate: '2025-01-01',
     albumArt: '/images/covers/trust-in-god.jpg'
   }

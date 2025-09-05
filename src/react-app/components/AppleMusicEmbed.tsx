@@ -11,7 +11,7 @@ interface AppleMusicEmbedProps {
 
 const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   url,
-  height = 450,
+  height = 360,
   theme = 'dark',
   affiliateToken = '',
   campaignToken = 'voices-of-judah'
@@ -75,7 +75,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   useEffect(() => {
     const t = window.setTimeout(() => {
       if (!isLoaded) setShowFallback(true);
-    }, 4500);
+    }, 8000); // Increased timeout to 8 seconds for slower connections
     return () => window.clearTimeout(t);
   }, [isLoaded]);
 

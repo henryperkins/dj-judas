@@ -325,7 +325,7 @@ export default function CreatorMediaPanel({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="share-btn"
-                      style={{ ['--brand' as any]: color }}
+                      style={{ ['--brand' as keyof React.CSSProperties]: color } as React.CSSProperties}
                       onClick={async (e) => {
                         trackShareClick(id);
                         if (id === 'facebook') {
@@ -428,11 +428,17 @@ function normalizeSpotifyOpen(url: string) {
 
 function trackShareClick(channel: string) {
   try {
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'share_click', { channel });
+    const win = window as unknown as {
+      gtag?: (...args: unknown[]) => void;
+      fbq?: (...args: unknown[]) => void;
+    };
+    if (typeof window !== 'undefined' && win.gtag) {
+      win.gtag('event', 'share_click', { channel });
     }
-    if (typeof window !== 'undefined' && (window as any).fbq) {
-      (window as any).fbq('trackCustom', 'ShareClick', { channel });
+    if (typeof window !== 'undefined' && win.fbq) {
+      win.fbq('trackCustom', 'ShareClick', { channel });
     }
-  } catch {}
+  } catch {
+    // ignore analytics errors
+  }
 }

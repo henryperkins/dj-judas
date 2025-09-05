@@ -20,6 +20,19 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const spotifyUri = uri || (url ? normalizeToSpotifyUri(url) : '');
   const embedRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  interface SpotifyPlaybackData {
+    isPaused: boolean;
+    position?: number;
+    duration?: number;
+    track_window?: {
+      current_track?: {
+        name: string;
+        duration_ms?: number;
+        artists?: Array<{ name: string }>;
+      };
+    };
+  }
+
   interface SpotifyEmbedController {
     togglePlay: () => void;
     play: () => void;
@@ -27,14 +40,19 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     resume: () => void;
     seek: (seconds: number) => void;
     destroy: () => void;
-    addListener: (event: string, cb: (e: { data: any }) => void) => void;
-    removeListener: (event: string, cb: (e: { data: any }) => void) => void;
+    addListener: (event: string, cb: (e: { data: SpotifyPlaybackData }) => void) => void;
+    removeListener: (event: string, cb: (e: { data: SpotifyPlaybackData }) => void) => void;
   }
   const [controller, setController] = useState<SpotifyEmbedController | null>(null);
   const [isAuthed, setIsAuthed] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [trackInfo, setTrackInfo] = useState<any>(null);
+  interface TrackInfo {
+    name: string;
+    artists?: Array<{ name: string }>;
+    duration_ms?: number;
+  }
+  const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveDone, setSaveDone] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -54,8 +72,8 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     script.src = 'https://open.spotify.com/embed/iframe-api/v1';
     script.async = true;
     let localController: SpotifyEmbedController | null = null;
-    let playbackHandler: ((e: { data: any }) => void) | null = null;
-    let readyHandler: ((e: { data: any }) => void) | null = null;
+    let playbackHandler: ((e: { data: SpotifyPlaybackData }) => void) | null = null;
+    let readyHandler: ((e: { data: SpotifyPlaybackData }) => void) | null = null;
 
     script.onload = () => {
   type IFrameAPIType = { createController: (el: HTMLElement, opts: Record<string, unknown>, cb: (ctrl: SpotifyEmbedController) => void) => void };
@@ -113,17 +131,19 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           if (readyHandler) localController.removeListener('ready', readyHandler);
           localController.destroy();
         }
-      } catch {}
+      } catch {
+        // Intentionally empty: suppress any errors during cleanup
+      }
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
       // Avoid dangling callbacks if script was loaded
       const win = window as unknown as { onSpotifyIframeApiReady?: unknown };
       if (win.onSpotifyIframeApiReady) {
-        delete (win as any).onSpotifyIframeApiReady;
+        delete (win as Record<string, unknown>).onSpotifyIframeApiReady;
       }
     };
-  }, [spotifyUri, embedHeight, theme, onPlay, contentType]);
+  }, [spotifyUri, embedHeight, theme, onPlay, contentType, seeking]);
 
   // Fallback: try setting the iframe title when load state changes
   useEffect(() => {
@@ -349,7 +369,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
       {trackInfo && (
         <div className="track-metadata">
           <p className="track-name">{trackInfo.name}</p>
-          <p className="artist-name">{trackInfo.artists?.map((a: any) => a.name).join(', ')}</p>
+          <p className="artist-name">{trackInfo.artists?.map((a: { name: string }) => a.name).join(', ')}</p>
         </div>
       )}
 

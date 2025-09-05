@@ -10,6 +10,8 @@ import AppleMusicEmbed from "./AppleMusicEmbed";
 import FacebookVideo from "./FacebookVideo";
 import FacebookPage from "./FacebookPage";
 import InstagramEmbed from "./InstagramEmbed";
+import SocialEmbed from "./SocialEmbed";
+import { shareWithTracking } from "../utils/metaSdk";
 
 export type CreatorMediaPanelProps = {
   artist?: string;
@@ -25,6 +27,7 @@ export type CreatorMediaPanelProps = {
 
   // Social
   instagramPermalink?: string;  // public post/reel URL (for embed)
+  socialEmbedUrl?: string;      // any supported social URL (TikTok, YouTube, X, etc.)
 
   // Share
   shareUrl?: string;            // canonical share link; defaults to window.location.href at runtime
@@ -38,6 +41,7 @@ export default function CreatorMediaPanel({
   facebookVideoHref,
   facebookPageUrl,
   instagramPermalink,
+  socialEmbedUrl,
   shareUrl,
 }: CreatorMediaPanelProps) {
   const [tab, setTab] = useState<"listen" | "watch" | "social" | "share">("listen");
@@ -49,7 +53,9 @@ export default function CreatorMediaPanel({
   const spotifyArtistId = import.meta.env?.VITE_SPOTIFY_ARTIST_ID;
   const instagramHandle = import.meta.env?.VITE_INSTAGRAM_HANDLE;
   const facebookPage = import.meta.env?.VITE_FACEBOOK_PAGE;
+  const facebookAppId = import.meta.env?.VITE_FACEBOOK_APP_ID as string | undefined;
   const soundcloudUrl = import.meta.env?.VITE_SOUNDCLOUD_URL;
+  const defaultSocialEmbedUrl = import.meta.env?.VITE_SOCIAL_EMBED_URL as string | undefined;
 
   // Build default URLs from environment variables
   const defaultSpotifyUrl = spotifyArtistId ? `https://open.spotify.com/artist/${spotifyArtistId}` : undefined;
@@ -91,13 +97,32 @@ export default function CreatorMediaPanel({
     }
   }
 
+  const messengerHref = () => {
+    try {
+      const base = buildShareUrl(canonical, 'messenger');
+      // Prefer desktop web dialog when App ID is configured
+      if (facebookAppId && typeof window !== 'undefined') {
+        const params = new URLSearchParams({
+          app_id: facebookAppId,
+          link: base,
+          redirect_uri: window.location.origin
+        });
+        return `https://www.facebook.com/dialog/send?${params.toString()}`;
+      }
+      // Fallback to deep link (mobile only)
+      return `fb-messenger://share?link=${encodeURIComponent(base)}`;
+    } catch {
+      return `fb-messenger://share?link=${encodeURIComponent(canonical)}`;
+    }
+  };
+
   const shareTargets = [
     {
       id: 'facebook',
       label: 'Facebook',
       icon: LuFacebook,
       color: '#1877F2',
-      href: () => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(buildShareUrl(canonical, 'facebook'))}`,
+      href: () => '#',
     },
     {
       id: 'x',
@@ -118,7 +143,7 @@ export default function CreatorMediaPanel({
       label: 'Messenger',
       icon: FaFacebookMessenger,
       color: '#0084FF',
-      href: () => `fb-messenger://share?link=${encodeURIComponent(buildShareUrl(canonical, 'messenger'))}`,
+      href: messengerHref,
     },
     {
       id: 'telegram',
@@ -254,6 +279,14 @@ export default function CreatorMediaPanel({
                     )}
                   </div>
                 </SectionCard>
+
+                <SectionCard title="Universal Embed" hint="TikTok, YouTube, X, LinkedIn and more">
+                  {(socialEmbedUrl || defaultSocialEmbedUrl) ? (
+                    <SocialEmbed url={(socialEmbedUrl || defaultSocialEmbedUrl)!} />
+                  ) : (
+                    <EmptyState text="Provide any supported social post URL (e.g., TikTok/YouTube/Twitter)." />
+                  )}
+                </SectionCard>
               </div>
             )}
 
@@ -284,21 +317,31 @@ export default function CreatorMediaPanel({
                   </div>
 
                   <div className="share-grid">
-                    {shareTargets.map(({ id, label, icon: Icon, color, href }) => (
-                      <a
-                        key={id}
-                        href={href()}
-                        aria-label={`Share on ${label}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="share-btn"
-                        style={{ ['--brand' as any]: color }}
-                        onClick={() => trackShareClick(id)}
-                      >
-                        <Icon size={18} />
-                        <span>{label}</span>
-                      </a>
-                    ))}
+                  {shareTargets.map(({ id, label, icon: Icon, color, href }) => (
+                    <a
+                      key={id}
+                      href={href()}
+                      aria-label={`Share on ${label}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="share-btn"
+                      style={{ ['--brand' as any]: color }}
+                      onClick={async (e) => {
+                        trackShareClick(id);
+                        if (id === 'facebook') {
+                          e.preventDefault();
+                          await shareWithTracking({
+                            url: buildShareUrl(canonical, 'facebook'),
+                            quote: `${artist} – ${tagline}`,
+                            source: 'creator_media_panel'
+                          });
+                        }
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </a>
+                  ))}
                   </div>
 
                   <p className="mt-3 text-xs text-muted-foreground break-all" aria-live="polite">{canonical}</p>

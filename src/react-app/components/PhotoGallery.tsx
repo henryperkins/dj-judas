@@ -5,19 +5,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {
-  Dialog as UIDialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogContent,
-  DialogClose,
-} from '@/components/ui/dialog';
+import { Dialog as UIDialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { LuX, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import {
   motion,
   AnimatePresence,
   useMotionValue,
   useTransform,
+  useReducedMotion,
   type DragHandler,
 } from 'framer-motion';
 
@@ -33,7 +28,7 @@ interface Photo {
   category: string;
 }
 
-const photos: Photo[] = [
+const defaultPhotos: Photo[] = [
   {
     id: 1,
     src: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
@@ -78,7 +73,8 @@ const photos: Photo[] = [
   },
 ];
 
-const categories = ['all', 'worship', 'youth choir', 'community', 'recording'];
+// Default categories if we cannot load from JSON
+const defaultCategories = ['all', 'worship', 'youth choir', 'community', 'recording'];
 
 /* ──────────────────────────────────
  * Helpers
@@ -113,14 +109,20 @@ const PhotoGallery: React.FC = () => {
   /* ───── State ───── */
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentIndex, setCurrentIndex] = useState<number | null>(null); // one source of truth
+  const [items, setItems] = useState<Photo[]>(defaultPhotos);
 
   /* ───── Derived data ───── */
+  const categories = useMemo(() => {
+    const fromData = Array.from(new Set(items.map((p) => p.category)));
+    return fromData.length > 0 ? (['all', ...fromData]) : defaultCategories;
+  }, [items]);
+
   const filteredPhotos = useMemo(
     () =>
       selectedCategory === 'all'
-        ? photos
-        : photos.filter((p) => p.category === selectedCategory),
-    [selectedCategory]
+        ? items
+        : items.filter((p) => p.category === selectedCategory),
+    [items, selectedCategory]
   );
 
   const selectedPhoto =
@@ -129,12 +131,14 @@ const PhotoGallery: React.FC = () => {
   /* ───── Motion values ───── */
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
+  const prefersReducedMotion = useReducedMotion();
 
   /* ───── Touch refs ───── */
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
   /* ───── Helpers ───── */
+  const toTitleCase = (s: string) => s.replace(/\b\w/g, (m) => m.toUpperCase());
   const openLightbox = (photo: Photo) => {
     const idx = filteredPhotos.findIndex((p) => p.id === photo.id);
     setCurrentIndex(idx === -1 ? null : idx);
@@ -179,6 +183,54 @@ const PhotoGallery: React.FC = () => {
     touchStartX.current = touchEndX.current = null;
   };
 
+  /* ───── Data loading (fallback to JSON) ───── */
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/content/gallery.json');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (Array.isArray(json) && !cancelled) {
+          setItems(json);
+        }
+      } catch (_) {
+        // ignore; keep defaults
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  /* ───── Keep index valid on filter/data change ───── */
+  useEffect(() => {
+    if (currentIndex == null) return;
+    if (filteredPhotos.length === 0) {
+      setCurrentIndex(null);
+      return;
+    }
+    if (currentIndex >= filteredPhotos.length) {
+      setCurrentIndex(filteredPhotos.length - 1);
+    }
+  }, [filteredPhotos.length]);
+
+  /* ───── Reset drag + preload neighbors on change ───── */
+  useEffect(() => {
+    if (currentIndex == null || filteredPhotos.length === 0) return;
+    // Reset drag offset
+    x.set(0);
+    // Preload neighbors
+    const prevIdx = (currentIndex - 1 + filteredPhotos.length) % filteredPhotos.length;
+    const nextIdx = (currentIndex + 1) % filteredPhotos.length;
+    [prevIdx, nextIdx].forEach((i) => {
+      const src = filteredPhotos[i]?.src;
+      if (src) {
+        const img = new Image();
+        img.src = src;
+      }
+    });
+  }, [currentIndex, filteredPhotos, x]);
+
   /* ───── Keyboard navigation ───── */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -195,48 +247,45 @@ const PhotoGallery: React.FC = () => {
   /* ───── Render ───── */
   return (
     <div className="photo-gallery">
-      {/* ───────────────── Header ───────────────── */}
-      <header className="gallery-header">
-        <h2 className="text-3xl font-bold">Gallery</h2>
-        <p className="text-muted-foreground">
-          Capturing moments of worship, ministry, and community impact
-        </p>
-      </header>
+      {/* Header is already provided by the parent section; avoid duplicate heading here. */}
 
       {/* ───────────────── Category filters ───────────────── */}
-      <div className="flex flex-wrap gap-2 my-6">
+      <div className="flex flex-wrap gap-2 my-6" role="group" aria-label="Filter gallery by category">
         {categories.map((category) => {
           const active = selectedCategory === category;
           return (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`rounded-md px-3 py-1 text-sm transition-colors ${active
+              aria-pressed={active}
+              className={`rounded-md px-3 py-2 min-h-9 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-muted/70'
                 }`}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {toTitleCase(category)}
             </button>
           );
         })}
       </div>
 
       {/* ───────────────── Photo grid ───────────────── */}
-      <motion.div className="grid gap-4 md:grid-cols-3">
+      <motion.div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
         <AnimatePresence>
           {filteredPhotos.map((photo) => (
-            <motion.div
+            <motion.button
               key={photo.id}
               layout
-              className="relative overflow-hidden rounded-md shadow-sm cursor-pointer"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              whileHover={{ scale: 1.05 }}
+              className="relative overflow-hidden rounded-md shadow-sm cursor-pointer aspect-[4/3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              type="button"
+              initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25 }}
+              whileHover={prefersReducedMotion ? undefined : { scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => openLightbox(photo)}
+              aria-label={photo.alt || photo.caption}
             >
               <img
                 src={photo.src}
@@ -250,9 +299,9 @@ const PhotoGallery: React.FC = () => {
                 className="object-cover w-full h-full"
               />
               <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-black/20 to-transparent p-2">
-                <p className="text-xs text-white">{photo.caption}</p>
+                <p className="text-xs text-white line-clamp-2">{photo.caption}</p>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </AnimatePresence>
       </motion.div>
@@ -262,9 +311,11 @@ const PhotoGallery: React.FC = () => {
         open={currentIndex != null}
         onOpenChange={(open) => !open && setCurrentIndex(null)}
       >
-        <DialogPortal>
-          <DialogOverlay className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
-          <DialogContent className="fixed inset-0 flex items-center justify-center p-4">
+        <DialogContent
+          fullscreen
+          overlayClassName="fixed inset-0 bg-black/80 backdrop-blur-sm"
+          className="flex items-center justify-center p-4"
+        >
             <DialogClose
               aria-label="Close"
               className="absolute top-4 right-4 text-white hover:text-red-400 focus:outline-none"
@@ -305,7 +356,7 @@ const PhotoGallery: React.FC = () => {
                   alt={selectedPhoto.alt}
                   loading="lazy"
                   decoding="async"
-                  className="max-h-[90vh] object-contain pointer-events-none"
+                  className="max-h-[90vh] object-contain"
                 />
 
                 {/* Next button */}
@@ -332,8 +383,7 @@ const PhotoGallery: React.FC = () => {
                 </span>
               </div>
             )}
-          </DialogContent>
-        </DialogPortal>
+        </DialogContent>
       </UIDialog>
     </div>
   );

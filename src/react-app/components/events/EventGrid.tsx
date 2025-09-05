@@ -19,12 +19,37 @@ export default function EventGrid() {
     let cancelled = false;
     const load = async () => {
       try {
+        // Primary: try the API endpoint (served by the Worker in dev/prod)
         const res = await fetch('/api/events');
-        if (!res.ok) throw new Error(String(res.status));
-        const data = await res.json();
+        if (res.ok) {
+          const data = await res.json();
+          // If API returns an empty payload (can happen if assets aren't wired), fall back to static JSON
+          const isEmpty = (!data?.upcoming || data.upcoming.length === 0) && (!data?.past || data.past.length === 0);
+          if (!cancelled && !isEmpty) {
+            setUpcoming(data.upcoming || []);
+            setPast(data.past || []);
+            return;
+          }
+        }
+
+        // Fallback: load static events file and split into upcoming/past on the client.
+        // This covers static preview or misconfigured Worker assets.
+        const staticRes = await fetch('/content/events.json');
+        if (!staticRes.ok) throw new Error(`events.json ${staticRes.status}`);
+        const items: EventItem[] = await staticRes.json();
+        const now = Date.now();
+        const published = items.filter(e => (e.status ?? 'published') === 'published');
+        const upcoming = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() >= now)
+          .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+        const past = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() < now)
+          .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime());
         if (!cancelled) {
-          setUpcoming(data.upcoming || []);
-          setPast(data.past || []);
+          setUpcoming(upcoming);
+          setPast(past);
+          // Helpful for admins: signal that fallback path was used
+          if (typeof window !== 'undefined' && (window as any).console) {
+            console.warn('[events] Using static fallback from /content/events.json');
+          }
         }
       } catch (e) {
         if (!cancelled) setError('Failed to load events');

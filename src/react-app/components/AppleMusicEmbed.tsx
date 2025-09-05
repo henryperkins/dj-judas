@@ -17,6 +17,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   campaignToken = 'voices-of-judah'
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const [musicKitReady] = useState(false); // MusicKit disabled until token configured
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -68,6 +69,15 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
     trackEngagement('apple_music_subscribe', { url });
     window.open('https://music.apple.com/subscribe', '_blank', 'noopener,noreferrer');
   };
+
+  // If the embed doesn't finish loading within a grace window,
+  // switch to a graceful fallback so we don't show an empty panel.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!isLoaded) setShowFallback(true);
+    }, 4500);
+    return () => window.clearTimeout(t);
+  }, [isLoaded]);
 
   // Lazy-load MusicKit script (only if we might have a token)
   useEffect(() => {
@@ -154,28 +164,52 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
       </div>
 
       <div className="apple-iframe-container">
-        {!isLoaded && (
+        {!isLoaded && !showFallback && (
           <div className="embed-loading">
             <div className="spinner"></div>
             <p>Loading Apple Music player...</p>
           </div>
         )}
-        <iframe
-          allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
-          height={height}
-          style={{
-            width: '100%',
-            maxWidth: '100%',
-            overflow: 'hidden',
-            background: 'transparent',
-            borderRadius: '8px'
-          }}
-          sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
-          src={embedSrc}
-          title="Apple Music player"
-          loading="lazy"
-          onLoad={() => setIsLoaded(true)}
-        />
+        {!showFallback && (
+          <iframe
+            allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+            height={height}
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              background: 'transparent',
+              borderRadius: '8px'
+            }}
+            sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+            src={embedSrc}
+            title="Apple Music player"
+            loading="lazy"
+            onLoad={() => setIsLoaded(true)}
+          />
+        )}
+
+        {showFallback && (
+          <div
+            role="region"
+            aria-label="Apple Music fallback"
+            style={{
+              display: 'grid',
+              placeItems: 'center',
+              height,
+              background: 'hsl(var(--muted) / 0.35)',
+              borderRadius: 8,
+            }}
+          >
+            <div style={{ textAlign: 'center', color: 'hsl(var(--muted-foreground))' }}>
+              <LuMusic size={36} />
+              <p style={{ marginTop: 8 }}>Preview unavailable here.</p>
+              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={handleOpenInAppleMusic}>
+                <LuExternalLink size={16} /> Open in Apple Music
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="embed-actions">

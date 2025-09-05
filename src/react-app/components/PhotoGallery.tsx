@@ -194,7 +194,7 @@ const PhotoGallery: React.FC = () => {
         if (Array.isArray(json) && !cancelled) {
           setItems(json);
         }
-      } catch (_) {
+      } catch {
         // ignore; keep defaults
       }
     };
@@ -212,7 +212,7 @@ const PhotoGallery: React.FC = () => {
     if (currentIndex >= filteredPhotos.length) {
       setCurrentIndex(filteredPhotos.length - 1);
     }
-  }, [filteredPhotos.length]);
+  }, [filteredPhotos.length, currentIndex]);
 
   /* ───── Reset drag + preload neighbors on change ───── */
   useEffect(() => {
@@ -258,7 +258,7 @@ const PhotoGallery: React.FC = () => {
               key={category}
               onClick={() => setSelectedCategory(category)}
               aria-pressed={active}
-              className={`rounded-md px-3 py-2 min-h-9 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
+              className={`rounded-md px-3 py-2 min-h-9 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted hover:bg-muted/70'
                 }`}
@@ -276,7 +276,7 @@ const PhotoGallery: React.FC = () => {
             <motion.button
               key={photo.id}
               layout
-              className="relative overflow-hidden rounded-md shadow-sm cursor-pointer aspect-[4/3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="relative overflow-hidden rounded-md shadow-sm cursor-pointer aspect-[4/3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               type="button"
               initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
               animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}

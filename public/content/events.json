@@ -1,0 +1,26 @@
+[
+  {
+    "id": "reunion-12-chicago-2026",
+    "slug": "reunion-12-chicago-2026",
+    "title": "12th Anniversary Reunion Concert",
+    "description": "A special night with DJ Lee & The Voices of Judah celebrating 12 years of ministry.",
+    "flyerUrl": "/content/flyers/reunion-12-chicago-2026.jpg",
+    "startDateTime": "2026-01-10T18:00:00-06:00",
+    "endDateTime": "2026-01-10T21:00:00-06:00",
+    "venueName": "TBD",
+    "address": "",
+    "city": "Chicago",
+    "region": "IL",
+    "country": "US",
+    "latitude": null,
+    "longitude": null,
+    "ticketUrl": "",
+    "rsvpUrl": "",
+    "priceText": "",
+    "tags": ["concert"],
+    "status": "published",
+    "createdAt": "2025-09-02T00:00:00Z",
+    "updatedAt": "2025-09-02T00:00:00Z"
+  }
+]
+

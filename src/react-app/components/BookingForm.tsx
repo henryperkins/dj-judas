@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, User, Mail, Phone, MessageSquare, Check } from 'lucide-react';
+import { LuCalendar, LuClock, LuMapPin, LuUser, LuMail, LuPhone, LuMessageSquare, LuCheck } from 'react-icons/lu';
 import { motion, AnimatePresence } from 'framer-motion';
-import './index.css';
 
 interface FormData {
   name: string;
@@ -14,6 +13,14 @@ interface FormData {
   message: string;
 }
 
+type FormErrors = Partial<Record<keyof FormData, string>>;
+
+const getTodayLocal = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 const BookingForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -25,9 +32,11 @@ const BookingForm: React.FC = () => {
     location: '',
     message: ''
   });
-  
+
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const eventTypes = [
     { value: 'worship', label: 'Worship Service' },
@@ -39,82 +48,162 @@ const BookingForm: React.FC = () => {
     { value: 'other', label: 'Other' }
   ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
+
+    // Clear error for this field and any submit error
     if (errors[name as keyof FormData]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    if (submitError) setSubmitError(null);
+  };
+
+  const focusFirstError = (errs: FormErrors) => {
+    const order: (keyof FormData)[] = [
+      'name',
+      'email',
+      'phone',
+      'eventType',
+      'eventDate',
+      'eventTime',
+      'location',
+      'message'
+    ];
+    const first = order.find(k => errs[k]);
+    if (first) {
+      const el = document.getElementById(first);
+      if (el) el.focus();
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {};
-    
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email address';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    const newErrors: FormErrors = {};
+    const trim = (s: string) => s.trim();
+
+    if (!trim(formData.name)) newErrors.name = 'Name is required';
+    if (!trim(formData.email)) newErrors.email = 'Email is required';
+    else if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = 'Invalid email address';
+    if (!trim(formData.phone)) newErrors.phone = 'Phone number is required';
     if (!formData.eventDate) newErrors.eventDate = 'Event date is required';
     if (!formData.eventTime) newErrors.eventTime = 'Event time is required';
-    if (!formData.location.trim()) newErrors.location = 'Location is required';
-    
+    if (!trim(formData.location)) newErrors.location = 'Location is required';
+
+    // Ensure selected date+time is in the future
+    if (formData.eventDate && formData.eventTime) {
+      const selected = new Date(`${formData.eventDate}T${formData.eventTime}`);
+      if (selected.getTime() < Date.now()) {
+        newErrors.eventTime = 'Please choose a future time';
+      }
+    }
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) focusFirstError(newErrors);
+    return isValid;
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      eventType: 'worship',
+      eventDate: '',
+      eventTime: '',
+      location: '',
+      message: ''
+    });
+    setErrors({});
+    setSubmitError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
     let sent = false;
+    let networkError = false;
+
     try {
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+
       if (res.ok) {
         sent = true;
+      } else {
+        // Try to extract a meaningful error from the server
+        try {
+          const data = await res.json();
+          setSubmitError(
+            typeof data?.message === 'string'
+              ? data.message
+              : 'We could not submit your request. Please try again.'
+          );
+        } catch {
+          const text = await res.text().catch(() => '');
+          setSubmitError(
+            text?.trim()
+              ? text
+              : 'We could not submit your request. Please try again.'
+          );
+        }
       }
-    } catch {}
-
-    // Fallback: prefilled email if API unavailable
-    if (!sent) {
-      try {
-        const subject = encodeURIComponent(`Booking Request: ${formData.eventType} on ${formData.eventDate}`);
-        const body = encodeURIComponent([
-          `Name: ${formData.name}`,
-          `Email: ${formData.email}`,
-          `Phone: ${formData.phone}`,
-          `Event Type: ${formData.eventType}`,
-          `Date: ${formData.eventDate} ${formData.eventTime}`,
-          `Location: ${formData.location}`,
-          '',
-          'Message:',
-          formData.message
-        ].join('\n'));
-        window.location.href = `mailto:V.O.J@icloud.com?subject=${subject}&body=${body}`;
-      } catch {}
+    } catch {
+      networkError = true;
     }
-    
-    setIsSubmitted(true);
-    
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setIsSubmitted(false);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        eventType: 'worship',
-        eventDate: '',
-        eventTime: '',
-        location: '',
-        message: ''
-      });
-    }, 3000);
+
+    // Fallback: prefilled email if true network failure
+    if (!sent && networkError) {
+      try {
+        const subject = encodeURIComponent(
+          `Booking Request: ${formData.eventType} on ${formData.eventDate}`
+        );
+        const body = encodeURIComponent(
+          [
+            `Name: ${formData.name}`,
+            `Email: ${formData.email}`,
+            `Phone: ${formData.phone}`,
+            `Event Type: ${formData.eventType}`,
+            `Date: ${formData.eventDate} ${formData.eventTime}`,
+            `Location: ${formData.location}`,
+            '',
+            'Message:',
+            formData.message
+          ].join('\n')
+        );
+        window.location.href = `mailto:V.O.J@icloud.com?subject=${subject}&body=${body}`;
+        setSubmitError(
+          'We could not reach the server. We opened your email client with a prefilled message as a fallback.'
+        );
+      } catch {
+        setSubmitError(
+          'We could not reach the server. Please email V.O.J@icloud.com with your booking details.'
+        );
+      }
+    }
+
+    if (sent) {
+      setIsSubmitted(true);
+      // Prepare a fresh form for the next request
+      resetForm();
+    }
+
+    setIsSubmitting(false);
+  };
+
+  const handleNewRequest = () => {
+    setIsSubmitted(false);
+    resetForm();
   };
 
   return (
@@ -125,18 +214,28 @@ const BookingForm: React.FC = () => {
             key="form"
             className="booking-form"
             onSubmit={handleSubmit}
+            noValidate
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
+            aria-busy={isSubmitting}
           >
-            <h3>Book DJ Lee & Voices of Judah</h3>
-            <p className="form-subtitle">Fill out the form below and we'll get back to you within 24 hours</p>
-            
+            <h3>Book DJ Lee &amp; Voices of Judah</h3>
+            <p className="form-subtitle">
+              Fill out the form below and we'll get back to you within 24 hours
+            </p>
+
+            {submitError && (
+              <div className="form-error" role="alert" aria-live="assertive">
+                {submitError}
+              </div>
+            )}
+
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="name">
-                  <User size={16} /> Full Name
+                  <LuUser size={16} /> Full Name
                 </label>
                 <input
                   type="text"
@@ -148,13 +247,18 @@ const BookingForm: React.FC = () => {
                   aria-invalid={!!errors.name}
                   aria-describedby={errors.name ? 'name-error' : undefined}
                   placeholder="John Doe"
+                  autoComplete="name"
                 />
-                {errors.name && <span id="name-error" className="error-message" role="alert">{errors.name}</span>}
+                {errors.name && (
+                  <span id="name-error" className="error-message" role="alert">
+                    {errors.name}
+                  </span>
+                )}
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="email">
-                  <Mail size={16} /> Email Address
+                  <LuMail size={16} /> Email Address
                 </label>
                 <input
                   type="email"
@@ -166,13 +270,18 @@ const BookingForm: React.FC = () => {
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? 'email-error' : undefined}
                   placeholder="john@example.com"
+                  autoComplete="email"
                 />
-                {errors.email && <span id="email-error" className="error-message" role="alert">{errors.email}</span>}
+                {errors.email && (
+                  <span id="email-error" className="error-message" role="alert">
+                    {errors.email}
+                  </span>
+                )}
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="phone">
-                  <Phone size={16} /> Phone Number
+                  <LuPhone size={16} /> Phone Number
                 </label>
                 <input
                   type="tel"
@@ -184,10 +293,18 @@ const BookingForm: React.FC = () => {
                   aria-invalid={!!errors.phone}
                   aria-describedby={errors.phone ? 'phone-error' : undefined}
                   placeholder="(555) 123-4567"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  pattern="^[0-9+() \-]{7,}$"
+                  title="Enter a valid phone number"
                 />
-                {errors.phone && <span id="phone-error" className="error-message" role="alert">{errors.phone}</span>}
+                {errors.phone && (
+                  <span id="phone-error" className="error-message" role="alert">
+                    {errors.phone}
+                  </span>
+                )}
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="eventType">Event Type</label>
                 <select
@@ -203,10 +320,10 @@ const BookingForm: React.FC = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="eventDate">
-                  <Calendar size={16} /> Event Date
+                  <LuCalendar size={16} /> Event Date
                 </label>
                 <input
                   type="date"
@@ -217,14 +334,19 @@ const BookingForm: React.FC = () => {
                   className={errors.eventDate ? 'error' : ''}
                   aria-invalid={!!errors.eventDate}
                   aria-describedby={errors.eventDate ? 'eventDate-error' : undefined}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={getTodayLocal()}
+                  autoComplete="off"
                 />
-                {errors.eventDate && <span id="eventDate-error" className="error-message" role="alert">{errors.eventDate}</span>}
+                {errors.eventDate && (
+                  <span id="eventDate-error" className="error-message" role="alert">
+                    {errors.eventDate}
+                  </span>
+                )}
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="eventTime">
-                  <Clock size={16} /> Event Time
+                  <LuClock size={16} /> Event Time
                 </label>
                 <input
                   type="time"
@@ -235,13 +357,18 @@ const BookingForm: React.FC = () => {
                   className={errors.eventTime ? 'error' : ''}
                   aria-invalid={!!errors.eventTime}
                   aria-describedby={errors.eventTime ? 'eventTime-error' : undefined}
+                  autoComplete="off"
                 />
-                {errors.eventTime && <span id="eventTime-error" className="error-message" role="alert">{errors.eventTime}</span>}
+                {errors.eventTime && (
+                  <span id="eventTime-error" className="error-message" role="alert">
+                    {errors.eventTime}
+                  </span>
+                )}
               </div>
-              
+
               <div className="form-group full-width">
                 <label htmlFor="location">
-                  <MapPin size={16} /> Event Location
+                  <LuMapPin size={16} /> Event Location
                 </label>
                 <input
                   type="text"
@@ -253,13 +380,18 @@ const BookingForm: React.FC = () => {
                   aria-invalid={!!errors.location}
                   aria-describedby={errors.location ? 'location-error' : undefined}
                   placeholder="Church name and address"
+                  autoComplete="street-address"
                 />
-                {errors.location && <span id="location-error" className="error-message" role="alert">{errors.location}</span>}
+                {errors.location && (
+                  <span id="location-error" className="error-message" role="alert">
+                    {errors.location}
+                  </span>
+                )}
               </div>
-              
+
               <div className="form-group full-width">
                 <label htmlFor="message">
-                  <MessageSquare size={16} /> Additional Details (Optional)
+                  <LuMessageSquare size={16} /> Additional Details (Optional)
                 </label>
                 <textarea
                   id="message"
@@ -271,9 +403,14 @@ const BookingForm: React.FC = () => {
                 />
               </div>
             </div>
-            
-            <button type="submit" className="submit-button">
-              Send Booking Request
+
+            <button
+              type="submit"
+              className="submit-button"
+              disabled={isSubmitting}
+              aria-disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Sending…' : 'Send Booking Request'}
             </button>
           </motion.form>
         ) : (
@@ -288,11 +425,14 @@ const BookingForm: React.FC = () => {
             transition={{ duration: 0.3 }}
           >
             <div className="success-icon">
-              <Check size={48} />
+              <LuCheck size={48} />
             </div>
             <h3>Booking Request Sent!</h3>
-            <p>Thank you for your interest in booking DJ Lee & Voices of Judah.</p>
+            <p>Thank you for your interest in booking DJ Lee &amp; Voices of Judah.</p>
             <p>We'll review your request and get back to you within 24 hours.</p>
+            <button className="submit-button" onClick={handleNewRequest}>
+              New Booking Request
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Music, ExternalLink, Plus, Play, LogIn } from 'lucide-react';
-import './index.css';
+import { LuMusic, LuExternalLink, LuPlus, LuPlay, LuLogIn } from 'react-icons/lu';
 
 interface AppleMusicEmbedProps {
   url: string; // Full Apple Music URL
@@ -141,7 +140,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
     <div className={`apple-music-embed-container ${theme}`}>
       <div className="embed-header">
         <div className="platform-badge">
-          <Music size={16} />
+          <LuMusic size={16} />
           <span>Apple Music</span>
         </div>
         <button
@@ -149,7 +148,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
           onClick={handleOpenInAppleMusic}
           aria-label="Open in Apple Music"
         >
-          <ExternalLink size={16} />
+          <LuExternalLink size={16} />
           Open in Apple Music
         </button>
       </div>
@@ -187,7 +186,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
             aria-label="Authorize Apple Music"
             disabled={authLoading}
           >
-            <LogIn size={18} />
+            <LuLogIn size={18} />
             <span>{authLoading ? 'Authorizing...' : 'Authorize'}</span>
           </button>
         )}
@@ -197,7 +196,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
           aria-label="Add to Library"
           disabled={actionLoading}
         >
-          <Plus size={18} />
+          <LuPlus size={18} />
           <span>{actionLoading ? 'Adding...' : 'Add to Library'}</span>
         </button>
 
@@ -206,7 +205,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
           onClick={handleOpenInAppleMusic}
           aria-label="Play in Apple Music"
         >
-          <Play size={18} />
+          <LuPlay size={18} />
           <span>Play Full Track</span>
         </button>
 
@@ -223,7 +222,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
       </div>
 
       <div className="streaming-cta">
-        <p>🎵 Stream or purchase to support the artist</p>
+        <p>Stream or purchase to support the artist</p>
       </div>
     </div>
   );

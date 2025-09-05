@@ -15,13 +15,6 @@ interface ConversionPath {
   action: 'stream' | 'follow' | 'save' | 'purchase' | 'share';
 }
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-    fbq?: (...args: unknown[]) => void;
-  }
-}
-
 class SocialMetricsTracker {
   private static instance: SocialMetricsTracker;
   private sessionId: string;

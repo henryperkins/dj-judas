@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Music, ExternalLink } from 'lucide-react';
+import { LuMusic, LuExternalLink } from 'react-icons/lu';
 import SpotifyEmbed from './SpotifyEmbed';
 import AppleMusicEmbed from './AppleMusicEmbed';
-import './index.css';
 
 interface Track {
   id: string;
@@ -99,14 +98,14 @@ const MusicHub: React.FC<MusicHubProps> = ({
     { 
       id: 'spotify', 
       name: 'Spotify', 
-      icon: Music, 
+      icon: LuMusic, 
       color: 'hsl(var(--brand-spotify))',
       available: (t: Track) => !!t.spotifyUri 
     },
     { 
       id: 'apple', 
       name: 'Apple Music', 
-      icon: Music, 
+      icon: LuMusic, 
       color: '#fc3c44',
       available: (t: Track) => !!t.appleMusicUrl 
     }
@@ -208,7 +207,7 @@ const MusicHub: React.FC<MusicHubProps> = ({
               >
                 <platform.icon size={24} />
                 <span>{platform.name}</span>
-                <ExternalLink size={14} className="external-icon" />
+                <LuExternalLink size={14} className="external-icon" />
               </button>
             );
           })}

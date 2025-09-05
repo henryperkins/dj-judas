@@ -23,7 +23,7 @@ export function applyTheme(mode: ThemeMode) {
 }
 
 export function setTheme(mode: ThemeMode) {
-  try { localStorage.setItem(STORAGE_KEY, mode); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, mode); } catch { /* empty */ }
   applyTheme(mode);
 }
 

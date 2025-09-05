@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "react";
-import './index.css';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
-  PlayCircle, Music, Share2, Facebook, Instagram, Copy, Check, Link2, Globe, Mic2
-} from "lucide-react";
+  LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuCopy, LuCheck, LuLink2, LuGlobe, LuMic, LuQrCode
+} from "react-icons/lu";
+import { FaXTwitter, FaWhatsapp, FaLinkedinIn, FaFacebookMessenger, FaTelegram } from 'react-icons/fa6';
+import QrShareCard from './QrShareCard';
 import SpotifyEmbed from "./SpotifyEmbed";
 import AppleMusicEmbed from "./AppleMusicEmbed";
 import FacebookVideo from "./FacebookVideo";
@@ -19,7 +21,6 @@ export type CreatorMediaPanelProps = {
 
   // Video / Live
   facebookVideoHref?: string;   // public FB video/live URL
-  facebookAppId?: string;       // optional for SDK init (embeds work without)
   facebookPageUrl?: string;     // public page, e.g. https://www.facebook.com/<page>
 
   // Social
@@ -35,7 +36,6 @@ export default function CreatorMediaPanel({
   spotifyUrl,
   appleMusicUrl,
   facebookVideoHref,
-  facebookAppId = import.meta.env?.VITE_FACEBOOK_APP_ID,
   facebookPageUrl,
   instagramPermalink,
   shareUrl,
@@ -43,6 +43,7 @@ export default function CreatorMediaPanel({
   const [tab, setTab] = useState<"listen" | "watch" | "social" | "share">("listen");
   const [copied, setCopied] = useState(false);
   const canonical = useMemo(() => shareUrl || (typeof window !== "undefined" ? window.location.href : ""), [shareUrl]);
+  const [useUtm, setUseUtm] = useState(true);
 
   // Get environment variables for defaults
   const spotifyArtistId = import.meta.env?.VITE_SPOTIFY_ARTIST_ID;
@@ -75,32 +76,99 @@ export default function CreatorMediaPanel({
     }
   }
 
+  // Build share URLs with optional UTM tagging
+  function buildShareUrl(base: string, source: string) {
+    try {
+      const url = new URL(base);
+      if (useUtm) {
+        url.searchParams.set('utm_source', source);
+        url.searchParams.set('utm_medium', 'share');
+        url.searchParams.set('utm_campaign', 'creator_media_panel');
+      }
+      return url.toString();
+    } catch {
+      return base;
+    }
+  }
+
+  const shareTargets = [
+    {
+      id: 'facebook',
+      label: 'Facebook',
+      icon: LuFacebook,
+      color: '#1877F2',
+      href: () => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(buildShareUrl(canonical, 'facebook'))}`,
+    },
+    {
+      id: 'x',
+      label: 'X',
+      icon: FaXTwitter,
+      color: '#000000',
+      href: () => `https://twitter.com/intent/tweet?url=${encodeURIComponent(buildShareUrl(canonical, 'x'))}&text=${encodeURIComponent(`${artist} – ${tagline}`)}`,
+    },
+    {
+      id: 'whatsapp',
+      label: 'WhatsApp',
+      icon: FaWhatsapp,
+      color: '#25D366',
+      href: () => `https://wa.me/?text=${encodeURIComponent(`${artist} – ${tagline}\n${buildShareUrl(canonical, 'whatsapp')}`)}`,
+    },
+    {
+      id: 'messenger',
+      label: 'Messenger',
+      icon: FaFacebookMessenger,
+      color: '#0084FF',
+      href: () => `fb-messenger://share?link=${encodeURIComponent(buildShareUrl(canonical, 'messenger'))}`,
+    },
+    {
+      id: 'telegram',
+      label: 'Telegram',
+      icon: FaTelegram,
+      color: '#26A4E3',
+      href: () => `https://t.me/share/url?url=${encodeURIComponent(buildShareUrl(canonical, 'telegram'))}&text=${encodeURIComponent(`${artist} – ${tagline}`)}`,
+    },
+    {
+      id: 'linkedin',
+      label: 'LinkedIn',
+      icon: FaLinkedinIn,
+      color: '#0A66C2',
+      href: () => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(buildShareUrl(canonical, 'linkedin'))}`,
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      icon: LuLink2,
+      color: 'hsl(var(--secondary-foreground))',
+      href: () => `mailto:?subject=${encodeURIComponent(`${artist} – ${tagline}`)}&body=${encodeURIComponent(buildShareUrl(canonical, 'email'))}`,
+    },
+  ] as const;
+
   return (
     <section className="relative">
-      <div className="mx-auto w-full max-w-5xl rounded-3xl border border-gray-200 bg-white p-1">
+      <div className="mx-auto w-full max-w-5xl rounded-xl border bg-card p-1 text-card-foreground">
         {/* Header */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
+        <div className="rounded-xl border bg-card p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">{artist}</h2>
-              <p className="text-gray-600">{tagline}</p>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{artist}</h2>
+              <p className="text-muted-foreground">{tagline}</p>
             </div>
 
             {/* Tabs */}
-            <div className="inline-flex rounded-2xl border border-gray-200 bg-white p-1">
+            <div className="inline-flex rounded-lg border bg-card p-1">
               {[
-                { key: "listen", label: "Listen", icon: Music },
-                { key: "watch", label: "Watch", icon: PlayCircle },
-                { key: "social", label: "Social", icon: Mic2 },
-                { key: "share", label: "Share", icon: Share2 },
+                { key: "listen", label: "Listen", icon: LuMusic },
+                { key: "watch", label: "Watch", icon: LuCirclePlay },
+                { key: "social", label: "Social", icon: LuMic },
+                { key: "share", label: "Share", icon: LuShare2 },
               ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setTab(key as "listen" | "watch" | "social" | "share")}
-                  className={`group relative inline-flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2 text-sm font-semibold transition
-                    ${tab === key ? "bg-gray-100 text-gray-900 shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}
+                  className={`group relative inline-flex items-center gap-2 rounded-md px-3 sm:px-4 py-2 text-sm font-semibold transition
+                    ${tab === key ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:bg-secondary"}`}
                 >
-                  <Icon size={18} className={tab === key ? "text-gray-900" : "text-gray-600"} />
+                  <Icon size={18} />
                   <span>{label}</span>
                 </button>
               ))}
@@ -111,96 +179,138 @@ export default function CreatorMediaPanel({
           <div className="mt-6 grid gap-6">
             {tab === "listen" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card title="Spotify" hint="Playlists, tracks, albums">
+                <SectionCard title="Spotify" hint="Playlists, tracks, albums">
                   {(spotifyUrl || defaultSpotifyUrl) ? (
                     <SpotifyEmbed url={spotifyUrl || defaultSpotifyUrl} />
                   ) : (
                     <EmptyState text="Add a Spotify URL to play here." />
                   )}
-                </Card>
+                </SectionCard>
 
-                <Card title="Apple Music" hint="Albums & songs">
+                <SectionCard title="Apple Music" hint="Albums & songs">
                   {appleMusicUrl ? (
                     <AppleMusicEmbed url={appleMusicUrl} />
                   ) : (
                     <EmptyState text="Add an Apple Music link to play here." />
                   )}
-                </Card>
+                </SectionCard>
               </div>
             )}
 
             {tab === "watch" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card title="Facebook Video / Live" hint="Public videos & live streams">
+                <SectionCard title="Facebook Video / Live" hint="Public videos & live streams">
                   {facebookVideoHref ? (
-                    <FacebookVideo href={facebookVideoHref} appId={facebookAppId} height={400} />
+                    <FacebookVideo
+                      href={facebookVideoHref}
+                      height={400}
+                    />
                   ) : (
                     <EmptyState text="Provide a Facebook video/live URL." />
                   )}
-                </Card>
+                </SectionCard>
 
-                <Card title="Facebook Page" hint="Timeline embed">
+                <SectionCard title="Facebook Page" hint="Timeline embed">
                   {(facebookPageUrl || defaultFacebookPageUrl) ? (
-                    <FacebookPage pageUrl={facebookPageUrl || defaultFacebookPageUrl!} tabs="timeline" height={560} appId={facebookAppId} />
+                    <FacebookPage
+                      pageUrl={facebookPageUrl || defaultFacebookPageUrl!}
+                      tabs="timeline"
+                      height={560}
+                      // Remove appId from here - it should be initialized globally
+                    />
                   ) : (
                     <EmptyState text="Provide a Facebook Page URL." />
                   )}
-                </Card>
+                </SectionCard>
               </div>
             )}
 
             {tab === "social" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card title="Instagram" hint="@iam_djlee">
+                <SectionCard title="Instagram" hint="@iam_djlee">
                   {instagramPermalink ? (
-                    <InstagramEmbed url={instagramPermalink} captioned skeletonHeight={480} />
+                    <InstagramEmbed url={instagramPermalink} skeletonHeight={480} />
                   ) : (
                     <EmptyState text="Provide a public Instagram post/reel URL." />
                   )}
-                </Card>
+                </SectionCard>
 
-                <Card title="Quick Links" hint="Open profiles">
+                <SectionCard title="Quick Links" hint="Open profiles">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {(facebookPageUrl || defaultFacebookPageUrl) && (
-                      <LinkTile href={facebookPageUrl || defaultFacebookPageUrl!} label="Facebook" icon={<Facebook size={18} />} />
+                      <LinkTile href={facebookPageUrl || defaultFacebookPageUrl!} label="Facebook" icon={<LuFacebook size={18} />} />
                     )}
                     {(instagramPermalink || defaultInstagramUrl) && (
-                      <LinkTile href={instagramPermalink || defaultInstagramUrl!} label="Instagram" icon={<Instagram size={18} />} />
+                      <LinkTile href={instagramPermalink || defaultInstagramUrl!} label="Instagram" icon={<LuInstagram size={18} />} />
                     )}
                     {(spotifyUrl || defaultSpotifyUrl) && (
-                      <LinkTile href={normalizeSpotifyOpen(spotifyUrl || defaultSpotifyUrl!)} label="Spotify" icon={<Music size={18} />} />
+                      <LinkTile href={normalizeSpotifyOpen(spotifyUrl || defaultSpotifyUrl!)} label="Spotify" icon={<LuMusic size={18} />} />
                     )}
                     {appleMusicUrl && (
-                      <LinkTile href={appleMusicUrl} label="Apple Music" icon={<Globe size={18} />} />
+                      <LinkTile href={appleMusicUrl} label="Apple Music" icon={<LuGlobe size={18} />} />
                     )}
                     {soundcloudUrl && (
-                      <LinkTile href={soundcloudUrl} label="SoundCloud" icon={<Music size={18} />} />
+                      <LinkTile href={soundcloudUrl} label="SoundCloud" icon={<LuMusic size={18} />} />
                     )}
                   </div>
-                </Card>
+                </SectionCard>
               </div>
             )}
 
             {tab === "share" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card title="Share" hint="Let people jump in fast">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button onClick={nativeShare} className="btn btn-primary">
-                      <Share2 size={18} /> Native Share
-                    </button>
-                    <button onClick={copyShare} className="btn btn-secondary">
-                      {copied ? <Check size={18} /> : <Copy size={18} />} {copied ? "Copied" : "Copy Link"}
-                    </button>
-                    {canonical && (
-                      <a href={canonical} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-                        <Link2 size={18} /> Open Link
-                      </a>
-                    )}
+                <SectionCard title="Quick Share" hint="One-tap sharing with tracking">
+                  <div className="share-toolbar">
+                    <div className="share-actions">
+                      <button onClick={nativeShare} className="btn btn-primary" aria-label="Native share">
+                        <LuShare2 size={18} /> Share
+                      </button>
+                      <button onClick={copyShare} className="btn btn-secondary" aria-label="Copy link">
+                        {copied ? <LuCheck size={18} /> : <LuCopy size={18} />} {copied ? "Copied" : "Copy"}
+                      </button>
+                      {canonical && (
+                        <a href={canonical} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Open link">
+                          <LuLink2 size={18} /> Open
+                        </a>
+                      )}
+                      <button className="btn btn-ghost" aria-label="Show QR" onClick={() => setTab('share')}>
+                        <LuQrCode size={18} /> QR
+                      </button>
+                    </div>
+                    <label className="utm-toggle">
+                      <input type="checkbox" checked={useUtm} onChange={(e) => setUseUtm(e.target.checked)} />
+                      <span>Add UTM tags</span>
+                    </label>
                   </div>
-                  <p className="mt-3 text-sm text-gray-600 break-all">{canonical}</p>
-                </Card>
 
-                <Card title="Deep Links" hint="Send people to a specific service">
+                  <div className="share-grid">
+                    {shareTargets.map(({ id, label, icon: Icon, color, href }) => (
+                      <a
+                        key={id}
+                        href={href()}
+                        aria-label={`Share on ${label}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="share-btn"
+                        style={{ ['--brand' as any]: color }}
+                        onClick={() => trackShareClick(id)}
+                      >
+                        <Icon size={18} />
+                        <span>{label}</span>
+                      </a>
+                    ))}
+                  </div>
+
+                  <p className="mt-3 text-xs text-muted-foreground break-all" aria-live="polite">{canonical}</p>
+                </SectionCard>
+
+                <SectionCard title="Share via QR" hint="Great for screens and posters">
+                  <div className="qr-section">
+                    <QrShareCard url={buildShareUrl(canonical, 'qr')} />
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Deep Links" hint="Send people to a specific service">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {(spotifyUrl || defaultSpotifyUrl) && <DeepLink href={normalizeSpotifyOpen(spotifyUrl || defaultSpotifyUrl!)} label="Open in Spotify" />}
                     {appleMusicUrl && <DeepLink href={appleMusicUrl} label="Open in Apple Music" />}
@@ -209,7 +319,7 @@ export default function CreatorMediaPanel({
                     {(instagramPermalink || defaultInstagramUrl) && <DeepLink href={instagramPermalink || defaultInstagramUrl!} label="Open Instagram" />}
                     {soundcloudUrl && <DeepLink href={soundcloudUrl} label="Open SoundCloud" />}
                   </div>
-                </Card>
+                </SectionCard>
               </div>
             )}
           </div>
@@ -221,35 +331,35 @@ export default function CreatorMediaPanel({
 
 /* ----------------- helpers ----------------- */
 
-function Card({
+function SectionCard({
   title, hint, children,
 }: React.PropsWithChildren<{ title: string; hint?: string }>) {
   return (
-    <div className="rounded-2xl border border-white/20 bg-black/40 p-4 sm:p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h3 className="text-gray-900 font-semibold tracking-tight">{title}</h3>
-          {hint && <p className="text-xs text-gray-600">{hint}</p>}
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {hint && <CardDescription>{hint}</CardDescription>}
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-hidden rounded-md bg-card">
+          {children}
         </div>
-      </div>
-      <div className="overflow-hidden rounded-xl bg-white">
-        {children}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="flex h-48 items-center justify-center bg-gray-50">
-      <p className="text-sm text-gray-600">{text}</p>
+    <div className="flex h-48 items-center justify-center rounded-md bg-muted">
+      <p className="text-sm text-muted-foreground">{text}</p>
     </div>
   );
 }
 
 function LinkTile({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-900 hover:bg-gray-50 transition">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-md border bg-card px-3 py-2 text-foreground hover:bg-secondary transition">
       {icon} <span className="text-sm font-medium">{label}</span>
     </a>
   );
@@ -257,7 +367,7 @@ function LinkTile({ href, label, icon }: { href: string; label: string; icon?: R
 
 function DeepLink({ href, label }: { href: string; label: string }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 transition">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="rounded-md border bg-card px-3 py-2 text-sm text-foreground hover:bg-secondary transition">
       {label}
     </a>
   );
@@ -271,4 +381,15 @@ function normalizeSpotifyOpen(url: string) {
     .replace("spotify:album:", "https://open.spotify.com/album/")
     .replace("spotify:playlist:", "https://open.spotify.com/playlist/")
     .replace("spotify:artist:", "https://open.spotify.com/artist/");
+}
+
+function trackShareClick(channel: string) {
+  try {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'share_click', { channel });
+    }
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('trackCustom', 'ShareClick', { channel });
+    }
+  } catch {}
 }

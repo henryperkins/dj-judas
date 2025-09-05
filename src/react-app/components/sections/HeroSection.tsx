@@ -1,8 +1,7 @@
-import './index.css';
 import React from 'react';
 import { motion } from 'framer-motion';
 
-import { ChevronDown } from 'lucide-react';
+import { LuChevronDown } from 'react-icons/lu';
 import pattern1 from '../../assets/images/pattern1.jpeg';
 import logoImage from '../../assets/images/logo.jpeg';
 
@@ -63,7 +62,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 2 }}
       >
-        <ChevronDown size={32} />
+        <LuChevronDown size={32} />
       </motion.div>
     </motion.section>
   );

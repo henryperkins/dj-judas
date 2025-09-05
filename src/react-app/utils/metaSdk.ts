@@ -1,15 +1,5 @@
 import { socialMetrics } from './socialMetrics';
 
-declare global {
-  interface Window {
-    fbAsyncInit?: () => void;
-    FB?: unknown;
-    fbq?: (...args: unknown[]) => void;
-    instgrm?: { Embeds?: { process: () => void } };
-    trackMusicClick?: (platform: string) => void;
-  }
-}
-
 interface MetaSDKConfig {
   appId?: string;
   version?: string;

@@ -1,4 +1,3 @@
-import './index.css';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useScroll } from 'framer-motion';
 
@@ -9,6 +8,7 @@ import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
 import CreatorMediaPanel from './CreatorMediaPanel';
 import MobileBottomNav from './MobileBottomNav';
+import EventGrid from './events/EventGrid';
 import { isMobileDevice } from '../utils/platformDetection';
 import logoImage from '../assets/images/logo.jpeg';
 
@@ -42,7 +42,8 @@ const EnhancedLandingPageV2: React.FC = () => {
 
   // Track active section for mobile nav
   useEffect(() => {
-    const sections = ['home', 'about', 'music', 'gallery', 'services', 'booking'];
+    // Include 'events' so the Events section can be highlighted/navigated to
+    const sections = ['home', 'about', 'music', 'events', 'gallery', 'services', 'booking'];
     const observers = new Map();
 
     sections.forEach(id => {
@@ -82,6 +83,9 @@ const EnhancedLandingPageV2: React.FC = () => {
       <main id="main" tabIndex={-1}>
         {/* Stats Section */}
         <StatsSection />
+
+        {/* Events Section */}
+        <EventGrid />
 
         {/* Platform Launcher - Inline for desktop, FAB for mobile */}
         {!isMobile && (

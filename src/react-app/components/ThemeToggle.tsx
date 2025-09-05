@@ -1,11 +1,10 @@
-import { Moon, Sun, Laptop } from 'lucide-react';
+import { LuMoon, LuSun, LuLaptop } from 'react-icons/lu';
 import { useTheme, ThemeMode } from '../utils/theme';
-import './index.css';
 
 export default function ThemeToggle() {
   const { mode, setMode } = useTheme();
   const nextMode: Record<ThemeMode, ThemeMode> = { light: 'dark', dark: 'system', system: 'light' };
-  const Icon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Laptop;
+  const Icon = mode === 'light' ? LuSun : mode === 'dark' ? LuMoon : LuLaptop;
   const label = mode === 'light' ? 'Light' : mode === 'dark' ? 'Dark' : 'System';
 
   return (

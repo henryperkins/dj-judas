@@ -1,9 +1,8 @@
-import './index.css';
 import React from 'react';
 import { motion } from 'framer-motion';
-
+import { Card, CardContent } from '@/components/ui/card';
 import { useInView } from 'react-intersection-observer';
-import { Calendar, Music, Users, Award } from 'lucide-react';
+import { LuCalendar, LuMusic, LuUsers, LuAward } from 'react-icons/lu';
 
 interface StatItem {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -15,10 +14,10 @@ const StatsSection: React.FC = () => {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true });
 
   const stats: StatItem[] = [
-    { icon: Calendar, value: '16+', label: 'Years of Ministry' },
-    { icon: Music, value: '4+', label: 'Released Singles' },
-    { icon: Users, value: '1.6K+', label: 'Facebook Followers' },
-    { icon: Award, value: '2020-2022', label: 'Latest Releases' }
+    { icon: LuCalendar, value: '16+', label: 'Years of Ministry' },
+    { icon: LuMusic, value: '4+', label: 'Released Singles' },
+    { icon: LuUsers, value: '1.6K+', label: 'Facebook Followers' },
+    { icon: LuAward, value: '2020-2022', label: 'Latest Releases' }
   ];
 
   return (
@@ -30,14 +29,17 @@ const StatsSection: React.FC = () => {
             return (
               <motion.div
                 key={stat.label}
-                className="stat-card"
                 initial={{ opacity: 0, y: 20 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: index * 0.1, duration: 0.6 }}
               >
-                <Icon size={32} className="stat-icon" />
-                <h3 className="stat-value">{stat.value}</h3>
-                <p className="stat-label">{stat.label}</p>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-2 py-6 text-center">
+                    <Icon className="stat-icon" />
+                    <div className="text-3xl font-bold text-foreground leading-none">{stat.value}</div>
+                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  </CardContent>
+                </Card>
               </motion.div>
             );
           })}

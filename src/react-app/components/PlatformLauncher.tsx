@@ -1,28 +1,30 @@
-import './index.css';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, X, ExternalLink } from 'lucide-react';
+import { PlatformIcon, PLATFORM_COLORS, ACTION_ICONS } from './icons/PlatformIcons';
 import {
   generatePlatformLinks,
   openPlatform,
   trackPlatformClick,
   isMobileDevice,
-  PLATFORM_CONFIGS,
   type PlatformLink
 } from '../utils/platformDetection';
+
+const { close: CloseIcon, external: ExternalIcon, music: MusicIcon } = ACTION_ICONS;
 
 export interface PlatformLauncherProps {
   mode?: 'floating' | 'inline' | 'modal';
   simplified?: boolean;
   className?: string;
   onPlatformClick?: (platform: string) => void;
+  showLabels?: boolean; // New prop to control text visibility
 }
 
 const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
   mode = 'floating',
   simplified = true,
   className = '',
-  onPlatformClick
+  onPlatformClick,
+  showLabels = false // Default to icon-only for minimal design
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -37,6 +39,10 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  const getPlatformColor = (platform: string): string => {
+    return PLATFORM_COLORS[platform.toLowerCase() as keyof typeof PLATFORM_COLORS] || PLATFORM_COLORS.default;
+  };
 
   const handlePlatformClick = (link: PlatformLink) => {
     trackPlatformClick(link.platform, mode);
@@ -62,39 +68,12 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
     }
   };
 
-  const getPlatformColor = (platform: string): string => {
-    switch (platform) {
-      case 'spotify':
-        return PLATFORM_CONFIGS.spotify.color;
-      case 'apple-music':
-        return PLATFORM_CONFIGS.appleMusic.color;
-      case 'facebook':
-        return PLATFORM_CONFIGS.facebook.color;
-      case 'instagram':
-        return PLATFORM_CONFIGS.instagram.color;
-      default:
-        return '#000';
-    }
-  };
 
-  const getPlatformIcon = (platform: string): string => {
-    switch (platform) {
-      case 'spotify':
-        return PLATFORM_CONFIGS.spotify.icon;
-      case 'apple-music':
-        return PLATFORM_CONFIGS.appleMusic.icon;
-      case 'facebook':
-        return PLATFORM_CONFIGS.facebook.icon;
-      case 'instagram':
-        return PLATFORM_CONFIGS.instagram.icon;
-      default:
-        return '🎵';
-    }
-  };
+
 
   if (mode === 'inline') {
     return (
-      <div className={`platform-launcher-inline ${className}`}>
+      <div className={`platform-launcher-inline ${className} ${!showLabels ? 'icons-only' : ''}`}>
         <h3 className="platform-launcher-title">Connect & Listen</h3>
         <div className="platform-grid">
           {platforms.map((link) => (
@@ -104,13 +83,21 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               onClick={() => handlePlatformClick(link)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              style={{
-                '--platform-color': getPlatformColor(link.platform)
-              } as React.CSSProperties}
+                    style={{
+                      '--platform-color': getPlatformColor(link.platform)
+                    } as React.CSSProperties}
             >
-              <span className="platform-icon">{getPlatformIcon(link.platform)}</span>
-              <span className="platform-name">{link.label}</span>
-              <ExternalLink className="platform-external-icon" size={16} />
+              <PlatformIcon
+                platform={link.platform}
+                size={20}
+                className="platform-icon-svg"
+              />
+              {showLabels && (
+                <>
+                  <span className="platform-name">{link.label}</span>
+                  <ExternalIcon className="platform-external-icon" size={14} />
+                </>
+              )}
             </motion.button>
           ))}
         </div>
@@ -141,7 +128,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                 onClick={() => setIsOpen(false)}
                 aria-label="Close"
               >
-                <X size={24} />
+                <CloseIcon size={24} />
               </button>
               <h2>Choose Your Platform</h2>
               <div className="platform-modal-grid">
@@ -156,10 +143,16 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
                   >
-                    <span className="platform-modal-icon">
-                      {getPlatformIcon(link.platform)}
-                    </span>
-                    <span className="platform-modal-name">{link.label}</span>
+                    <PlatformIcon
+                      platform={link.platform}
+                      size={32}
+                      className="platform-modal-icon-svg"
+                    />
+                    {showLabels || mode === 'modal' ? (
+                      <span className="platform-modal-name">
+                        {link.label.replace('Listen on ', '').replace('Follow on ', '')}
+                      </span>
+                    ) : null}
                   </motion.button>
                 ))}
               </div>
@@ -190,7 +183,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               whileTap={{ scale: 0.9 }}
               aria-label="Open platform menu"
             >
-              <Music size={24} />
+              <MusicIcon size={24} />
             </motion.button>
           ) : (
             <motion.div
@@ -205,7 +198,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                 onClick={() => setIsOpen(false)}
                 aria-label="Close platform menu"
               >
-                <X size={20} />
+                <CloseIcon size={20} />
               </button>
               <div className="fab-platforms">
                 {platforms.map((link, index) => (
@@ -224,9 +217,12 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
                   >
-                    <span className="fab-platform-icon">
-                      {getPlatformIcon(link.platform)}
-                    </span>
+                    <PlatformIcon
+                      platform={link.platform}
+                      size={28}
+                      className="fab-platform-icon-svg"
+                      color="white"
+                    />
                     <span className="fab-platform-label">
                       {link.label.replace('Listen on ', '').replace('Follow on ', '')}
                     </span>

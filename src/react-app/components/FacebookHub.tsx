@@ -1,236 +1,211 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Facebook, Music, Users, Calendar, ExternalLink, Heart, Share2 } from 'lucide-react';
-import { metaSDK, parseFBML } from '../utils/metaSdk';
-import { socialMetrics, trackSocialClick, trackMusicAction } from '../utils/socialMetrics';
-import './index.css';
+import React, { useEffect, useState } from 'react';
+import {
+  FaFacebookF,
+  FaSpotify,
+  FaApple,
+  FaRegCalendarAlt,
+  FaUsers,
+  FaRegHeart,
+  FaShareAlt,
+  FaExternalLinkAlt,
+} from 'react-icons/fa';
+import { useFacebookEmbed } from './useFacebookEmbed';
+import { trackSocialClick, trackMusicAction } from '../utils/socialMetrics';
 
-interface FacebookHubProps {
-  pageUrl: string;
-  showMusicCTA?: boolean;
-  spotifyArtistId?: string;
-  appleMusicArtistUrl?: string;
-  upcomingEvents?: Array<{
-    title: string;
-    date: string;
-    location: string;
-    ticketUrl?: string;
-  }>;
-}
-
-interface UpcomingEvent {
+interface FbEvent {
   title: string;
   date: string;
   location: string;
   ticketUrl?: string;
 }
 
+interface FacebookHubProps {
+  pageUrl: string;
+  spotifyArtistId?: string;
+  appleMusicArtistUrl?: string;
+  upcomingEvents?: FbEvent[];
+  className?: string;
+}
+
 const FacebookHub: React.FC<FacebookHubProps> = ({
   pageUrl,
-  showMusicCTA = true,
   spotifyArtistId,
   appleMusicArtistUrl,
-  upcomingEvents = []
+  upcomingEvents = [],
+  className,
 }) => {
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const eventsRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState({ timeline: false, events: false });
-  const [followerCount, setFollowerCount] = useState<number | null>(null);
+  const [tab, setTab] = useState<'timeline' | 'events' | 'music'>('timeline');
+  const { ref: tlRef, loaded: tlLoaded } = useFacebookEmbed('fb-page', [
+    pageUrl,
+    tab === 'timeline',
+  ]);
+  const { ref: evRef, loaded: evLoaded } = useFacebookEmbed('fb-page', [
+    pageUrl,
+    tab === 'events',
+  ]);
+
+  const [followers, setFollowers] = useState<number | null>(null);
   const [showMusicPrompt, setShowMusicPrompt] = useState(false);
-  const [activeTab, setActiveTab] = useState('timeline');
 
   useEffect(() => {
-    const loadAndParse = async () => {
-      await metaSDK.loadFacebookSDK();
-      const container = activeTab === 'events' ? eventsRef.current : timelineRef.current;
-      if (container) {
-        await parseFBML(container);
-        setIsLoaded((s) => ({ ...s, [activeTab]: true }));
-
-        socialMetrics.trackSocialInteraction('facebook', 'page_view', { pageUrl, tab: activeTab });
-      }
-    };
-
-    loadAndParse();
-
-    const timer = setTimeout(() => setShowMusicPrompt(true), 15000);
-    return () => clearTimeout(timer);
-  }, [pageUrl, activeTab]);
-
-  // Simulate fetching follower count (in production, use Graph API)
-  useEffect(() => {
-    setFollowerCount(1600);
+    setFollowers(1600); // demo number; replace with Graph API
   }, []);
 
-  const handleMusicPlatformClick = (platform: string, url: string) => {
+  useEffect(() => {
+    const t = setTimeout(() => setShowMusicPrompt(true), 12_000);
+    return () => clearTimeout(t);
+  }, []);
+
+  /* helpers */
+  const open = (url: string) =>
+    window.open(url, '_blank', 'noopener,noreferrer');
+
+  const musicClick = (platform: string, url: string) => {
     trackSocialClick('facebook', 'music_cta');
     trackMusicAction(platform, 'follow');
-    window.open(url, '_blank', 'noopener,noreferrer');
+    open(url);
   };
 
-  const handleEventClick = (event: UpcomingEvent & Record<string, unknown>) => {
-    socialMetrics.trackSocialInteraction('facebook', 'event_interest', event);
-    if (event.ticketUrl) {
-      window.open(event.ticketUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const handleFollowClick = () => {
-    socialMetrics.trackSocialInteraction('facebook', 'follow_intent', { pageUrl });
-    window.open(pageUrl, '_blank', 'noopener,noreferrer');
-  };
-
+  /* render */
   return (
-    <div className="facebook-hub">
-      <div className="hub-header">
-        <div className="platform-indicator">
-          <Facebook size={24} />
-          <span>Facebook</span>
-          {followerCount && (
-            <span className="follower-count">{followerCount.toLocaleString()} followers</span>
+    <div className={`space-y-6 ${className}`}>
+      {/* header */}
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-lg font-medium">
+          <FaFacebookF />
+          Facebook
+          {followers && (
+            <span className="text-sm text-muted-foreground">
+              {followers.toLocaleString()} followers
+            </span>
           )}
         </div>
-        
-        <button className="btn btn-secondary" onClick={handleFollowClick}>
-          <Heart size={16} />
-          Follow on Facebook
+        <button
+          onClick={() => open(pageUrl)}
+          className="flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          <FaRegHeart /> Follow
         </button>
-      </div>
+      </header>
 
-      <div className="hub-tabs">
-        <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>Timeline</button>
-        <button className={activeTab === 'events' ? 'active' : ''} onClick={() => setActiveTab('events')}>Events</button>
-        <button className={activeTab === 'music' ? 'active' : ''} onClick={() => setActiveTab('music')}>Music</button>
-      </div>
+      {/* tabs */}
+      <nav className="flex gap-3 text-sm border-b">
+        {(['timeline', 'events', 'music'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`pb-2 ${tab === t
+                ? 'border-primary border-b-2 font-medium'
+                : 'text-muted-foreground'
+              }`}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </nav>
 
-      {/* Facebook Page Plugin with Events Tab */}
-      <div className={`facebook-embed-container ${activeTab === 'timeline' ? 'active' : ''}`}>
-        {!isLoaded.timeline && (
-          <div className="embed-loading">
-            <div className="spinner"></div>
-            <p>Loading Facebook content...</p>
+      {/* timeline */}
+      {tab === 'timeline' && (
+        <section>
+          {!tlLoaded && <p className="text-xs animate-pulse">Loading…</p>}
+          <div ref={tlRef}>
+            <div
+              className="fb-page"
+              data-href={pageUrl}
+              data-tabs="timeline"
+              data-height="640"
+              data-hide-cover="false"
+              data-show-facepile="true"
+              data-lazy="true"
+            />
           </div>
-        )}
-        
-        <div ref={timelineRef}>
-          <div 
-            className="fb-page"
-            data-href={pageUrl}
-            data-tabs="timeline,events,messages"
-            data-height="700"
-            data-small-header="false"
-            data-adapt-container-width="true"
-            data-hide-cover="false"
-            data-show-facepile="true"
-            data-lazy="true"
-          />
-        </div>
-      </div>
+        </section>
+      )}
 
-      {/* Dedicated Facebook Events Plugin for better visibility */}
-      <div className={`facebook-events-container ${activeTab === 'events' ? 'active' : ''}`}>
-        <h3>
-          <Calendar size={20} />
-          Facebook Events
-        </h3>
-        <div ref={eventsRef}>
-          <div 
-            className="fb-page"
-            data-href={pageUrl}
-            data-tabs="events"
-            data-height="400"
-            data-small-header="true"
-            data-adapt-container-width="true"
-            data-hide-cover="true"
-            data-show-facepile="false"
-            data-lazy="true"
-          />
-        </div>
-      </div>
+      {/* events */}
+      {tab === 'events' && (
+        <section>
+          {!evLoaded && <p className="text-xs animate-pulse">Loading…</p>}
+          <div ref={evRef}>
+            <div
+              className="fb-page"
+              data-href={pageUrl}
+              data-tabs="events"
+              data-height="500"
+              data-hide-cover="true"
+              data-show-facepile="false"
+              data-small-header="true"
+              data-lazy="true"
+            />
+          </div>
+        </section>
+      )}
 
-      {/* Music Platform CTAs */}
-      {showMusicCTA && showMusicPrompt && (
-        <div className={`music-cta-section ${activeTab === 'music' ? 'active' : ''}`}>
-          <h3>🎵 Listen to Our Music</h3>
-          <p>Enjoy our Facebook content? Stream our full catalog:</p>
-          
-          <div className="music-platform-buttons">
+      {/* music */}
+      {tab === 'music' && showMusicPrompt && (
+        <section className="space-y-4">
+          <p className="text-sm">Stream our catalogue:</p>
+          <div className="flex flex-col sm:flex-row gap-3">
             {spotifyArtistId && (
-              <button 
-                className="platform-btn spotify"
-                onClick={() => handleMusicPlatformClick(
-                  'spotify', 
-                  `https://open.spotify.com/artist/${spotifyArtistId}`
-                )}
+              <button
+                className="btn-platform spotify"
+                onClick={() =>
+                  musicClick(
+                    'spotify',
+                    `https://open.spotify.com/artist/${spotifyArtistId}`
+                  )
+                }
               >
-                <Music size={20} />
-                <span>Listen on Spotify</span>
-                <ExternalLink size={14} />
+                <FaSpotify /> Spotify <FaExternalLinkAlt size={12} />
               </button>
             )}
-            
             {appleMusicArtistUrl && (
-              <button 
-                className="platform-btn apple"
-                onClick={() => handleMusicPlatformClick(
-                  'apple', 
-                  appleMusicArtistUrl
-                )}
+              <button
+                className="btn-platform apple"
+                onClick={() => musicClick('apple', appleMusicArtistUrl)}
               >
-                <Music size={20} />
-                <span>Listen on Apple Music</span>
-                <ExternalLink size={14} />
+                <FaApple /> Apple Music <FaExternalLinkAlt size={12} />
               </button>
             )}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Upcoming Events */}
+      {/* upcoming events (static list) */}
       {upcomingEvents.length > 0 && (
-        <div className="events-section">
-          <h3>
-            <Calendar size={20} />
-            Upcoming Events
+        <section className="space-y-4">
+          <h3 className="flex items-center gap-2 text-base font-medium">
+            <FaRegCalendarAlt /> Upcoming Events
           </h3>
-          <div className="events-list">
-            {upcomingEvents.map((event, index) => (
-              <div 
-                key={index} 
-                className="event-card"
-                onClick={() => handleEventClick(event)}
+          <ul className="grid gap-3">
+            {upcomingEvents.map((ev, i) => (
+              <li
+                key={i}
+                onClick={() =>
+                  ev.ticketUrl ? open(ev.ticketUrl) : undefined
+                }
+                className="rounded-md border p-3 hover:bg-muted cursor-pointer"
               >
-                <div className="event-date">{event.date}</div>
-                <div className="event-details">
-                  <h4>{event.title}</h4>
-                  <p>{event.location}</p>
-                </div>
-                {event.ticketUrl && (
-                  <button className="btn btn-primary">Get Tickets</button>
-                )}
-              </div>
+                <time className="block text-xs text-muted-foreground">
+                  {ev.date}
+                </time>
+                <h4 className="font-medium">{ev.title}</h4>
+                <p className="text-sm">{ev.location}</p>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
       )}
 
-      {/* Social Proof */}
-      <div className="social-proof">
-        <div className="proof-item">
-          <Users size={20} />
-          <span>Join {followerCount?.toLocaleString()} fans on Facebook</span>
-        </div>
-        <div className="proof-item">
-          <Share2 size={20} />
-          <span>Share our music with your friends</span>
-        </div>
-      </div>
-
-      {/* Video Section (for live streams or featured videos) */}
-      <div className="video-section">
-        <h3>Featured Videos</h3>
-        <p className="video-hint">Watch our performances and behind-the-scenes content</p>
-        {/* Videos would be dynamically loaded here */}
-      </div>
+      {/* social proof */}
+      <footer className="grid gap-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <FaUsers /> Join {followers?.toLocaleString()} others
+        </span>
+        <span className="flex items-center gap-1">
+          <FaShareAlt /> Share the love
+        </span>
+      </footer>
     </div>
   );
 };

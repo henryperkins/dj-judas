@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { ExternalLink, Music, Play, LogIn } from 'lucide-react';
-import './index.css';
+import { LuExternalLink, LuMusic, LuPlay, LuPause, LuLogIn, LuHeart, LuShare2 } from 'react-icons/lu';
 
 interface SpotifyEmbedProps {
   url?: string; // Full Spotify URL or URI format
@@ -23,11 +22,26 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   interface SpotifyEmbedController {
     togglePlay: () => void;
-    addListener: (event: string, cb: (e: { data: { isPaused: boolean } }) => void) => void;
+    play: () => void;
+    pause: () => void;
+    resume: () => void;
+    seek: (seconds: number) => void;
+    destroy: () => void;
+    addListener: (event: string, cb: (e: { data: any }) => void) => void;
+    removeListener: (event: string, cb: (e: { data: any }) => void) => void;
   }
   const [controller, setController] = useState<SpotifyEmbedController | null>(null);
   const [isAuthed, setIsAuthed] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [trackInfo, setTrackInfo] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveDone, setSaveDone] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followDone, setFollowDone] = useState(false);
+  const [positionSec, setPositionSec] = useState(0);
+  const [durationSec, setDurationSec] = useState(0);
+  const [seeking, setSeeking] = useState(false);
 
   const spotifyId = spotifyUri.split(':').pop();
   const contentType = spotifyUri.includes('track') ? 'track' : spotifyUri.includes('album') ? 'album' : 'artist';
@@ -39,6 +53,9 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     const script = document.createElement('script');
     script.src = 'https://open.spotify.com/embed/iframe-api/v1';
     script.async = true;
+    let localController: SpotifyEmbedController | null = null;
+    let playbackHandler: ((e: { data: any }) => void) | null = null;
+    let readyHandler: ((e: { data: any }) => void) | null = null;
 
     script.onload = () => {
   type IFrameAPIType = { createController: (el: HTMLElement, opts: Record<string, unknown>, cb: (ctrl: SpotifyEmbedController) => void) => void };
@@ -54,14 +71,28 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
 
         IFrameAPI.createController(embedRef.current, options, (EmbedController) => {
           setController(EmbedController);
+          localController = EmbedController;
           setIsLoaded(true);
 
-          EmbedController.addListener('playback_update', (e) => {
+          // Listen to playback updates
+          playbackHandler = (e) => {
+            setIsPlaying(!e.data.isPaused);
+            setTrackInfo(e.data.track_window?.current_track || null);
+            // Try reading position/duration from event (ms), fallback to track info
+            const posMs = (e.data.position ?? 0) as number;
+            const durMs = (e.data.duration ?? e.data.track_window?.current_track?.duration_ms ?? 0) as number;
+            if (!seeking) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
+            setDurationSec(Math.max(0, Math.floor(durMs / 1000)));
             if (e.data.isPaused === false && onPlay) {
               onPlay();
               trackEngagement('spotify_play', { uri: spotifyUri, contentType });
             }
-          });
+          };
+          EmbedController.addListener('playback_update', playbackHandler);
+          
+          // Listen to ready state
+          readyHandler = () => { console.log('Spotify player ready'); };
+          EmbedController.addListener('ready', readyHandler);
 
           // Ensure the generated iframe has an accessible title
           setTimeout(() => {
@@ -76,8 +107,20 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
 
     document.body.appendChild(script);
     return () => {
+      try {
+        if (localController) {
+          if (playbackHandler) localController.removeListener('playback_update', playbackHandler);
+          if (readyHandler) localController.removeListener('ready', readyHandler);
+          localController.destroy();
+        }
+      } catch {}
       if (script.parentNode) {
         script.parentNode.removeChild(script);
+      }
+      // Avoid dangling callbacks if script was loaded
+      const win = window as unknown as { onSpotifyIframeApiReady?: unknown };
+      if (win.onSpotifyIframeApiReady) {
+        delete (win as any).onSpotifyIframeApiReady;
       }
     };
   }, [spotifyUri, embedHeight, theme, onPlay, contentType]);
@@ -131,16 +174,62 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     window.open(spotifyUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const handleSave = async () => {
+    if (!spotifyId) return;
+    setIsSaving(true);
+    setSaveDone(false);
+    try {
+      const type = contentType === 'album' ? 'albums' : 'tracks';
+      const res = await fetch('/api/spotify/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [spotifyId], type })
+      });
+      if (!res.ok) throw new Error(`save_failed_${res.status}`);
+      setSaveDone(true);
+      trackEngagement('spotify_save', { uri: spotifyUri, contentType });
+    } catch (e) {
+      console.error('Spotify save error:', e);
+      alert('Could not save on Spotify. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (contentType !== 'artist' || !spotifyId) return;
+    setIsFollowing(true);
+    setFollowDone(false);
+    try {
+      const res = await fetch('/api/spotify/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artistIds: [spotifyId] })
+      });
+      if (!res.ok) throw new Error(`follow_failed_${res.status}`);
+      setFollowDone(true);
+      trackEngagement('spotify_follow', { uri: spotifyUri });
+    } catch (e) {
+      console.error('Spotify follow error:', e);
+      alert('Could not follow on Spotify. Please try again.');
+    } finally {
+      setIsFollowing(false);
+    }
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
 
 
   return (
-    <div 
-      className={`spotify-embed-container ${compact ? 'compact' : ''} ${theme}`}
-      aria-label="Spotify player"
-    >
+    <div className="spotify-embed-wrapper">
       <div className="embed-header">
         <div className="platform-badge">
-          <Music size={16} />
+          <LuMusic size={16} />
           <span>Spotify</span>
         </div>
         <button
@@ -148,17 +237,67 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           onClick={handleSpotifyOpen}
           aria-label="Open in Spotify"
         >
-          <ExternalLink size={16} />
-          Open in Spotify
+          <LuExternalLink size={16} />
+          <span>Open in Spotify</span>
         </button>
       </div>
 
-      <div ref={embedRef} className="spotify-iframe-container">
-        {!isLoaded && (
-          <div className="embed-loading">
-            <div className="spinner"></div>
-            <p>Loading Spotify player...</p>
-          </div>
+      <div 
+        className={`spotify-embed-container ${compact ? 'compact' : ''} ${theme}`}
+        aria-label="Spotify player"
+      >
+        <div ref={embedRef} className="spotify-iframe-container">
+          {!isLoaded && (
+            <div className="embed-loading" style={{ height: embedHeight }}>
+              <div className="spinner"></div>
+              <p>Loading Spotify player...</p>
+            </div>
+          )}
+        </div>
+
+        {isLoaded && controller && (
+          <>
+            <div className="embed-controls">
+              <button
+                className="control-btn play-pause"
+                onClick={() => controller?.togglePlay()}
+                aria-label="Toggle playback"
+              >
+                {isPlaying ? <LuPause size={20} /> : <LuPlay size={20} />}
+              </button>
+            </div>
+
+            {durationSec > 0 && (
+              <div className="progress-container" aria-label="Playback progress">
+                <div className="progress-time">
+                  <span className="current">{formatTime(positionSec)}</span>
+                  <span className="duration">{formatTime(durationSec)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(1, durationSec)}
+                  value={Math.min(positionSec, durationSec)}
+                  onChange={(e) => setPositionSec(Number((e.target as HTMLInputElement).value))}
+                  onMouseDown={() => setSeeking(true)}
+                  onTouchStart={() => setSeeking(true)}
+                  onMouseUp={(e) => {
+                    const v = Number((e.target as HTMLInputElement).value);
+                    controller.seek(v);
+                    setSeeking(false);
+                  }}
+                  onTouchEnd={(e) => {
+                    const v = Number((e.target as HTMLInputElement).value);
+                    controller.seek(v);
+                    setSeeking(false);
+                  }}
+                  aria-valuemin={0}
+                  aria-valuemax={durationSec}
+                  aria-valuenow={positionSec}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -167,25 +306,55 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           <div className="auth-status">Checking session...</div>
         ) : !isAuthed ? (
           <button className="action-btn login-btn" onClick={beginLogin} aria-label="Login with Spotify">
-            <LogIn size={18} />
-            <span>Login to Enable Actions</span>
+            <LuLogIn size={18} />
+            <span>Connect Spotify Account</span>
           </button>
         ) : (
-          <>
+          <div className="spotify-actions">
             <button
-              className="action-btn play-btn"
-              onClick={() => controller?.togglePlay()}
-              aria-label="Play on Spotify"
+              className="action-btn save-btn"
+              onClick={handleSave}
+              aria-label="Save to library"
+              disabled={isSaving}
             >
-              <Play size={18} />
-              <span>Play Full Track</span>
+              <LuHeart size={18} />
+              <span>{isSaving ? 'Saving…' : saveDone ? 'Saved' : 'Save'}</span>
             </button>
-          </>
+            {contentType === 'artist' && (
+              <button
+                className="action-btn follow-btn"
+                onClick={handleFollow}
+                aria-label="Follow artist"
+                disabled={isFollowing}
+              >
+                <LuHeart size={18} />
+                <span>{isFollowing ? 'Following…' : followDone ? 'Following' : 'Follow'}</span>
+              </button>
+            )}
+            <button 
+              className="action-btn share-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(spotifyUrl);
+                trackEngagement('spotify_share', { uri: spotifyUri });
+              }}
+              aria-label="Share"
+            >
+              <LuShare2 size={18} />
+              <span>Share</span>
+            </button>
+          </div>
         )}
       </div>
+      
+      {trackInfo && (
+        <div className="track-metadata">
+          <p className="track-name">{trackInfo.name}</p>
+          <p className="artist-name">{trackInfo.artists?.map((a: any) => a.name).join(', ')}</p>
+        </div>
+      )}
 
       <div className="streaming-cta">
-        <p>🎵 Stream on Spotify to support the artist</p>
+        <p>Stream on Spotify to support the artist</p>
       </div>
     </div>
   );

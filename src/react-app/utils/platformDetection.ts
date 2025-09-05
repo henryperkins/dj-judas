@@ -8,30 +8,30 @@ export interface PlatformLink {
 
 export const isMobileDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
-  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
   const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
-  
+
   return mobileRegex.test(userAgent.toLowerCase()) || window.innerWidth < 768;
 };
 
 export const isIOS = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
-  const userAgent = navigator.userAgent || navigator.vendor;
-  return /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+
+  const userAgent = navigator.userAgent || navigator.vendor || '';
+  return /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
 };
 
 export const isAndroid = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
-  const userAgent = navigator.userAgent || navigator.vendor;
+
+  const userAgent = navigator.userAgent || navigator.vendor || '';
   return /android/i.test(userAgent);
 };
 
 export const hasNativeApp = (platform: string): boolean => {
   if (!isMobileDevice()) return false;
-  
+
   switch (platform) {
     case 'spotify':
       return true; // Spotify has apps on all mobile platforms
@@ -47,7 +47,7 @@ export const hasNativeApp = (platform: string): boolean => {
 
 export const getPlatformUrl = (link: PlatformLink): string => {
   const shouldUseDeepLink = isMobileDevice() && link.deepLink && hasNativeApp(link.platform);
-  
+
   if (shouldUseDeepLink && link.deepLink) {
     // For iOS, we'll use a fallback mechanism
     if (isIOS()) {
@@ -57,11 +57,11 @@ export const getPlatformUrl = (link: PlatformLink): string => {
       }, 2500);
       return link.deepLink;
     }
-    
+
     // For Android, deep links usually work directly
     return link.deepLink;
   }
-  
+
   return link.webLink;
 };
 
@@ -69,13 +69,13 @@ export const openPlatform = (link: PlatformLink, trackingCallback?: () => void):
   if (trackingCallback) {
     trackingCallback();
   }
-  
+
   const url = getPlatformUrl(link);
-  
+
   if (isMobileDevice() && link.deepLink) {
     // For mobile with deep links, try to open in new context
     const newWindow = window.open(url, '_blank');
-    
+
     // Fallback if deep link fails
     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
       window.location.href = link.webLink;
@@ -91,15 +91,15 @@ export const PLATFORM_CONFIGS = {
   spotify: {
     name: 'Spotify',
     color: '#1DB954',
-    icon: '🎵',
+    icon: 'spotify', // Changed from emoji to platform key
     artistId: '4ZxOuNHhpyOj3MOSE23KxR', // DJ Lee & Voices of Judah Spotify ID
     deepLinkPrefix: 'spotify:artist:',
     webLinkPrefix: 'https://open.spotify.com/artist/'
   },
   appleMusic: {
     name: 'Apple Music',
-    color: '#FA233B',
-    icon: '🎧',
+    color: '#FC3C44',
+    icon: 'apple-music', // Changed from emoji to platform key
     artistId: '1540816224', // DJ Lee & Voices of Judah Apple Music ID
     deepLinkPrefix: 'music://music.apple.com/artist/',
     webLinkPrefix: 'https://music.apple.com/us/artist/'
@@ -107,7 +107,7 @@ export const PLATFORM_CONFIGS = {
   facebook: {
     name: 'Facebook',
     color: '#1877F2',
-    icon: '👥',
+    icon: 'facebook', // Changed from emoji to platform key
     pageId: 'MidWestScreamers', // Facebook page ID
     deepLinkPrefix: 'fb://page/',
     webLinkPrefix: 'https://www.facebook.com/'
@@ -115,7 +115,7 @@ export const PLATFORM_CONFIGS = {
   instagram: {
     name: 'Instagram',
     color: '#E4405F',
-    icon: '📷',
+    icon: 'instagram', // Changed from emoji to platform key
     username: 'iam_djlee', // Instagram username
     deepLinkPrefix: 'instagram://user?username=',
     webLinkPrefix: 'https://www.instagram.com/'
@@ -157,18 +157,18 @@ export const generatePlatformLinks = (): PlatformLink[] => {
 
 // Analytics helper
 export const trackPlatformClick = (platform: string, context: string = 'launcher'): void => {
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', 'platform_click', {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', 'platform_click', {
       platform,
       context,
       is_mobile: isMobileDevice(),
       device_type: isIOS() ? 'ios' : isAndroid() ? 'android' : 'desktop'
     });
   }
-  
+
   // Also track with Meta Pixel if available
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    (window as any).fbq('track', 'ViewContent', {
+  if (typeof window !== 'undefined' && window.fbq) {
+    window.fbq('track', 'ViewContent', {
       content_name: `Platform: ${platform}`,
       content_category: context
     });

@@ -15,6 +15,7 @@ interface Env {
 	APPLE_TEAM_ID: string;
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
+  IG_OEMBED_TOKEN?: string; // Facebook App access token for Instagram oEmbed
   RESEND_API_KEY?: string;
   RESEND_FROM?: string; // e.g., 'Ministry <no-reply@yourdomain>'
   RESEND_TO?: string;   // destination inbox
@@ -292,4 +293,147 @@ app.post('/api/booking', async (c) => {
   } catch (e) {
     return c.json({ error: 'invalid_request' }, 400);
   }
+});
+
+// --- Instagram oEmbed proxy with basic in-memory cache ---
+type OEmbedJSON = Record<string, unknown>;
+type OEmbedCacheValue = { json: OEmbedJSON; exp: number };
+const igOembedCache = new Map<string, OEmbedCacheValue>();
+
+app.get('/api/instagram/oembed', async (c) => {
+  const url = c.req.query('url');
+  if (!url) return c.json({ error: 'missing_url' }, 400);
+
+  const maxwidth = c.req.query('maxwidth') || '540';
+  const hidecaption = c.req.query('hidecaption') || 'false';
+  const omitscript = c.req.query('omitscript') || 'true';
+
+  const cacheKey = `${url}|${maxwidth}|${hidecaption}`;
+  const now = Date.now();
+  const cached = igOembedCache.get(cacheKey);
+  if (cached && cached.exp > now) {
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.json(cached.json);
+  }
+
+  const token = c.env.IG_OEMBED_TOKEN;
+  if (!token) {
+    return c.json({
+      error: 'not_configured',
+      message: 'Instagram oEmbed token not configured. Set IG_OEMBED_TOKEN in environment.'
+    }, 501);
+  }
+
+  const params = new URLSearchParams({
+    url,
+    maxwidth,
+    hidecaption,
+    omitscript,
+    access_token: token
+  });
+
+  const upstream = await fetch(`https://graph.facebook.com/v18.0/instagram_oembed?${params.toString()}`);
+  if (!upstream.ok) {
+    return c.json({ error: 'upstream_error', status: upstream.status }, 502);
+  }
+  const json = await upstream.json() as OEmbedJSON;
+
+  // Cache for 10 minutes to reduce rate-limit pressure
+  igOembedCache.set(cacheKey, { json, exp: now + 10 * 60 * 1000 });
+  c.header('Cache-Control', 'public, max-age=300');
+  return c.json(json);
+});
+
+// --- Events API + ICS feed ---
+type EventItem = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  flyerUrl?: string;
+  startDateTime: string; // ISO
+  endDateTime?: string | null;
+  venueName?: string;
+  address?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  ticketUrl?: string;
+  rsvpUrl?: string;
+  priceText?: string;
+  tags?: string[];
+  status?: 'draft' | 'published' | 'archived';
+};
+
+let eventsCache: { data: EventItem[]; exp: number } | null = null;
+async function loadEvents(c: any): Promise<EventItem[]> {
+  const now = Date.now();
+  if (eventsCache && eventsCache.exp > now) return eventsCache.data;
+  const url = new URL('/content/events.json', c.req.url).toString();
+  const res = await fetch(url, {});
+  if (!res.ok) return [];
+  const json = await res.json() as EventItem[];
+  const sorted = [...json].sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+  eventsCache = { data: sorted, exp: now + 5 * 60 * 1000 };
+  return sorted;
+}
+
+app.get('/api/events', async (c) => {
+  const items = await loadEvents(c);
+  const now = Date.now();
+  const published = items.filter(e => (e.status ?? 'published') === 'published');
+  const upcoming = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() >= now);
+  const past = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() < now).reverse();
+  return c.json({ upcoming, past, total: published.length });
+});
+
+function toICSDate(dt: string): string {
+  const d = new Date(dt);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+}
+
+function buildICS(events: EventItem[], origin: string): string {
+  const lines: string[] = [];
+  lines.push('BEGIN:VCALENDAR');
+  lines.push('VERSION:2.0');
+  lines.push('PRODID:-//DJ Judas//Events//EN');
+  for (const ev of events) {
+    const uid = `${ev.slug}@${new URL(origin).host}`;
+    const start = toICSDate(ev.startDateTime);
+    const end = toICSDate(ev.endDateTime || ev.startDateTime);
+    const url = new URL("/#events", origin).toString();
+    const loc = [ev.venueName, ev.address, ev.city, ev.region].filter(Boolean).join(', ');
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${uid}`);
+    lines.push(`DTSTAMP:${toICSDate(new Date().toISOString())}`);
+    lines.push(`DTSTART:${start}`);
+    lines.push(`DTEND:${end}`);
+    lines.push(`SUMMARY:${(ev.title || '').replace(/\n/g, ' ')}`);
+    if (loc) lines.push(`LOCATION:${loc.replace(/\n/g, ' ')}`);
+    if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, ' ')}`);
+    lines.push(`URL:${url}`);
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+app.get('/events.ics', async (c) => {
+  const items = await loadEvents(c);
+  const now = Date.now();
+  const upcoming = items.filter(e => (e.status ?? 'published') === 'published').filter(e => new Date(e.endDateTime || e.startDateTime).getTime() >= now).slice(0, 50);
+  const ics = buildICS(upcoming, c.req.url);
+  return new Response(ics, { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="events.ics"' } });
+});
+
+app.get('/events/:slug.ics', async (c) => {
+  const slug = c.req.param('slug');
+  const items = await loadEvents(c);
+  const match = items.find(e => e.slug === slug);
+  if (!match) return c.text('Not Found', 404);
+  const ics = buildICS([match], c.req.url);
+  return new Response(ics, { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="${slug}.ics"` } });
 });

@@ -21,3 +21,5 @@ export { default as BookingForm } from './BookingForm';
 
 // Utilities
 export * from '../utils/platformDetection';
+export * from '../utils/metaSdk.ts';
+export * from '../utils/socialMetrics.ts';

@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Instagram, Music, Play, Heart, MessageCircle, Bookmark, TrendingUp } from 'lucide-react';
+import { LuInstagram, LuMusic, LuPlay, LuHeart, LuMessageCircle, LuBookmark, LuTrendingUp } from 'react-icons/lu';
 import { metaSDK, processInstagramEmbeds } from '../utils/metaSdk';
 import { socialMetrics, trackSocialClick, trackMusicAction, generateSocialLink } from '../utils/socialMetrics';
-import './index.css';
 
 interface InstagramPost {
   url: string;
@@ -115,7 +114,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
       >
         {post.type === 'reel' && (
           <div className="reel-indicator">
-            <Play size={16} />
+            <LuPlay size={16} />
             Reel
           </div>
         )}
@@ -151,15 +150,15 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
 
         {post.engagement && (
           <div className="engagement-stats">
-            <span><Heart size={14} /> {post.engagement.likes.toLocaleString()}</span>
-            <span><MessageCircle size={14} /> {post.engagement.comments}</span>
-            <span><Bookmark size={14} /> {post.engagement.saves}</span>
+            <span><LuHeart size={14} /> {post.engagement.likes.toLocaleString()}</span>
+            <span><LuMessageCircle size={14} /> {post.engagement.comments}</span>
+            <span><LuBookmark size={14} /> {post.engagement.saves}</span>
           </div>
         )}
 
         {post.musicTrack && (
           <div className="music-track-indicator">
-            <Music size={14} />
+            <LuMusic size={14} />
             <span>{post.musicTrack}</span>
           </div>
         )}
@@ -171,18 +170,18 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
     <div className="instagram-hub">
       <div className="hub-header">
         <div className="platform-indicator">
-          <Instagram size={24} />
+          <LuInstagram size={24} />
           <span>Instagram</span>
           {engagementScore > 0 && (
             <span className="engagement-badge">
-              <TrendingUp size={14} />
+              <LuTrendingUp size={14} />
               {engagementScore} engagement
             </span>
           )}
         </div>
         
         <button className="btn btn-secondary" onClick={handleProfileClick}>
-          <Instagram size={16} />
+          <LuInstagram size={16} />
           View Profile
         </button>
       </div>
@@ -211,7 +210,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
                 className="platform-btn spotify"
                 onClick={() => handleMusicDiscovery('spotify', spotifyPlaylistUrl)}
               >
-                <Music size={20} />
+                <LuMusic size={20} />
                 <span>Spotify Playlist</span>
               </button>
             )}
@@ -221,7 +220,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
                 className="platform-btn apple"
                 onClick={() => handleMusicDiscovery('apple', appleMusicPlaylistUrl)}
               >
-                <Music size={20} />
+                <LuMusic size={20} />
                 <span>Apple Music Playlist</span>
               </button>
             )}
@@ -258,7 +257,7 @@ const InstagramHub: React.FC<InstagramHubProps> = ({
         <p>Follow us on Instagram for exclusive content, live performances, and ministry updates</p>
         <div className="cta-buttons">
           <button className="btn btn-primary" onClick={handleProfileClick}>
-            <Heart size={18} />
+            <LuHeart size={18} />
             Follow on Instagram
           </button>
           {/* Share centralized in CreatorMediaPanel */}

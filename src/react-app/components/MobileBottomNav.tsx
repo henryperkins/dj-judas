@@ -1,7 +1,6 @@
-import './index.css';
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Music, Calendar, Share2 } from 'lucide-react';
+import { LuHouse, LuMusic, LuCalendar, LuShare2 } from 'react-icons/lu';
 import { isMobileDevice } from '../utils/platformDetection';
 
 
@@ -25,25 +24,25 @@ export interface MobileBottomNavProps {
 const defaultNavItems: NavItem[] = [
   {
     id: 'home',
-    icon: Home,
+    icon: LuHouse,
     label: 'Home',
     href: '#home'
   },
   {
     id: 'listen',
-    icon: Music,
+    icon: LuMusic,
     label: 'Listen',
     action: () => {} // Will be overridden by onPlatformLauncherOpen
   },
   {
     id: 'book',
-    icon: Calendar,
+    icon: LuCalendar,
     label: 'Book',
     href: '#booking'
   },
   {
     id: 'share',
-    icon: Share2,
+    icon: LuShare2,
     label: 'Share',
     action: () => {} // Will trigger share functionality
   }

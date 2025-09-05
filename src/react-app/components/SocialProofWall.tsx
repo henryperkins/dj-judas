@@ -1,15 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  Users, TrendingUp, Music, Heart, PlayCircle, 
-  Facebook, Instagram, Calendar, MapPin, Star
-} from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  PlatformIcon,
+  PLATFORM_COLORS,
+  ACTION_ICONS,
+} from './icons/PlatformIcons';
 import { socialMetrics } from '../utils/socialMetrics';
-import './index.css';
+import { FaStar, FaMapMarkerAlt } from 'react-icons/fa';
+
+const {
+  users: UsersIcon,
+  trending: TrendingIcon,
+  heart: HeartIcon,
+  play: PlayIcon,
+  calendar: CalendarIcon,
+  music: MusicIcon,
+} = ACTION_ICONS;
 
 interface PlatformMetric {
   platform: string;
-  icon: React.ComponentType<any>;
+  icon: string; // platform key for PlatformIcon
   followers: number;
   engagement: number;
   growth: number;
@@ -44,100 +54,99 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
   instagramFollowers = 2300,
   totalStreams = 15000,
   showLiveMetrics = true,
-  featuredTestimonial
+  featuredTestimonial,
 }) => {
   const [totalReach, setTotalReach] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
   const [liveMetrics, setLiveMetrics] = useState<LiveMetric[]>([]);
 
-  const platforms: PlatformMetric[] = [
-    {
-      platform: 'Spotify',
-      icon: Music,
-      followers: spotifyMonthlyListeners,
-      engagement: 45.2,
-      growth: 12,
-      color: 'hsl(var(--brand-spotify))',
-      url: 'https://open.spotify.com/artist/4ZxOuNHhpyOj3MOSE23KxR'
-    },
-    {
-      platform: 'Apple Music',
-      icon: Music,
-      followers: appleMusicPlays,
-      engagement: 38.5,
-      growth: 8,
-      color: '#fc3c44',
-      url: 'https://music.apple.com/us/artist/dj-lee-voices-of-judah/1540816224'
-    },
-    {
-      platform: 'Facebook',
-      icon: Facebook,
-      followers: facebookFollowers,
-      engagement: 8.5,
-      growth: 5,
-      color: 'hsl(var(--brand-facebook))',
-      url: 'https://www.facebook.com/MidWestScreamers'
-    },
-    {
-      platform: 'Instagram',
-      icon: Instagram,
-      followers: instagramFollowers,
-      engagement: 12.3,
-      growth: 15,
-      color: 'hsl(var(--brand-instagram-start))',
-      url: 'https://www.instagram.com/iam_djlee'
-    }
-  ];
+  const platforms: PlatformMetric[] = useMemo(
+    () => [
+      {
+        platform: 'Spotify',
+        icon: 'spotify',
+        followers: spotifyMonthlyListeners,
+        engagement: 45.2,
+        growth: 12,
+        color: PLATFORM_COLORS.spotify,
+        url: 'https://open.spotify.com/artist/4ZxOuNHhpyOj3MOSE23KxR',
+      },
+      {
+        platform: 'Apple Music',
+        icon: 'apple-music',
+        followers: appleMusicPlays,
+        engagement: 38.5,
+        growth: 8,
+        color: PLATFORM_COLORS['apple-music'],
+        url: 'https://music.apple.com/us/artist/dj-lee-voices-of-judah/1540816224',
+      },
+      {
+        platform: 'Facebook',
+        icon: 'facebook',
+        followers: facebookFollowers,
+        engagement: 8.5,
+        growth: 5,
+        color: PLATFORM_COLORS.facebook,
+        url: 'https://www.facebook.com/MidWestScreamers',
+      },
+      {
+        platform: 'Instagram',
+        icon: 'instagram',
+        followers: instagramFollowers,
+        engagement: 12.3,
+        growth: 15,
+        color: PLATFORM_COLORS.instagram,
+        url: 'https://www.instagram.com/iam_djlee',
+      },
+    ],
+    [spotifyMonthlyListeners, appleMusicPlays, facebookFollowers, instagramFollowers]
+  );
 
   useEffect(() => {
-    // Calculate total reach
     const total = platforms.reduce((sum, p) => sum + p.followers, 0);
     setTotalReach(total);
 
-    // Get conversion metrics
     const getMetrics = async () => {
       const metrics = await socialMetrics.getAggregatedMetrics();
       setConversionRate(metrics.conversionRate);
-      
-      // Track social proof view
+
       socialMetrics.trackSocialInteraction('social_proof', 'view', {
         totalReach: total,
-        platformCount: platforms.length
+        platformCount: platforms.length,
       });
     };
 
     getMetrics();
 
-    // Simulate live metrics updates
     if (showLiveMetrics) {
       const interval = setInterval(() => {
         setLiveMetrics([
-          { 
-            label: 'Currently Listening', 
+          {
+            label: 'Currently Listening',
             value: Math.floor(Math.random() * 50) + 10,
-            trend: 'up'
+            trend: 'up',
           },
-          { 
-            label: 'Shares Today', 
+          {
+            label: 'Shares Today',
             value: Math.floor(Math.random() * 20) + 5,
-            trend: 'up'
+            trend: 'up',
           },
-          { 
-            label: 'New Followers', 
+          {
+            label: 'New Followers',
             value: `+${Math.floor(Math.random() * 10) + 1}`,
-            trend: 'up'
-          }
+            trend: 'up',
+          },
         ]);
       }, 5000);
 
       return () => clearInterval(interval);
     }
-  }, []);
+  }, [platforms, showLiveMetrics]);
 
   const handlePlatformClick = (platform: PlatformMetric) => {
     socialMetrics.trackSocialInteraction('social_proof', 'platform_click', {
       platform: platform.platform,
-      followers: platform.followers
+      followers: platform.followers,
     });
     window.open(platform.url, '_blank', 'noopener,noreferrer');
   };
@@ -152,7 +161,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
     <div className="social-proof-wall">
       {/* Hero Stats */}
       <div className="hero-stats">
-        <motion.div 
+        <motion.div
           className="total-reach"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -163,33 +172,24 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
         </motion.div>
 
         <div className="key-metrics">
-          <motion.div 
-            className="metric-card streams"
-            whileHover={{ scale: 1.05 }}
-          >
-            <PlayCircle size={24} />
+          <motion.div className="metric-card streams" whileHover={{ scale: 1.05 }}>
+            <PlayIcon size={24} color={PLATFORM_COLORS.spotify} />
             <div>
               <span className="metric-value">{formatNumber(totalStreams)}</span>
               <span className="metric-label">Total Streams</span>
             </div>
           </motion.div>
 
-          <motion.div 
-            className="metric-card engagement"
-            whileHover={{ scale: 1.05 }}
-          >
-            <Heart size={24} />
+          <motion.div className="metric-card engagement" whileHover={{ scale: 1.05 }}>
+            <HeartIcon size={24} color={PLATFORM_COLORS.instagram} />
             <div>
               <span className="metric-value">24.5%</span>
               <span className="metric-label">Avg Engagement</span>
             </div>
           </motion.div>
 
-          <motion.div 
-            className="metric-card conversion"
-            whileHover={{ scale: 1.05 }}
-          >
-            <TrendingUp size={24} />
+          <motion.div className="metric-card conversion" whileHover={{ scale: 1.05 }}>
+            <TrendingIcon size={24} color={PLATFORM_COLORS.facebook} />
             <div>
               <span className="metric-value">{conversionRate.toFixed(1)}%</span>
               <span className="metric-label">Conversion Rate</span>
@@ -214,10 +214,10 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
             aria-label={`Open ${platform.platform}`}
           >
             <div className="platform-header">
-              <platform.icon size={24} />
+              <PlatformIcon platform={platform.icon} size={24} color={platform.color} />
               <span className="platform-name">{platform.platform}</span>
             </div>
-            
+
             <div className="platform-stats">
               <div className="follower-count">
                 <span className="count">{formatNumber(platform.followers)}</span>
@@ -225,7 +225,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
                   {platform.platform.includes('Music') ? 'Listeners' : 'Followers'}
                 </span>
               </div>
-              
+
               <div className="platform-metrics">
                 <div className="metric">
                   <span className="value">{platform.engagement}%</span>
@@ -276,17 +276,15 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
 
       {/* Featured Testimonial */}
       {featuredTestimonial && (
-        <motion.div 
+        <motion.div
           className="featured-testimonial"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <Star size={20} />
+          <FaStar size={20} />
           <blockquote>"{featuredTestimonial.text}"</blockquote>
-          <cite>
-            — {featuredTestimonial.author} via {featuredTestimonial.platform}
-          </cite>
+          <cite>— {featuredTestimonial.author} via {featuredTestimonial.platform}</cite>
         </motion.div>
       )}
 
@@ -296,14 +294,14 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
         <p>Be part of our ministry through music across all platforms</p>
         <div className="cta-buttons">
           <a href="#media" className="btn btn-primary">
-            <Music size={20} />
+            <MusicIcon size={20} />
             Listen Now
           </a>
         </div>
         <div className="trust-indicators">
-          <span><Calendar size={14} /> Active since 2008</span>
-          <span><MapPin size={14} /> Gary, Indiana</span>
-          <span><Users size={14} /> Growing community</span>
+          <span><CalendarIcon size={14} /> Active since 2008</span>
+          <span><FaMapMarkerAlt size={14} /> Gary, Indiana</span>
+          <span><UsersIcon size={14} /> Growing community</span>
         </div>
       </div>
     </div>

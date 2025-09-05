@@ -1,65 +1,43 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { metaSDK } from '../utils/metaSdk';
-import './index.css';
+import React from 'react';
+import { useFacebookEmbed } from './useFacebookEmbed';
 
-interface FacebookPageProps {
+export interface FacebookPageProps {
   pageUrl: string;
-  tabs?: 'timeline' | 'events' | 'messages' | string;
+  tabs?: string;          // timeline, events, messages
   width?: number;
   height?: number;
   smallHeader?: boolean;
   hideCover?: boolean;
   showFacepile?: boolean;
-  appId?: string;
+  hideCta?: boolean;      // Hide the custom call to action button
+  adaptContainerWidth?: boolean;
+  className?: string;
 }
 
 const FacebookPage: React.FC<FacebookPageProps> = ({
   pageUrl,
   tabs = 'timeline',
-  width = 500,
+  width = 340,
   height = 500,
   smallHeader = false,
   hideCover = false,
   showFacepile = true,
-  appId: _appId
+  hideCta = false,
+  adaptContainerWidth = true,
+  className,
 }) => {
-  const pageRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadPage = async () => {
-      try {
-        await metaSDK.loadFacebookSDK();
-        // Add a small delay to ensure DOM is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        if (mounted && pageRef.current) {
-          await metaSDK.parseFBML(pageRef.current);
-          setIsLoaded(true);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError('Failed to load Facebook page');
-          console.warn('Facebook page load error (non-critical):', err);
-        }
-      }
-    };
-
-    loadPage();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [pageUrl]);
+  const { ref, loaded, error } = useFacebookEmbed('fb-page', [pageUrl, tabs]);
 
   if (error) {
     return (
       <div className="facebook-page-error">
-        <p>Unable to load Facebook page</p>
-        <a href={pageUrl} target="_blank" rel="noopener noreferrer">
+        <p>{error}</p>
+        <a
+          className="text-accent hover:underline"
+          href={pageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           View on Facebook
         </a>
       </div>
@@ -67,15 +45,14 @@ const FacebookPage: React.FC<FacebookPageProps> = ({
   }
 
   return (
-    <div className="facebook-embed-container">
-      {!isLoaded && (
+    <div className={`facebook-page-container ${className || ''}`}>
+      {!loaded && (
         <div className="embed-loading">
           <div className="spinner"></div>
           <p>Loading Facebook page...</p>
         </div>
       )}
-      
-      <div ref={pageRef}>
+      <div ref={ref} className="facebook-page-wrapper">
         <div
           className="fb-page"
           data-href={pageUrl}
@@ -83,9 +60,10 @@ const FacebookPage: React.FC<FacebookPageProps> = ({
           data-width={width}
           data-height={height}
           data-small-header={smallHeader}
-          data-adapt-container-width="true"
+          data-adapt-container-width={adaptContainerWidth}
           data-hide-cover={hideCover}
           data-show-facepile={showFacepile}
+          data-hide-cta={hideCta}
           data-lazy="true"
         />
       </div>

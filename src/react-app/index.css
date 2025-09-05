@@ -1,3 +1,4 @@
+@import "tailwindcss";
 /*
 =================================================================
 == MASTER CONSOLIDATED STYLESHEET ==
@@ -811,6 +812,10 @@ h3 {
   z-index: -1;
 }
 
+/* Optional pattern background + overlay used by HeroSection */
+.hero-background.with-pattern { background-size: cover; background-position: center; }
+.hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, hsl(var(--background) / 0.2), hsl(var(--background) / 0.6)); }
+
 .hero-content {
   text-align: center;
   color: hsl(var(--foreground));
@@ -1133,6 +1138,11 @@ h3 {
   background: hsl(var(--section-bg-alt));
 }
 
+/* Unstyled sections in markup: normalize spacing */
+.media-section { padding: 3rem 0; }
+.gallery-section { padding: 4rem 0; }
+.booking-section { padding: 4rem 0; }
+
 .platform-launcher-inline {
   padding: 2rem 0;
 }
@@ -1439,19 +1449,283 @@ body.mobile-nav-visible {
 .apple-music-embed-container {
   background: hsl(var(--card));
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 20px;
   margin: 20px 0;
   border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .spotify-embed-container,
+.dark .apple-music-embed-container {
+  background: hsl(var(--card) / 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.streaming-cta {
+  text-align: center;
+  padding: 12px 16px;
+  background: hsl(var(--muted) / 0.3);
+  border-radius: var(--radius);
+  margin-top: 16px;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.streaming-cta p {
+  margin: 0;
+}
+
+/* Facebook Page Plugin Styling */
+.facebook-page-container {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.dark .facebook-page-container {
+  background: hsl(var(--card) / 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.facebook-page-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent;
+  margin: -10px; /* Compensate for Facebook's internal padding */
+}
+
+/* Hide Facebook's default border and shadow */
+.facebook-page-wrapper .fb-page,
+.facebook-page-wrapper iframe {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 12px;
+}
+
+.facebook-page-error {
+  text-align: center;
+  padding: 20px;
+  color: hsl(var(--muted-foreground));
+}
+
+.facebook-page-error p {
+  margin-bottom: 10px;
+}
+
+/* Facebook Embed Wrapper for seamless integration */
+.facebook-embed-wrapper {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .facebook-embed-wrapper {
+  background: hsl(var(--card) / 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.facebook-embed-wrapper .facebook-page-container {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+/* Ensure the Facebook content fills the container */
+.facebook-embed-wrapper .fb-page {
+  width: 100% !important;
+}
+
+.facebook-embed-wrapper iframe {
+  max-width: 100% !important;
+}
+
+/* Instagram Embed Seamless Styling */
+.instagram-embed-wrapper {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .instagram-embed-wrapper {
+  background: hsl(var(--card) / 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.instagram-embed-container {
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent;
+  margin: 0 -10px; /* Compensate for Instagram's internal padding */
+}
+
+.instagram-embed-content {
+  display: flex;
+  justify-content: center;
+}
+
+.instagram-embed-content iframe,
+.instagram-embed-content blockquote {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  max-width: 100% !important;
+}
+
+.instagram-embed-error {
+  text-align: center;
+  padding: 20px;
+  color: hsl(var(--muted-foreground));
+}
+
+.embed-metadata {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.embed-metadata .author-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.embed-metadata .post-title {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+/* Enhanced Spotify Embed Styling */
+.spotify-embed-wrapper {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .spotify-embed-wrapper {
+  background: hsl(var(--card) / 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.spotify-embed-wrapper .spotify-embed-container {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 16px 0;
+  box-shadow: none;
+  position: relative;
+}
+
+.spotify-embed-wrapper .spotify-iframe-container {
+  background: transparent;
+}
+
+.embed-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.control-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.control-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.spotify-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.spotify-actions .action-btn {
+  flex: 1;
+  min-width: 100px;
+}
+
+.track-metadata {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  text-align: center;
+}
+
+.track-metadata .track-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.track-metadata .artist-name {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+.spotify-connected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.connected-badge {
+  color: hsl(var(--accent));
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .spotify-iframe-container,
 .apple-iframe-container {
   width: 100%;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  background: #000;
+  background: transparent;
   position: relative;
   min-height: 152px;
+}
+
+/* Spotify iframe specific styling to eliminate white gaps */
+.spotify-iframe-container iframe {
+  border-radius: 12px;
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+
+.dark .spotify-iframe-container {
+  background: hsl(var(--card) / 0.05);
 }
 
 .embed-actions {
@@ -1463,6 +1737,19 @@ body.mobile-nav-visible {
 }
 
 .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  text-align: center;
+  gap: 0.5rem;
   flex: 1;
   min-width: 120px;
   width: 100%;
@@ -1497,15 +1784,19 @@ body.mobile-nav-visible {
 }
 
 .subscribe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
   border: 1px solid hsl(var(--accent));
-  padding: 10px 16px;
+  padding: 0.75rem 1.5rem;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: filter 0.2s ease;
+  transition: all 0.2s ease;
+  text-align: center;
 }
 
 .subscribe-btn:hover {
@@ -1592,6 +1883,13 @@ body.mobile-nav-visible {
   border: 1px solid hsl(var(--border));
 }
 
+/* --- Events Section --- */
+.events-section {
+  padding: 40px 20px;
+  background: hsl(var(--background));
+  margin: 20px 0;
+}
+
 .events-list {
   display: flex;
   flex-direction: column;
@@ -1624,6 +1922,164 @@ body.mobile-nav-visible {
   font-weight: bold;
 }
 
+/* --- Events View Toggle --- */
+.events-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+/* --- Event Calendar --- */
+.event-calendar {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-title {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 20px;
+}
+
+.calendar-weekday {
+  padding: 8px 4px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85em;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  padding: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  min-height: 60px;
+}
+
+.calendar-day:not(:disabled):hover {
+  background: hsl(var(--accent));
+  border-color: hsl(var(--accent));
+}
+
+.calendar-day:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.calendar-day.other-month {
+  opacity: 0.4;
+}
+
+.calendar-day.today {
+  background: hsl(var(--accent));
+  font-weight: 600;
+}
+
+.calendar-day.selected {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.calendar-day.has-events {
+  font-weight: 600;
+}
+
+.day-number {
+  font-size: 0.9em;
+}
+
+.event-indicators {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.event-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: hsl(var(--brand-facebook));
+}
+
+.calendar-selected-events {
+  padding: 16px;
+  background: hsl(var(--muted));
+  border-radius: var(--radius);
+  margin-top: 20px;
+}
+
+.calendar-selected-events h4 {
+  margin: 0 0 12px 0;
+  font-size: 1em;
+}
+
+.selected-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.calendar-event-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px;
+  background: hsl(var(--background));
+  border-radius: 4px;
+  border: 1px solid hsl(var(--border));
+}
+
+.event-time {
+  min-width: 70px;
+  font-size: 0.9em;
+  color: hsl(var(--muted-foreground));
+}
+
+.event-details {
+  flex: 1;
+}
+
+.event-venue {
+  font-size: 0.85em;
+  color: hsl(var(--muted-foreground));
+  margin-top: 4px;
+}
+
 .social-proof {
   display: flex;
   justify-content: space-around;
@@ -1638,7 +2094,6 @@ body.mobile-nav-visible {
 
 .facebook-embed-container.active,
 .facebook-events-container.active,
-.events-section.active,
 .social-proof.active {
   display: block;
 }
@@ -2028,7 +2483,6 @@ body.mobile-nav-visible {
   .instagram-cta,
   .facebook-embed-container,
   .facebook-events-container,
-  .events-section,
   .social-proof {
     display: block;
   }
@@ -2139,3 +2593,311 @@ body.mobile-nav-visible {
     color: #000;
   }
 }
+
+/* =================================================================
+   8. UI Polish (2025-09) – About + Media Panel
+   -----------------------------------------------------------------
+   Small, isolated overrides to tighten spacing, improve readability,
+   colour contrast, and accessible touch targets for the “About”
+   section and the CreatorMediaPanel cards (Listen / Watch / Social /
+   Share).  Appended at EOF → cascades after Tailwind utilities.
+   ================================================================= */
+
+/* 1. Typography & spacing in About section */
+.about-section .about-text {
+  font-size: 1rem;            /* readable on 360 px */
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+}
+@media (min-width: 768px) {
+  .about-section .about-grid {
+    column-gap: var(--space-xl);
+    align-items: center;
+  }
+}
+
+/* 2. Card border contrast in dark-mode */
+.dark [data-slot="card"],
+.dark .card-base {
+  border-color: hsl(var(--border) / 0.5); /* AA contrast */
+}
+
+/* 3. CreatorMediaPanel – focus ring for tab controls */
+.inline-flex > button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.6);
+}
+
+/* 4. Touch-target guarantee */
+.btn,
+.platform-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* 5. Remove nested card spacing collapse */
+[data-slot="card-content"] > .overflow-hidden + .overflow-hidden {
+  margin-top: var(--space-md);
+}
+
+/* ================================================================
+   Platform Launcher - Mobile Optimized Minimal Design (react-icons)
+   ================================================================= */
+
+/* Icon-only inline mode: compact horizontally scrollable icons */
+.platform-launcher-inline.icons-only .platform-grid {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.platform-launcher-inline.icons-only .platform-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.platform-launcher-inline.icons-only .platform-card {
+  min-width: 48px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--card));
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.platform-launcher-inline.icons-only .platform-card:hover,
+.platform-launcher-inline.icons-only .platform-card:focus-visible {
+  border-color: var(--platform-color);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Icon SVG color + tap feedback */
+.platform-icon-svg {
+  color: var(--platform-color);
+  transition: transform 0.2s ease;
+}
+.platform-card:active .platform-icon-svg {
+  transform: scale(0.9);
+}
+
+/* Floating FAB refinements */
+.platform-launcher-fab {
+  position: fixed;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  right: calc(1rem + env(safe-area-inset-right));
+  z-index: 900;
+}
+
+.fab-trigger {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: hsl(var(--accent));
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.fab-menu {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: hsl(var(--card) / 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 28px;
+  padding: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  min-width: 64px;
+}
+
+.fab-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fab-platform-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--platform-color);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  color: #fff;
+}
+
+.fab-platform-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.fab-platform-btn:active {
+  transform: scale(0.95);
+}
+
+.fab-platform-icon-svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Close button in FAB menu */
+.fab-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: hsl(var(--destructive));
+  color: white;
+  border: 2px solid hsl(var(--card));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* Modal mode: simple two-column grid on larger screens; icon polish */
+.platform-modal-icon-svg {
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Dark mode tweaks */
+.dark .fab-menu {
+  background: hsl(var(--card) / 0.95);
+}
+.dark .platform-launcher-inline.icons-only .platform-card {
+  background: hsl(var(--secondary));
+}
+.dark .platform-launcher-inline.icons-only .platform-card:hover {
+  background: hsl(var(--card));
+}
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  .platform-launcher-fab {
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    right: calc(0.75rem + env(safe-area-inset-right));
+  }
+  .fab-trigger {
+    width: 52px;
+    height: 52px;
+  }
+  .fab-platform-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .platform-card,
+  .fab-trigger,
+  .fab-platform-btn,
+  .platform-modal-button {
+    transition: none;
+  }
+}
+
+/* High contrast */
+@media (prefers-contrast: high) {
+  .platform-launcher-inline.icons-only .platform-card {
+    border-width: 3px;
+  }
+  .fab-platform-btn {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+}
+/* Share-a-holic style share section */
+.share-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.share-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.utm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.share-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .share-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 768px) {
+  .share-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  color: white;
+  background: var(--brand, hsl(var(--accent)));
+  background-color: var(--brand);
+  transition: transform .15s ease, filter .15s ease;
+  text-decoration: none;
+}
+
+.share-btn:hover { transform: translateY(-1px); filter: brightness(0.95); }
+.share-btn:active { transform: translateY(0); filter: brightness(0.9); }
+
+.qr-share-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.qr-wrap {
+  padding: 0.5rem;
+  background: hsl(var(--muted));
+  border-radius: 8px;
+  color: hsl(var(--foreground));
+}
+
+.qr-meta { min-width: 0; }
+.qr-label { font-size: 0.9rem; color: hsl(var(--foreground)); }
+.qr-url { font-size: 0.75rem; color: hsl(var(--muted-foreground)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

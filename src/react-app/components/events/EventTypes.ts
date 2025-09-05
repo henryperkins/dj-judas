@@ -1,0 +1,21 @@
+export type EventItem = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  flyerUrl?: string;
+  startDateTime: string;
+  endDateTime?: string | null;
+  venueName?: string;
+  address?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  ticketUrl?: string;
+  rsvpUrl?: string;
+  priceText?: string;
+  tags?: string[];
+  status?: 'draft' | 'published' | 'archived';
+};

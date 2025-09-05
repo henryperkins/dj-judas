@@ -1,8 +1,8 @@
-import './index.css';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Church, Mic, Music2, Heart } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { LuChurch, LuMic, LuMusic2, LuHeart } from 'react-icons/lu';
 
 interface Service {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -15,22 +15,22 @@ const ServicesSection: React.FC = () => {
 
   const services: Service[] = [
     {
-      icon: Church,
+      icon: LuChurch,
       title: 'Church Services',
       description: 'Anointed worship ministry for Sunday services, revivals, and special church events throughout Northwest Indiana'
     },
     {
-      icon: Mic,
+      icon: LuMic,
       title: 'Gospel Concerts & Festivals',
       description: 'Dynamic performances for gospel concerts, community festivals, and Christian conferences'
     },
     {
-      icon: Music2,
+      icon: LuMusic2,
       title: 'Youth Choir Training',
       description: 'Mentoring and developing young voices in gospel music through workshops and masterclasses'
     },
     {
-      icon: Heart,
+      icon: LuHeart,
       title: 'Special Occasions',
       description: 'Ministry through music for weddings, funerals, anniversaries, and milestone celebrations'
     }
@@ -53,15 +53,19 @@ const ServicesSection: React.FC = () => {
             return (
               <motion.div
                 key={service.title}
-                className="service-card"
                 initial={{ opacity: 0, y: 30 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: index * 0.1, duration: 0.6 }}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
               >
-                <Icon size={48} className="service-icon" />
-                <h3 className="service-title">{service.title}</h3>
-                <p className="service-description">{service.description}</p>
+                <Card>
+                  <CardHeader className="items-center text-center">
+                    <Icon className="service-icon" />
+                    <CardTitle className="mt-2">{service.title}</CardTitle>
+                    <CardDescription>{service.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent />
+                </Card>
               </motion.div>
             );
           })}

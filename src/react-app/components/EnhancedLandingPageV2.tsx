@@ -9,6 +9,7 @@ import PlatformLauncher from './PlatformLauncher';
 import CreatorMediaPanel from './CreatorMediaPanel';
 import MobileBottomNav from './MobileBottomNav';
 import EventGrid from './events/EventGrid';
+import NextEventBanner from './events/NextEventBanner';
 import { isMobileDevice } from '../utils/platformDetection';
 import logoImage from '../assets/images/logo.jpeg';
 
@@ -43,7 +44,8 @@ const EnhancedLandingPageV2: React.FC = () => {
   // Track active section for mobile nav
   useEffect(() => {
     // Include 'events' so the Events section can be highlighted/navigated to
-    const sections = ['home', 'about', 'music', 'events', 'gallery', 'services', 'booking'];
+    // Use 'media' instead of legacy 'music'
+    const sections = ['home', 'about', 'media', 'events', 'gallery', 'services', 'booking'];
     const observers = new Map();
 
     sections.forEach(id => {
@@ -81,13 +83,17 @@ const EnhancedLandingPageV2: React.FC = () => {
       <HeroSection scrollY={scrollY} />
 
       <main id="main" tabIndex={-1}>
-        {/* Stats Section */}
-        <StatsSection />
+        {/* Next Event Banner */}
+        <NextEventBanner />
 
-        {/* Events Section */}
+        {/* Events Section first for quick access */}
         <EventGrid />
 
+        {/* Stats Section moved below events */}
+        <StatsSection />
+
         {/* Platform Launcher - Inline for desktop, FAB for mobile */}
+
         {!isMobile && (
           <section className="platform-section">
             <div className="container">

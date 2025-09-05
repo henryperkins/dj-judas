@@ -1,18 +1,16 @@
 import { EventItem } from './EventTypes';
 import { LuMapPin, LuCalendarPlus, LuExternalLink, LuShare2, LuCopy } from 'react-icons/lu';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { isIOS } from '../../utils/platformDetection';
 
-function fmtDateTime(iso: string) {
+function fmtDate(iso: string) {
   const d = new Date(iso);
-  const opts: Intl.DateTimeFormatOptions = { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric', 
-    hour: 'numeric', 
-    minute: '2-digit',
-    timeZoneName: 'short'
-  };
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
   return new Intl.DateTimeFormat(undefined, opts).format(d);
+}
+function fmtTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function monthDayBadge(iso: string) {
@@ -34,12 +32,29 @@ function googleCalUrl(ev: EventItem) {
   return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${dates}&details=${details}&location=${location}&sf=true&output=xml`;
 }
 
+function eventOffsetMinutes(iso: string): number | null {
+  const m = iso.match(/[+-]\d{2}:\d{2}$/);
+  if (!m) return 0; // Z or unspecified => treat as UTC
+  const sign = m[0][0] === '-' ? -1 : 1;
+  const [hh, mm] = m[0].slice(1).split(':').map(Number);
+  return sign * (hh * 60 + mm);
+}
+
+function userOffsetMinutes(): number {
+  return -new Date().getTimezoneOffset(); // convert to ISO-style sign
+}
+
 export default function EventCard({ ev }: { ev: EventItem }) {
   const [copied, setCopied] = useState(false);
   const badge = monthDayBadge(ev.startDateTime);
-  const directionsUrl = (ev.latitude && ev.longitude)
-    ? `https://maps.google.com/?q=${ev.latitude},${ev.longitude}`
-    : `https://maps.google.com/?q=${encodeURIComponent([ev.venueName, ev.address, ev.city, ev.region].filter(Boolean).join(', '))}`;
+  const mapsHref = useMemo(() => {
+    if (ev.latitude && ev.longitude) {
+      const q = `${ev.latitude},${ev.longitude}`;
+      return isIOS() ? `http://maps.apple.com/?q=${q}` : `https://maps.google.com/?q=${q}`;
+    }
+    const q = [ev.venueName, ev.address, ev.city, ev.region].filter(Boolean).join(', ');
+    return isIOS() ? `http://maps.apple.com/?q=${encodeURIComponent(q)}` : `https://maps.google.com/?q=${encodeURIComponent(q)}`;
+  }, [ev.latitude, ev.longitude, ev.venueName, ev.address, ev.city, ev.region]);
   
   const eventUrl = `${window.location.origin}/events/${ev.slug}`;
   const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`;
@@ -54,43 +69,20 @@ export default function EventCard({ ev }: { ev: EventItem }) {
     }
   };
 
+  const primaryCalHref = isIOS() ? `/events/${ev.slug}.ics` : googleCalUrl(ev);
+  const primaryCalTarget = isIOS() ? undefined : '_blank';
+  const primaryCalRel = isIOS() ? undefined : 'noopener noreferrer';
+  const primaryCalLabel = isIOS() ? 'Add to Apple Calendar' : 'Add to Google Calendar';
+
+  const eventOffset = eventOffsetMinutes(ev.startDateTime);
+  const userOffset = userOffsetMinutes();
+  const showUserLocal = eventOffset !== null && eventOffset !== userOffset;
+
   return (
     <article className="event-card">
-      <div style={{ display: 'flex', gap: 16 }}>
-        <div className="event-date" aria-label={fmtDateTime(ev.startDateTime)}>
-          <div style={{ fontSize: 12 }}>{badge.month}</div>
-          <div style={{ fontSize: 20, lineHeight: '22px' }}>{badge.day}</div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0 }}>{ev.title}</h3>
-          <p style={{ margin: '4px 0', opacity: 0.9 }}>{fmtDateTime(ev.startDateTime)}{ev.city ? ` • ${ev.city}${ev.region ? ', ' + ev.region : ''}` : ''}</p>
-          {ev.priceText && <p style={{ margin: '4px 0' }}>{ev.priceText}</p>}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-            <a href={googleCalUrl(ev)} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" aria-label="Add to Google Calendar">
-              <LuCalendarPlus size={16} /> Add to Calendar
-            </a>
-            <a href={`/events/${ev.slug}.ics`} className="btn btn-ghost" aria-label="Download ICS">
-              ICS
-            </a>
-            <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Get directions">
-              <LuMapPin size={16} /> Directions
-            </a>
-            {ev.ticketUrl && (
-              <a href={ev.ticketUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" aria-label="Tickets">
-                <LuExternalLink size={16} /> Tickets
-              </a>
-            )}
-            <a href={fbShareUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Share on Facebook">
-              <LuShare2 size={16} /> Share
-            </a>
-            <button onClick={copyLink} className="btn btn-ghost" aria-label="Copy event link">
-              <LuCopy size={16} /> {copied ? 'Copied!' : 'Copy Link'}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Image-first layout */}
       {ev.flyerUrl && (
-        <div style={{ marginTop: 12 }}>
+        <div className="event-flyer">
           <img
             src={ev.flyerUrl}
             alt={`${ev.title} flyer`}
@@ -99,6 +91,54 @@ export default function EventCard({ ev }: { ev: EventItem }) {
           />
         </div>
       )}
+
+      <div className="event-meta-row" style={{ display: 'flex', gap: 16, marginTop: ev.flyerUrl ? 12 : 0 }}>
+        <div className="event-date" aria-hidden="true">
+          <div style={{ fontSize: 12 }}>{badge.month}</div>
+          <div style={{ fontSize: 20, lineHeight: '22px' }}>{badge.day}</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ margin: 0 }}>{ev.title}</h3>
+          <p style={{ margin: '4px 0', opacity: 0.9 }}>
+            <time dateTime={ev.startDateTime}>{fmtDate(ev.startDateTime)} • {fmtTime(ev.startDateTime)}</time>
+            {ev.city ? ` • ${ev.city}${ev.region ? ', ' + ev.region : ''}` : ''}
+          </p>
+          {showUserLocal && (
+            <p style={{ margin: '4px 0', opacity: 0.8 }}>Your time: {fmtTime(ev.startDateTime)}</p>
+          )}
+          {ev.priceText && <p style={{ margin: '4px 0' }}>{ev.priceText}</p>}
+        </div>
+      </div>
+
+      {/* Primary action */}
+      <div style={{ marginTop: 8 }}>
+        <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel as any} className="btn btn-secondary" aria-label={primaryCalLabel}>
+          <LuCalendarPlus size={16} /> {primaryCalLabel}
+        </a>
+      </div>
+
+      {/* Condensed secondary actions */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+        <a href={mapsHref} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Open in Maps">
+          <LuMapPin size={16} /> Open in Maps
+        </a>
+        {ev.ticketUrl && (
+          <a href={ev.ticketUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" aria-label="Tickets">
+            <LuExternalLink size={16} /> Tickets
+          </a>
+        )}
+        <a href={fbShareUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Share on Facebook">
+          <LuShare2 size={16} /> Share
+        </a>
+        <button onClick={copyLink} className="btn btn-ghost" aria-label="Copy event link">
+          <LuCopy size={16} /> {copied ? 'Copied!' : 'Copy Link'}
+        </button>
+        {!isIOS() && (
+          <a href={`/events/${ev.slug}.ics`} className="btn btn-ghost" aria-label="Download ICS">
+            ICS
+          </a>
+        )}
+      </div>
     </article>
   );
 }

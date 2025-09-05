@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LuHouse, LuMusic, LuCalendar, LuShare2 } from 'react-icons/lu';
+import { LuHouse, LuMusic, LuCalendar, LuShare2, LuTicket } from 'react-icons/lu';
 import { isMobileDevice } from '../utils/platformDetection';
 
 
@@ -35,8 +35,14 @@ const defaultNavItems: NavItem[] = [
     action: () => {} // Will be overridden by onPlatformLauncherOpen
   },
   {
-    id: 'book',
+    id: 'events',
     icon: LuCalendar,
+    label: 'Events',
+    href: '#events'
+  },
+  {
+    id: 'book',
+    icon: LuTicket,
     label: 'Book',
     href: '#booking'
   },
@@ -97,7 +103,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   }, [lastScrollY, isMobile, showOnDesktop]);
 
   useEffect(() => {
-    setCurrentActive(activeItem);
+    // Map section ids to nav ids where needed (media -> listen)
+    const mapped = activeItem === 'media' ? 'listen' : activeItem;
+    setCurrentActive(mapped);
   }, [activeItem]);
 
   useEffect(() => {
@@ -117,8 +125,18 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   }, [isVisible, isMobile, showOnDesktop]);
 
   const handleItemClick = (item: NavItem) => {
-    if (item.id === 'listen' && onPlatformLauncherOpen) {
-      onPlatformLauncherOpen();
+    if (item.id === 'listen') {
+      // Prefer lifting to parent callback when provided
+      if (onPlatformLauncherOpen) {
+        onPlatformLauncherOpen();
+      }
+      // Also emit a lightweight custom event so PlatformLauncher can react
+      // without requiring parent wiring, keeping pages decoupled.
+      try {
+        window.dispatchEvent(new Event('platform-launcher:open'));
+      } catch (e) {
+        // no-op if not in browser
+      }
       return;
     }
 

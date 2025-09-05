@@ -104,9 +104,11 @@ export default function EventGrid() {
           </div>
         )}
 
-        <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <a href="/events.ics" className="btn btn-secondary">Add All Upcoming to Calendar (ICS)</a>
-        </div>
+        {upcoming.length > 1 && (
+          <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+            <a href="/events.ics" className="btn btn-secondary">Add All Upcoming to Calendar (ICS)</a>
+          </div>
+        )}
 
         {past.length > 0 && (
           <div style={{ marginTop: 40 }}>

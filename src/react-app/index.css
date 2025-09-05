@@ -1163,6 +1163,54 @@ h3 {
 .gallery-section { padding: 4rem 0; }
 .booking-section { padding: 4rem 0; }
 
+/* --- Next Event Banner --- */
+.next-event-banner {
+  position: sticky;
+  top: calc(0px + var(--safe-area-inset-top));
+  z-index: 50; /* above content, below dialogs */
+  background: linear-gradient(180deg, hsl(var(--background)) 80%, hsl(var(--background) / 0) 100%);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.next-event-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) + 4px);
+  padding: 0.5rem 0.75rem;
+  box-shadow: var(--shadow-1);
+}
+
+.next-event-when {
+  display: grid;
+  align-items: center;
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  background: hsl(var(--muted));
+}
+
+.next-event-date { font-weight: 700; font-size: 0.9rem; }
+.next-event-time { font-size: 0.85rem; color: hsl(var(--muted-foreground)); }
+
+.next-event-title { font-weight: 600; line-height: 1.2; }
+.next-event-meta { font-size: 0.85rem; color: hsl(var(--muted-foreground)); }
+
+.next-event-actions { display: inline-flex; gap: 0.5rem; flex-wrap: nowrap; }
+.next-event-actions .btn { padding: 0.5rem 0.75rem; }
+
+@media (max-width: 480px) {
+  .next-event-card {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .next-event-actions { flex-wrap: wrap; }
+}
+
 .platform-launcher-inline {
   padding: 2rem 0;
 }

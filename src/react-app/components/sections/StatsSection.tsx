@@ -17,7 +17,7 @@ const StatsSection: React.FC = () => {
     { icon: LuCalendar, value: '16+', label: 'Years of Ministry' },
     { icon: LuMusic, value: '4+', label: 'Released Singles' },
     { icon: LuUsers, value: '1.6K+', label: 'Facebook Followers' },
-    { icon: LuAward, value: '2020-2022', label: 'Latest Releases' }
+    { icon: LuAward, value: 'Latest', label: 'Latest Releases' }
   ];
 
   return (

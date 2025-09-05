@@ -40,6 +40,27 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Lightweight cross-component control via custom events
+  // Allows other components (e.g., MobileBottomNav) to open/close the FAB
+  useEffect(() => {
+    const OPEN_EVENT = 'platform-launcher:open';
+    const CLOSE_EVENT = 'platform-launcher:close';
+    const TOGGLE_EVENT = 'platform-launcher:toggle';
+
+    const openHandler = () => setIsOpen(true);
+    const closeHandler = () => setIsOpen(false);
+    const toggleHandler = () => setIsOpen(prev => !prev);
+
+    window.addEventListener(OPEN_EVENT, openHandler as EventListener);
+    window.addEventListener(CLOSE_EVENT, closeHandler as EventListener);
+    window.addEventListener(TOGGLE_EVENT, toggleHandler as EventListener);
+    return () => {
+      window.removeEventListener(OPEN_EVENT, openHandler as EventListener);
+      window.removeEventListener(CLOSE_EVENT, closeHandler as EventListener);
+      window.removeEventListener(TOGGLE_EVENT, toggleHandler as EventListener);
+    };
+  }, []);
+
   const getPlatformColor = (platform: string): string => {
     return PLATFORM_COLORS[platform.toLowerCase() as keyof typeof PLATFORM_COLORS] || PLATFORM_COLORS.default;
   };

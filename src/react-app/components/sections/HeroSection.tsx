@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 import { LuChevronDown } from 'react-icons/lu';
+import { navigate } from '../../utils/nav';
 import pattern1 from '../../assets/images/pattern1.jpeg';
 import logoImage from '../../assets/images/logo.jpeg';
 
@@ -54,7 +55,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           transition={{ delay: 0.6, duration: 0.8 }}
         >
           <a href="#music" className="btn btn-primary">Listen Now</a>
-          <a href="#booking" className="btn btn-secondary">Book Us</a>
+          <button className="btn btn-secondary" onClick={() => navigate('/book')}>Book Us</button>
         </motion.div>
       </div>
       <motion.div

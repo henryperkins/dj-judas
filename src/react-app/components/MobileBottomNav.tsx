@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LuHouse, LuMusic, LuCalendar, LuShare2, LuTicket } from 'react-icons/lu';
 import { isMobileDevice } from '../utils/platformDetection';
+import { navigate } from '../utils/nav';
 
 
 export interface NavItem {
@@ -44,7 +45,7 @@ const defaultNavItems: NavItem[] = [
     id: 'book',
     icon: LuTicket,
     label: 'Book',
-    href: '#booking'
+    action: () => navigate('/book')
   },
   {
     id: 'share',

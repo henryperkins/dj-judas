@@ -11,11 +11,11 @@ import MobileBottomNav from './MobileBottomNav';
 import EventGrid from './events/EventGrid';
 import NextEventBanner from './events/NextEventBanner';
 import { isMobileDevice } from '../utils/platformDetection';
+import { navigate } from '../utils/nav';
 import logoImage from '../assets/images/logo.jpeg';
 
  // Lazy load heavy components
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
-const BookingForm = lazy(() => import('./BookingForm'));
 // Social section removed
 
 const LoadingFallback = () => (
@@ -140,13 +140,12 @@ const EnhancedLandingPageV2: React.FC = () => {
         {/* Services Section */}
         <ServicesSection />
 
-        {/* Booking Section - Lazy loaded */}
+        {/* Booking CTA to dedicated page */}
         <section id="booking" className="booking-section">
           <div className="container">
             <h2 className="section-title">Book Us</h2>
-            <Suspense fallback={<LoadingFallback />}>
-              <BookingForm />
-            </Suspense>
+            <p className="section-subtitle" style={{ marginBottom: '1rem' }}>Quick form. Friendly follow-up within 24 hours.</p>
+            <button className="submit-button" onClick={() => navigate('/book')}>Open Booking Form</button>
           </div>
         </section>
       </main>
@@ -164,7 +163,7 @@ const EnhancedLandingPageV2: React.FC = () => {
               <a href="#about">About</a>
               <a href="#music">Music</a>
               <a href="#services">Services</a>
-              <a href="#booking">Contact</a>
+              <a href="/book" data-nav>Contact</a>
             </div>
             <div className="footer-social">
               <p>Follow us on social media</p>

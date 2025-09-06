@@ -43,6 +43,18 @@
 <body>
   <div id="fb-root"></div>
   <div id="root"></div>
+  <script>
+    // SPA routing: ensure internal links with data-nav use History API
+    document.addEventListener('click', function (e) {
+      const a = e.target.closest('a[data-nav]');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (!href || !href.startsWith('/')) return;
+      e.preventDefault();
+      history.pushState({}, '', href);
+      window.dispatchEvent(new Event('app:navigate'));
+    }, { capture: true });
+  </script>
   <script type="module" src="/src/react-app/main.tsx"></script>
 </body>
 

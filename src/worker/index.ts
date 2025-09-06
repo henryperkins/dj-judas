@@ -210,8 +210,22 @@ app.post('/api/spotify/follow', async (c) => {
 export default app;
 
 // --- Booking endpoint ---
+// Basic in-memory rate limit per IP (best-effort, ephemeral)
+const rateMap = new Map<string, { count: number; reset: number }>();
+
 app.post('/api/booking', async (c) => {
   try {
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    const now = Date.now();
+    const bucket = rateMap.get(ip);
+    if (!bucket || bucket.reset < now) {
+      rateMap.set(ip, { count: 1, reset: now + 60_000 });
+    } else if (bucket.count > 10) {
+      return c.json({ error: 'rate_limited', message: 'Too many requests. Please try again in a minute.' }, 429);
+    } else {
+      bucket.count += 1;
+    }
+
     const body = await c.req.json<{
       name: string;
       email: string;
@@ -221,7 +235,13 @@ app.post('/api/booking', async (c) => {
       eventTime: string;
       location: string;
       message?: string;
+      website?: string; // honeypot
     }>();
+
+    // Honeypot: if present, reject silently
+    if (body.website && String(body.website).trim() !== '') {
+      return c.json({ ok: true, ignored: true });
+    }
 
     const required = ['name','email','phone','eventType','eventDate','eventTime','location'] as const;
     for (const k of required) {
@@ -230,16 +250,50 @@ app.post('/api/booking', async (c) => {
       }
     }
 
+    // Normalize and validate fields
+    const email = String(body.email).trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return c.json({ error: 'invalid_email' }, 400);
+    }
+
+    // Phone: strip non-digits except leading + and basic length check
+    const phoneRaw = String(body.phone).trim();
+    const phone = phoneRaw.replace(/(?!^\+)\D+/g, '');
+    if (phone.replace(/\D/g, '').length < 7 || phone.replace(/\D/g, '').length > 15) {
+      return c.json({ error: 'invalid_phone' }, 400);
+    }
+
+    const eventTypes = new Set(['worship','concert','wedding','funeral','conference','community','other']);
+    if (!eventTypes.has(String(body.eventType))) {
+      return c.json({ error: 'invalid_event_type' }, 400);
+    }
+
+    // Date/time sanity: require future time in UTC comparison
+    const isoDate = String(body.eventDate);
+    const isoTime = String(body.eventTime);
+    const eventDateTime = new Date(`${isoDate}T${isoTime}`);
+    if (Number.isNaN(eventDateTime.getTime())) {
+      return c.json({ error: 'invalid_datetime' }, 400);
+    }
+    if (eventDateTime.getTime() < Date.now()) {
+      return c.json({ error: 'datetime_in_past' }, 400);
+    }
+
+    // Bounds
+    const name = String(body.name).trim().slice(0, 100);
+    const location = String(body.location).trim().slice(0, 200);
+    const message = (body.message ? String(body.message) : '').trim().slice(0, 2000);
+
     const summary = [
-      `Name: ${body.name}`,
-      `Email: ${body.email}`,
-      `Phone: ${body.phone}`,
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Phone: ${phone}`,
       `Event Type: ${body.eventType}`,
-      `Date: ${body.eventDate} ${body.eventTime}`,
-      `Location: ${body.location}`,
+      `Date: ${isoDate} ${isoTime}`,
+      `Location: ${location}`,
       '',
       'Message:',
-      body.message || '(none)'
+      message || '(none)'
     ].join('\n');
 
     // Prefer Resend if configured
@@ -255,14 +309,14 @@ app.post('/api/booking', async (c) => {
         body: JSON.stringify({
           from: fromResend,
           to: [toResend],
-          subject: `Booking Request: ${body.eventType} on ${body.eventDate}`,
+          subject: `Booking Request: ${body.eventType} on ${isoDate}`,
           text: summary
         })
       });
-      if (!res.ok) {
-        return c.json({ error: 'email_send_failed', provider: 'resend', status: res.status }, 500);
+      if (res.ok) {
+        return c.json({ ok: true, provider: 'resend' });
       }
-      return c.json({ ok: true, provider: 'resend' });
+      // fall through to SendGrid if available
     }
 
     // Fallback: SendGrid
@@ -278,7 +332,7 @@ app.post('/api/booking', async (c) => {
         body: JSON.stringify({
           personalizations: [{ to: [{ email: to }] }],
           from: { email: from, name: 'DJ Lee Website' },
-          subject: `Booking Request: ${body.eventType} on ${body.eventDate}`,
+          subject: `Booking Request: ${body.eventType} on ${isoDate}`,
           content: [{ type: 'text/plain', value: summary }]
         })
       });

@@ -115,3 +115,29 @@ npx wrangler tail
 - [Vite Documentation](https://vitejs.dev/guide/)
 - [React Documentation](https://reactjs.org/)
 - [Hono Documentation](https://hono.dev/)
+
+## Commerce Quickstart
+
+Selling tangible goods? See docs/COMMERCE_QUICKSTART.md for a ready-to-use flow:
+
+- Medusa storefront for catalog/cart (address → shipping → complete)
+- Optional Stripe Checkout handoff with shipping + Stripe Tax
+- SPA routes: `/checkout`, `/success`
+- Worker endpoints: `/api/stripe/*`
+
+Environment additions:
+
+Client (Vite)
+- `VITE_MEDUSA_URL`, `VITE_MEDUSA_PUBLISHABLE_KEY`, `VITE_STRIPE_PRICE_ID`
+
+Server (Wrangler)
+- `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`
+
+## Booking Form
+
+The app includes a mobile‑first booking page at `/book` with server‑side email delivery and validation. See docs/BOOKING.md for:
+
+- UX and accessibility details
+- Client + server validation rules
+- Email provider setup (Resend/SendGrid)
+- Anti‑spam measures and customization tips

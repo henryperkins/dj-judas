@@ -1,0 +1,134 @@
+import { useEffect, useMemo, useState } from 'react'
+import { navigate } from '../utils/nav'
+
+type Address = {
+  email: string
+  first_name: string
+  last_name: string
+  address_1: string
+  city: string
+  postal_code: string
+  country_code: string
+}
+
+type ShippingOption = { id: string; name: string; amount?: number }
+
+const MEDUSA_URL = import.meta.env.VITE_MEDUSA_URL as string | undefined
+const MEDUSA_PUB = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY as string | undefined
+
+export default function CheckoutPage() {
+  const [cartId, setCartId] = useState<string | null>(null)
+  const [addr, setAddr] = useState<Address>({
+    email: '', first_name: '', last_name: '', address_1: '', city: '', postal_code: '', country_code: 'US'
+  })
+  const [options, setOptions] = useState<ShippingOption[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const headers: Record<string, string> = useMemo(() => {
+    const base: Record<string, string> = { 'content-type': 'application/json' }
+    if (MEDUSA_PUB) base['x-publishable-api-key'] = MEDUSA_PUB
+    return base
+  }, [])
+
+  useEffect(() => {
+    if (!MEDUSA_URL) return
+    const saved = localStorage.getItem('medusa_cart_id')
+    if (saved) { setCartId(saved); return }
+    setBusy(true)
+    fetch(`${MEDUSA_URL}/store/carts`, { method: 'POST', headers })
+      .then(r => r.json())
+      .then(d => {
+        const id = d?.cart?.id
+        if (id) { localStorage.setItem('medusa_cart_id', id); setCartId(id) }
+      })
+      .finally(() => setBusy(false))
+  }, [])
+
+  const saveAddress = async () => {
+    if (!MEDUSA_URL || !cartId) return
+    setBusy(true)
+    await fetch(`${MEDUSA_URL}/store/carts/${cartId}`, {
+      method: 'POST', headers, body: JSON.stringify({
+        email: addr.email,
+        shipping_address: {
+          first_name: addr.first_name, last_name: addr.last_name,
+          address_1: addr.address_1, city: addr.city, postal_code: addr.postal_code, country_code: addr.country_code
+        }
+      })
+    })
+    setBusy(false)
+  }
+
+  const loadOptions = async () => {
+    if (!MEDUSA_URL || !cartId) return
+    const res = await fetch(`${MEDUSA_URL}/store/shipping-options/${cartId}`, { headers })
+    const json = await res.json()
+    setOptions(json?.shipping_options || [])
+  }
+
+  const addShippingMethod = async (option_id: string) => {
+    if (!MEDUSA_URL || !cartId) return
+    await fetch(`${MEDUSA_URL}/store/carts/${cartId}/shipping-methods`, {
+      method: 'POST', headers, body: JSON.stringify({ option_id })
+    })
+  }
+
+  const completeMedusa = async () => {
+    if (!MEDUSA_URL || !cartId) return
+    setBusy(true)
+    const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/complete`, { method: 'POST', headers })
+    const json = await res.json()
+    setBusy(false)
+    if (json?.type === 'order') navigate('/success')
+  }
+
+  const payWithStripe = async () => {
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ priceId: import.meta.env.VITE_STRIPE_PRICE_ID || 'price_xxx', quantity: 1, cartId })
+    })
+    const json = await res.json()
+    if (json.url) window.location.href = json.url
+  }
+
+  return (
+    <div className="container" style={{ padding: '1rem var(--container-padding) 3rem' }}>
+      <button className="btn btn-ghost" onClick={() => navigate('/')}>← Back</button>
+      <h1 className="section-title">Checkout</h1>
+      {!MEDUSA_URL && <p>Set VITE_MEDUSA_URL and VITE_MEDUSA_PUBLISHABLE_KEY to enable cart & shipping.</p>}
+
+      <section className="card" style={{ padding: '1rem' }}>
+        <h2>Shipping address</h2>
+        <div className="form-grid">
+          <input placeholder="Email" value={addr.email} onChange={e => setAddr({ ...addr, email: e.target.value })} />
+          <input placeholder="First name" value={addr.first_name} onChange={e => setAddr({ ...addr, first_name: e.target.value })} />
+          <input placeholder="Last name" value={addr.last_name} onChange={e => setAddr({ ...addr, last_name: e.target.value })} />
+          <input placeholder="Address" value={addr.address_1} onChange={e => setAddr({ ...addr, address_1: e.target.value })} />
+          <input placeholder="City" value={addr.city} onChange={e => setAddr({ ...addr, city: e.target.value })} />
+          <input placeholder="Postal code" value={addr.postal_code} onChange={e => setAddr({ ...addr, postal_code: e.target.value })} />
+          <input placeholder="Country code" value={addr.country_code} onChange={e => setAddr({ ...addr, country_code: e.target.value })} />
+        </div>
+        <button className="submit-button" onClick={saveAddress} disabled={busy || !cartId}>Save address</button>
+      </section>
+
+      <section className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
+        <h2>Shipping options</h2>
+        <div className="stack">
+          <button className="btn" onClick={loadOptions} disabled={!cartId}>Load options</button>
+          {options?.length ? options.map((o: ShippingOption) => (
+            <button className="btn" key={o.id} onClick={() => addShippingMethod(o.id)}>
+              {o.name}
+            </button>
+          )) : null}
+        </div>
+      </section>
+
+      <section className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
+        <h2>Payment</h2>
+        <div className="cluster">
+          <button className="submit-button" onClick={completeMedusa} disabled={!cartId}>Pay (Medusa provider)</button>
+          <button className="submit-button" onClick={payWithStripe}>Pay with Stripe</button>
+        </div>
+      </section>
+    </div>
+  )
+}

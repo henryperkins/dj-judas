@@ -56,6 +56,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
         >
           <a href="#music" className="btn btn-primary">Listen Now</a>
           <button className="btn btn-secondary" onClick={() => navigate('/book')}>Book Us</button>
+          <button className="btn" onClick={() => navigate('/checkout')}>Shop</button>
         </motion.div>
       </div>
       <motion.div

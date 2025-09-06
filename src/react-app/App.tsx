@@ -4,6 +4,8 @@ import EnhancedLandingPage from "./components/EnhancedLandingPageV2";
 import ThemeToggle from './components/ThemeToggle';
 import { useEffect, useState } from 'react';
 import BookingPage from './pages/BookingPage';
+import CheckoutPage from './pages/CheckoutPage';
+import SuccessPage from './pages/SuccessPage';
 import { onNavigate } from './utils/nav';
 
 function App() {
@@ -19,7 +21,10 @@ function App() {
   return (
     <div className="min-h-svh">
       <ThemeToggle />
-      {path === '/book' ? <BookingPage /> : <EnhancedLandingPage />}
+      {path === '/book' ? <BookingPage />
+        : path === '/checkout' ? <CheckoutPage />
+        : path === '/success' ? <SuccessPage />
+        : <EnhancedLandingPage />}
     </div>
   );
 }

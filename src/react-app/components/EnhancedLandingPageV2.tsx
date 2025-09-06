@@ -7,6 +7,7 @@ import AboutSection from './sections/AboutSection';
 import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
 import CreatorMediaPanel from './CreatorMediaPanel';
+import FeaturedProducts from './FeaturedProducts';
 import MobileBottomNav from './MobileBottomNav';
 import EventGrid from './events/EventGrid';
 import NextEventBanner from './events/NextEventBanner';
@@ -139,6 +140,9 @@ const EnhancedLandingPageV2: React.FC = () => {
 
         {/* Services Section */}
         <ServicesSection />
+
+        {/* Featured Products (Medusa) */}
+        <FeaturedProducts />
 
         {/* Booking CTA to dedicated page */}
         <section id="booking" className="booking-section">

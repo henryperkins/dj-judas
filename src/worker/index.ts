@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { SignJWT, importPKCS8 } from 'jose';
+import Stripe from 'stripe';
 
 interface SpotifySession {
 	codeVerifier: string;
@@ -22,6 +23,9 @@ interface Env {
   SENDGRID_API_KEY?: string;
   SENDGRID_FROM?: string;
   SENDGRID_TO?: string;
+  STRIPE_SECRET?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  SITE_URL?: string;
 }
 const app = new Hono<{ Bindings: Env }>();
 
@@ -348,6 +352,78 @@ app.post('/api/booking', async (c) => {
     return c.json({ error: 'invalid_request' }, 400);
   }
 });
+
+// --- Stripe Checkout (optional handoff) ---
+app.post('/api/stripe/checkout', async (c) => {
+  if (!c.env.STRIPE_SECRET) return c.json({ error: 'not_configured' }, 501);
+  const stripe = new Stripe(c.env.STRIPE_SECRET, {
+    apiVersion: '2025-08-27.basil',
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+  const { priceId, quantity = 1, cartId } = await c.req.json<{ priceId: string; quantity?: number; cartId?: string }>();
+  if (!priceId) return c.json({ error: 'missing_price' }, 400);
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    line_items: [{ price: priceId, quantity }],
+    shipping_address_collection: { allowed_countries: ['US', 'CA'] },
+    shipping_options: [
+      { shipping_rate_data: { display_name: 'Standard (5–7 days)', type: 'fixed_amount', fixed_amount: { amount: 799, currency: 'usd' } } },
+      { shipping_rate_data: { display_name: 'Express (2–3 days)', type: 'fixed_amount', fixed_amount: { amount: 1599, currency: 'usd' } } },
+    ],
+    automatic_tax: { enabled: true },
+    success_url: `${c.env.SITE_URL || ''}/success?session_id={CHECKOUT_SESSION_ID}&cart=${cartId || ''}`,
+    cancel_url: `${c.env.SITE_URL || ''}/checkout`,
+    client_reference_id: cartId,
+  });
+  return c.json({ url: session.url });
+});
+
+app.post('/api/stripe/webhook', async (c) => {
+  if (!c.env.STRIPE_SECRET || !c.env.STRIPE_WEBHOOK_SECRET) return c.json({ error: 'not_configured' }, 501);
+  const sig = c.req.header('stripe-signature');
+  if (!sig) return c.json({ error: 'missing_signature' }, 400);
+  const body = await c.req.text();
+  const stripe = new Stripe(c.env.STRIPE_SECRET, {
+    apiVersion: '2025-08-27.basil',
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+  let event;
+  try {
+    event = await stripe.webhooks.constructEventAsync(
+      body,
+      sig,
+      c.env.STRIPE_WEBHOOK_SECRET,
+      undefined,
+      Stripe.createSubtleCryptoProvider()
+    );
+  } catch (err) {
+    return c.json({ error: 'invalid_signature' }, 400);
+  }
+  if (event.type === 'checkout.session.completed') {
+    // const session = event.data.object as Stripe.Checkout.Session
+    // TODO: mark order/cart as paid
+  }
+  return c.json({ received: true });
+});
+
+// Minimal session lookup used by success page (server-side secret)
+app.get('/api/stripe/session', async (c) => {
+  const id = c.req.query('session_id')
+  if (!id) return c.json({ error: 'missing_session_id' }, 400)
+  if (!c.env.STRIPE_SECRET) return c.json({ error: 'not_configured' }, 501)
+  const stripe = new Stripe(c.env.STRIPE_SECRET, {
+    apiVersion: '2025-08-27.basil',
+    httpClient: Stripe.createFetchHttpClient(),
+  })
+  const s = await stripe.checkout.sessions.retrieve(id)
+  return c.json({
+    id: s.id,
+    payment_status: s.payment_status,
+    amount_total: s.amount_total,
+    currency: s.currency,
+    client_reference_id: s.client_reference_id,
+  })
+})
 
 // --- Instagram oEmbed proxy with basic in-memory cache ---
 type OEmbedJSON = Record<string, unknown>;

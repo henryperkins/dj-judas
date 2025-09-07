@@ -44,6 +44,27 @@ function userOffsetMinutes(): number {
   return -new Date().getTimezoneOffset(); // convert to ISO-style sign
 }
 
+function formatRelative(iso: string): string {
+  const now = Date.now();
+  const start = new Date(iso).getTime();
+  const diffMs = start - now;
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
+  const byDay = Math.round(diffMs / day);
+  if (Math.abs(byDay) >= 1) return rtf.format(byDay, 'day');
+
+  const byHour = Math.round(diffMs / hour);
+  if (Math.abs(byHour) >= 1) return rtf.format(byHour, 'hour');
+
+  const byMinute = Math.round(diffMs / minute);
+  return rtf.format(byMinute, 'minute');
+}
+
 export default function EventCard({ ev }: { ev: EventItem }) {
   const [copied, setCopied] = useState(false);
   const badge = monthDayBadge(ev.startDateTime);
@@ -55,10 +76,10 @@ export default function EventCard({ ev }: { ev: EventItem }) {
     const q = [ev.venueName, ev.address, ev.city, ev.region].filter(Boolean).join(', ');
     return isIOS() ? `http://maps.apple.com/?q=${encodeURIComponent(q)}` : `https://maps.google.com/?q=${encodeURIComponent(q)}`;
   }, [ev.latitude, ev.longitude, ev.venueName, ev.address, ev.city, ev.region]);
-  
+
   const eventUrl = `${window.location.origin}/events/${ev.slug}`;
   const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`;
-  
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(eventUrl);
@@ -71,12 +92,13 @@ export default function EventCard({ ev }: { ev: EventItem }) {
 
   const primaryCalHref = isIOS() ? `/events/${ev.slug}.ics` : googleCalUrl(ev);
   const primaryCalTarget = isIOS() ? undefined : '_blank';
-  const primaryCalRel = isIOS() ? undefined : 'noopener noreferrer';
+  const primaryCalRel: 'noopener noreferrer' | undefined = isIOS() ? undefined : 'noopener noreferrer';
   const primaryCalLabel = isIOS() ? 'Add to Apple Calendar' : 'Add to Google Calendar';
 
   const eventOffset = eventOffsetMinutes(ev.startDateTime);
   const userOffset = userOffsetMinutes();
   const showUserLocal = eventOffset !== null && eventOffset !== userOffset;
+  const relativeStr = formatRelative(ev.startDateTime);
 
   return (
     <article className="event-card">
@@ -94,13 +116,14 @@ export default function EventCard({ ev }: { ev: EventItem }) {
 
       <div className="event-meta-row" style={{ display: 'flex', gap: 16, marginTop: ev.flyerUrl ? 12 : 0 }}>
         <div className="event-date" aria-hidden="true">
-          <div style={{ fontSize: 12 }}>{badge.month}</div>
-          <div style={{ fontSize: 20, lineHeight: '22px' }}>{badge.day}</div>
+          <div className="month">{badge.month}</div>
+          <div className="day">{badge.day}</div>
         </div>
         <div style={{ flex: 1 }}>
           <h3 style={{ margin: 0 }}>{ev.title}</h3>
           <p style={{ margin: '4px 0', opacity: 0.9 }}>
             <time dateTime={ev.startDateTime}>{fmtDate(ev.startDateTime)} • {fmtTime(ev.startDateTime)}</time>
+            {` • ${relativeStr}`}
             {ev.city ? ` • ${ev.city}${ev.region ? ', ' + ev.region : ''}` : ''}
           </p>
           {showUserLocal && (
@@ -110,23 +133,18 @@ export default function EventCard({ ev }: { ev: EventItem }) {
         </div>
       </div>
 
-      {/* Primary action */}
-      <div style={{ marginTop: 8 }}>
-        <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel as React.HTMLAttributeAnchorTarget} className="btn btn-secondary" aria-label={primaryCalLabel}>
-          <LuCalendarPlus size={16} /> {primaryCalLabel}
-        </a>
-      </div>
-
-      {/* Condensed secondary actions */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-        <a href={mapsHref} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Open in Maps">
-          <LuMapPin size={16} /> Open in Maps
-        </a>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
         {ev.ticketUrl && (
           <a href={ev.ticketUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" aria-label="Tickets">
             <LuExternalLink size={16} /> Tickets
           </a>
         )}
+        <a href={mapsHref} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" aria-label="Directions">
+          <LuMapPin size={16} /> Directions
+        </a>
+        <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel} className="btn btn-ghost" aria-label={primaryCalLabel}>
+          <LuCalendarPlus size={16} /> {primaryCalLabel}
+        </a>
         <a href={fbShareUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Share on Facebook">
           <LuShare2 size={16} /> Share
         </a>

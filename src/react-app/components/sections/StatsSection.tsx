@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { useInView } from 'react-intersection-observer';
 import { LuCalendar, LuMusic, LuUsers, LuAward } from 'react-icons/lu';
+import { tracks } from '../../data/tracks';
 
 interface StatItem {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -13,11 +14,20 @@ interface StatItem {
 const StatsSection: React.FC = () => {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true });
 
+  const latestReleaseTs = tracks
+    .filter(t => t.releaseDate)
+    .map(t => new Date(t.releaseDate as string).getTime())
+    .reduce((max, t) => Math.max(max, t), 0);
+
+  const latestReleaseStr = latestReleaseTs
+    ? new Date(latestReleaseTs).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+    : '—';
+
   const stats: StatItem[] = [
-    { icon: LuCalendar, value: '16+', label: 'Years of Ministry' },
-    { icon: LuMusic, value: '4+', label: 'Released Singles' },
-    { icon: LuUsers, value: '1.6K+', label: 'Facebook Followers' },
-    { icon: LuAward, value: 'Latest', label: 'Latest Releases' }
+    { icon: LuCalendar, value: '16+', label: 'Years performing' },
+    { icon: LuMusic, value: String(tracks.length), label: 'Singles released' },
+    { icon: LuUsers, value: '1.6K+', label: 'Facebook followers' },
+    { icon: LuAward, value: latestReleaseStr, label: 'Latest release' }
   ];
 
   return (

@@ -14,6 +14,7 @@ import NextEventBanner from './events/NextEventBanner';
 import { isMobileDevice } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
 import logoImage from '../assets/images/logo.jpeg';
+import { Button } from '@/components/ui/button';
 
  // Lazy load heavy components
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
@@ -149,7 +150,7 @@ const EnhancedLandingPageV2: React.FC = () => {
           <div className="container">
             <h2 className="section-title">Book Us</h2>
             <p className="section-subtitle" style={{ marginBottom: '1rem' }}>Quick form. Friendly follow-up within 24 hours.</p>
-            <button className="submit-button" onClick={() => navigate('/book')}>Open Booking Form</button>
+            <Button size="lg" onClick={() => navigate('/book')}>Open Booking Form</Button>
           </div>
         </section>
       </main>

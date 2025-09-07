@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart } from 'react-icons/lu';
-import { isMobileDevice } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
 
 
@@ -72,7 +71,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = isMobileDevice();
+      const mobile =
+        typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches;
       setIsMobile(mobile);
       setIsVisible(mobile || showOnDesktop);
     };
@@ -134,7 +134,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       // without requiring parent wiring, keeping pages decoupled.
       try {
         window.dispatchEvent(new Event('platform-launcher:open'));
-      } catch (e) {
+      } catch {
         // no-op if not in browser
       }
       return;

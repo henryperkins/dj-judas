@@ -24,6 +24,24 @@ export function useFacebookEmbed(
                 if (stillMounted.current && ref.current) {
                     await metaSDK.parseFBML(ref.current);
                     setLoaded(true);
+                    // Accessibility: ensure SDK-injected iframes get a title
+                    setTimeout(() => {
+                        try {
+                            const container = ref.current;
+                            if (!container) return;
+                            const fbPage = container.querySelector('.fb-page') as HTMLElement | null;
+                            const tab = fbPage?.getAttribute('data-tabs') || '';
+                            const iframes = container.querySelectorAll('iframe');
+                            iframes.forEach((iframe) => {
+                                if (!iframe.getAttribute('title')) {
+                                    const label = tab.includes('events') ? 'Facebook events feed' : 'Facebook timeline';
+                                    iframe.setAttribute('title', label);
+                                }
+                            });
+                        } catch {
+                            // no-op
+                        }
+                    }, 0);
                 }
             } catch (err) {
                 if (stillMounted.current) {

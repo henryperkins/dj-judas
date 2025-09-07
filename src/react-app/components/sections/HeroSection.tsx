@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, MotionValue } from 'framer-motion';
 
 import { LuChevronDown } from 'react-icons/lu';
 import { navigate } from '../../utils/nav';
@@ -7,7 +7,7 @@ import pattern1 from '../../assets/images/pattern1.jpeg';
 import logoImage from '../../assets/images/logo.jpeg';
 
 interface HeroSectionProps {
-  scrollY?: any;
+  scrollY?: MotionValue<number>;
   className?: string;
 }
 
@@ -46,7 +46,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           animate={{ y: 0 }}
           transition={{ delay: 0.4, duration: 0.8 }}
         >
-          Spreading the Gospel Through Music Since 2008 • Gary, Indiana
+          High-energy gospel DJ and vocal ensemble for weddings, reunions, and ministry events.
         </motion.p>
         <motion.div
           className="hero-cta"
@@ -54,9 +54,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           animate={{ y: 0 }}
           transition={{ delay: 0.6, duration: 0.8 }}
         >
-          <a href="#music" className="btn btn-primary">Listen Now</a>
-          <button className="btn btn-secondary" onClick={() => navigate('/book')}>Book Us</button>
-          <button className="btn" onClick={() => navigate('/products')}>Shop</button>
+          <button className="btn btn-primary" onClick={() => navigate('/book')}>Book Us</button>
+          <a href="#media" className="btn btn-secondary">Listen</a>
         </motion.div>
       </div>
       <motion.div

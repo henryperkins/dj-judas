@@ -10,8 +10,13 @@ interface InstagramEmbedProps {
   skeletonHeight?: number;
 }
 
+interface InstagramOEmbed {
+  html: string;
+  author_name?: string;
+  title?: string;
+}
 // Simple in-memory cache to avoid redundant fetches
-const oEmbedCache = new Map<string, any>();
+const oEmbedCache = new Map<string, InstagramOEmbed>();
 
 const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
   url,
@@ -20,7 +25,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
   hideCaptions = false,
   skeletonHeight = 600
 }) => {
-  const [embedData, setEmbedData] = useState<any>(null);
+  const [embedData, setEmbedData] = useState<InstagramOEmbed | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +58,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
 
         if (oEmbedCache.has(key)) {
           if (!cancelled) {
-            setEmbedData(oEmbedCache.get(key));
+            setEmbedData(oEmbedCache.get(key)!);
             setIsLoaded(true);
           }
           return;
@@ -95,13 +100,36 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
     return () => { active = false; };
   }, [isLoaded, embedData]);
 
+  // Accessibility: ensure SDK-inserted iframes have a meaningful title
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const setTitles = () => {
+      try {
+        const iframes = el.querySelectorAll('iframe');
+        iframes.forEach((iframe) => {
+          if (!iframe.getAttribute('title')) {
+            iframe.setAttribute('title', 'Instagram post');
+          }
+        });
+      } catch {
+        // no-op
+      }
+    };
+    // Set immediately and observe future DOM changes
+    setTitles();
+    const mo = new MutationObserver(() => setTitles());
+    mo.observe(el, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [isLoaded, embedData]);
+
   if (error) {
     return (
       <div className="instagram-embed-error">
         <p>{error}</p>
-        <a 
-          href={url} 
-          target="_blank" 
+        <a
+          href={url}
+          target="_blank"
           rel="noopener noreferrer"
           className="text-accent hover:underline"
         >
@@ -132,7 +160,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
           <span>View on Instagram</span>
         </a>
       </div>
-      
+
       <div className={`instagram-embed-container${hasCarousel ? ' has-carousel' : ''}`} ref={containerRef}>
         {!isLoaded && (
           <div className="embed-loading" style={{ height: skeletonHeight }}>
@@ -140,11 +168,11 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
             <p>Loading Instagram post...</p>
           </div>
         )}
-        
+
         {isLoaded && embedData && (
-          <div 
+          <div
             className="instagram-embed-content"
-            dangerouslySetInnerHTML={{ __html: embedData.html }} 
+            dangerouslySetInnerHTML={{ __html: embedData.html }}
           />
         )}
 
@@ -164,7 +192,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
           </div>
         )}
       </div>
-      
+
       {isLoaded && embedData && (
         <div className="embed-metadata">
           <p className="author-name">{embedData.author_name}</p>

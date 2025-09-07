@@ -43,3 +43,87 @@ export async function fetchProducts(limit = 12) {
   return res.json()
 }
 
+export type CartItem = {
+  id: string
+  title?: string
+  thumbnail?: string | null
+  quantity: number
+  unit_price: number
+  variant?: { title?: string | null }
+}
+
+export type CartTotals = {
+  subtotal?: number | null
+  shipping_total?: number | null
+  discount_total?: number | null
+  tax_total?: number | null
+  total?: number | null
+}
+
+export type Cart = {
+  id: string
+  items: CartItem[]
+  region?: { currency_code?: string | null } | null
+  shipping_methods?: Array<{ shipping_option_id?: string | null; shipping_option?: { id: string } | null }>
+} & CartTotals
+
+export async function getCart(id?: string | null): Promise<Cart | null> {
+  if (!MEDUSA_URL) return null
+  const cartId = id || getCartId()
+  if (!cartId) return null
+  const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}`, { headers })
+  if (!res.ok) return null
+  const json = await res.json()
+  return json?.cart ?? null
+}
+
+export function formatAmount(amount?: number | null, currency?: string | null) {
+  if (amount == null) return ''
+  const cur = (currency || 'usd').toUpperCase()
+  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(amount / 100) } catch { return `${(amount/100).toFixed(2)} ${cur}` }
+}
+
+// --- New helpers for full checkout flow ---
+export async function updateLineItem(lineId: string, quantity: number): Promise<boolean> {
+  if (!MEDUSA_URL) return false
+  const cartId = getCartId()
+  if (!cartId) return false
+  const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/line-items/${lineId}`, {
+    method: 'POST', headers, body: JSON.stringify({ quantity })
+  })
+  return res.ok
+}
+
+export async function removeLineItem(lineId: string): Promise<boolean> {
+  if (!MEDUSA_URL) return false
+  const cartId = getCartId()
+  if (!cartId) return false
+  const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/line-items/${lineId}`, {
+    method: 'DELETE', headers
+  })
+  return res.ok
+}
+
+export type ShippingOption = { id: string; name: string; amount?: number | null; price_type?: 'fixed' | 'calculated' }
+
+export async function listShippingOptions(cartId: string): Promise<ShippingOption[]> {
+  if (!MEDUSA_URL) return []
+  // Try new-style endpoint first
+  let res = await fetch(`${MEDUSA_URL}/store/shipping-options/${cartId}`, { headers })
+  if (!res.ok) {
+    const u = new URL(`${MEDUSA_URL}/store/shipping-options`)
+    u.searchParams.set('cart_id', cartId)
+    res = await fetch(u.toString(), { headers })
+  }
+  if (!res.ok) return []
+  const json = await res.json()
+  return json?.shipping_options || json || []
+}
+
+export async function createPaymentSessions(cartId: string): Promise<boolean> {
+  if (!MEDUSA_URL) return false
+  const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/payment-sessions`, {
+    method: 'POST', headers
+  })
+  return res.ok
+}

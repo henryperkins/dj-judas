@@ -12,10 +12,13 @@ type SessionInfo = {
 export default function SuccessPage() {
   const [info, setInfo] = useState<SessionInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const sessionId = params.get('session_id')
+    const oid = params.get('order_id')
+    if (oid) setOrderId(oid)
     if (!sessionId) return
     fetch(`/api/stripe/session?session_id=${encodeURIComponent(sessionId)}`)
       .then(r => r.ok ? r.json() : r.json().catch(() => ({})).then(j => Promise.reject(j.error || 'Failed to load session')))
@@ -46,15 +49,34 @@ export default function SuccessPage() {
         </div>
       )}
 
-      {info && (
-        <div className="card" style={{ padding: '1rem' }}>
-          <p><strong>Status:</strong> {info.payment_status || 'paid'}</p>
-          <p><strong>Total:</strong> {formatAmount(info.amount_total, info.currency)}</p>
-          {info.client_reference_id && <p><strong>Cart:</strong> {info.client_reference_id}</p>}
+      {(info || orderId) && (
+        <div className="cart-summary mt-3">
+          {info && (
+            <div className="cart-summary__row">
+              <span>Status</span>
+              <span className="font-semibold">{info.payment_status || 'Paid'}</span>
+            </div>
+          )}
+          {info?.client_reference_id && (
+            <div className="cart-summary__row">
+              <span>Reference</span>
+              <span className="font-mono text-sm">{info?.client_reference_id}</span>
+            </div>
+          )}
+          {orderId && (
+            <div className="cart-summary__row">
+              <span>Order ID</span>
+              <span className="font-mono text-sm">{orderId}</span>
+            </div>
+          )}
+          <div className="cart-summary__row cart-summary__row--total">
+            <span>Total</span>
+            <span>{info ? formatAmount(info?.amount_total, info?.currency) : ''}</span>
+          </div>
         </div>
       )}
 
-      <div className="cluster" style={{ marginTop: '1.5rem' }}>
+      <div className="cluster gap-2 mt-4">
         <button className="btn btn-ghost" onClick={() => navigate('/')}>Back to home</button>
         <button className="btn btn-primary" onClick={() => navigate('/checkout')}>Shop more</button>
       </div>

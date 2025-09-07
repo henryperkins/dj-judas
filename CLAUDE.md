@@ -1,117 +1,192 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
+
+Last updated: 2025-09-07 (Admin UI, Images, AI, Mobile compact)
 
 ## Project Overview
 
-This is a full-stack React application for DJ Lee & Voices of Judah gospel music ministry, built with React + Vite + Hono + Cloudflare Workers. The project uses a mobile-first design approach and integrates with Spotify and Apple Music APIs.
+- Full-stack React app (Vite + Hono on Cloudflare Workers) for DJ Lee & Voices of Judah.
+- Mobile‑first UI with consolidated CSS in a single master stylesheet.
+- Integrations: Spotify (PKCE), Apple Music dev token, ecommerce (Medusa storefront + optional Stripe Checkout), Medusa Admin (products), Cloudflare Images (uploads), AI (OpenAI or Workers AI) for product copy.
 
-## Common Development Commands
+## Quick Commands
 
-### Development
-```bash
-npm run dev                    # Start development server (http://localhost:5173)
-npm run build                  # Build for production (runs tsc -b && vite build)
-npm run preview               # Preview production build locally
-```
+- Development
+  - `npm run dev` – Start Vite dev server
+  - `npm run preview` – Preview production build
+  - `npm run build` – Type-check and build (SSR worker + client)
 
-### Code Quality
-```bash
-npm run lint                   # Run ESLint
-npm run check                 # Full check: TypeScript + build + deploy dry-run + accessibility
-npm run check:a11y            # Accessibility testing with pa11y
-```
+- Quality
+  - `npm run lint` – ESLint
+  - `npm run check` – TypeScript + build + deploy dry‑run + pa11y
+  - `npm run check:a11y` – pa11y against local preview
 
-### Deployment
-```bash
-npm run deploy               # Deploy to Cloudflare Workers
-npm run cf-typegen          # Generate Cloudflare Worker types
-npx wrangler tail           # Monitor deployed worker logs
-```
-
-### Testing Single Components
-When working with individual components, use Vite's development server with hot module replacement for rapid iteration.
+- Deploy
+  - `npm run deploy` – Deploy worker
+  - `npm run cf-typegen` – Cloudflare types
+  - `npx wrangler tail` – Tail worker logs
 
 ## Architecture
 
-### Directory Structure
-- `src/worker/` - Hono backend server running on Cloudflare Workers
-- `src/react-app/` - React frontend application
-  - `components/` - React components including sections and UI components
-  - `utils/` - Utility functions including platform detection
-  - `styles/` - CSS styles
-  - `assets/` - Static assets
-- `src/components/ui/` - Shared UI components (Radix UI based)
-- `src/lib/` - Shared utility functions
+- `src/worker/` – Hono backend on Workers (OAuth, email, Stripe, oEmbed, events)
+- `src/react-app/` – Frontend
+  - `index.css` – Master consolidated stylesheet (imports Tailwind and all custom CSS)
+  - `components/` – UI + sections
+  - `pages/` – Simple SPA routes (`/checkout`, `/success`, `/book`)
+  - `utils/` – Client utilities (cart, theme, nav)
+- `src/components/ui/` – Radix-based primitives
+- `src/lib/` – Shared utilities
 
-### Key Technologies
-- **Frontend**: React 19, Vite, TailwindCSS 4.1, Framer Motion, Radix UI
-- **Backend**: Hono framework on Cloudflare Workers
-- **APIs**: Spotify OAuth (PKCE), Apple Music (MusicKit)
-- **Styling**: Mobile-first TailwindCSS with custom CSS for animations
-- **TypeScript**: Strict TypeScript configuration with path aliases (`@/*`)
+## Ecommerce Additions (Sept 2025)
 
-### Backend API Structure
-The Hono server (`src/worker/index.ts`) provides:
-- `/api/metrics` - Mock aggregated social metrics
-- `/api/spotify/*` - Spotify OAuth and API integration (login, callback, save, follow)
-- `/api/apple/developer-token` - Apple Music developer token generation
+- Styles: Ecommerce sections 5.10–5.20 merged into `src/react-app/index.css`.
+  - Product grid/cards, checkout layout, form styles, loading/skeletons, alerts, utilities, buttons, mobile/print.
+  - See `docs/ECOMMERCE_CSS_GUIDE.md` for structure and examples.
+- Pages/components
+  - `FeaturedProducts.tsx` – Product grid using `.product-card*` and small buttons.
+  - `CheckoutPage.tsx` – Address form, shipping options, order summary with live Medusa totals.
+  - `SuccessPage.tsx` – Success alert and order summary styling.
+- Client cart utils
+  - `utils/cart.ts`: `ensureCart`, `addLineItem`, `fetchProducts`, `getCart`, `formatAmount`.
 
-### Frontend Architecture
-- **Main App**: Single-page application centered around `EnhancedLandingPageV2`
-- **Lazy Loading**: Heavy components (MusicHub, PhotoGallery, BookingForm) are lazy-loaded
-- **Mobile-First**: Uses `isMobileDevice()` utility for responsive behavior
-- **Sections**: Modular sections (Hero, About, Services, Stats) for organized content
+### Admin Product Management
 
-## Environment Variables
+- Pages (SPA routes)
+  - `/admin/login` – Authenticate against Medusa Admin; JWT stored as HttpOnly cookie.
+  - `/admin` – Admin home.
+  - `/admin/products` – List/search products (admin API).
+  - `/admin/products/new` – Photo‑first creation: upload images, AI suggest title/description, set price, Live/Preview publish, add variants.
+  - `/admin/products/:id` – Edit product fields; manage images and variants.
 
-### Required Secrets (Cloudflare Workers)
-```bash
-wrangler secret put SPOTIFY_CLIENT_ID
-wrangler secret put APPLE_TEAM_ID
-wrangler secret put APPLE_KEY_ID  
-wrangler secret put APPLE_PRIVATE_KEY  # PKCS8 PEM format, escape newlines for CLI
-```
+- Worker admin proxies (`src/worker/index.ts`)
+  - `POST /api/admin/login|logout|session`
+  - `GET /api/admin/products[?q=...]`, `GET /api/admin/products/:id`
+  - `POST /api/admin/products` (create)
+  - `PATCH /api/admin/products/:id` (update)
+  - `POST /api/admin/products/:id/variants` (create variant)
+  - `PATCH /api/admin/variants/:id`, `DELETE /api/admin/variants/:id`
 
-### Client Environment Variables (.env)
-```
-VITE_FACEBOOK_APP_ID=
-VITE_FACEBOOK_PIXEL_ID=
-VITE_SPOTIFY_ARTIST_ID=  # Optional
-```
+### Image Uploads (Cloudflare Images)
 
-## Development Patterns
+- Endpoints (admin‑only)
+  - `POST /api/images/direct-upload` → obtain direct upload URL
+  - `DELETE /api/images/:id` → delete uploaded image by ID (used for unused cleanup)
+- UI
+  - Drag‑and‑drop uploader with per‑file progress bars.
+  - Multi‑image grid, reorder, pick thumbnail, remove; bulk delete of unused uploads.
+  - Uses delivery variants (e.g., `public`, `thumb`, `large`).
 
-### Component Creation
-- Follow existing component patterns in `src/react-app/components/`
-- Use TypeScript interfaces for props
-- Implement mobile-first responsive design
-- Utilize Radix UI components from `src/components/ui/` when possible
+### AI‑Assisted Titles/Descriptions
 
-### Styling Approach
-- Primary: TailwindCSS classes with mobile-first breakpoints
-- Custom CSS: Place in component-specific CSS files or `src/react-app/styles/`
-- Animations: Use Framer Motion for complex animations
-- Mobile-first: Always design for mobile first, then scale up
+- Endpoint (admin‑only): `POST /api/ai/suggest-product { image_url }`
+  - Uses OpenAI `gpt-4o-mini` if `OPENAI_API_KEY` set.
+  - Falls back to Cloudflare Workers AI (`@cf/meta/llama-3.2-11b-vision-instruct`, then `@cf/llava-hf/llava-1.5-7b-hf`) via `[ai]` binding in `wrangler.toml`.
+  - Returns strict JSON `{ title, description }`.
 
-### API Integration
-- Backend API calls go through Hono routes in `src/worker/index.ts`
-- Use proper TypeScript interfaces for request/response types
-- Implement proper error handling and HTTP status codes
-- Session management uses HTTP-only cookies for security
+### Config Needed
 
-### Code Quality Requirements
-- All TypeScript must pass `tsc` compilation
-- ESLint rules must pass (includes React hooks and refresh rules)
-- Accessibility testing with pa11y (threshold: 10 issues max)
-- Build must succeed before deployment
+- Client `.env`
+  - `VITE_MEDUSA_URL=https://your-medusa-store` (required for cart)
+  - `VITE_MEDUSA_PUBLISHABLE_KEY=...` (set if your store requires it)
+  - `VITE_STRIPE_PRICE_ID=price_xxx` (for demo Stripe checkout)
 
-## Path Aliases
-- `@/*` maps to `./src/*` for clean imports
-- Use absolute imports with the `@/` alias rather than relative paths when possible
+- Admin & uploads
+  - Worker: `MEDUSA_URL=https://your-medusa-store` (admin proxy base)
+  - Worker: `CF_IMAGES_ACCOUNT_ID`, `CF_IMAGES_API_TOKEN` (Images:Edit token)
+  - Worker (optional): `CF_IMAGES_VARIANT=public`, `CF_IMAGES_VARIANT_THUMB=thumb`, `CF_IMAGES_VARIANT_LARGE=large`
+  - Client (optional): `VITE_CF_IMAGES_VARIANT=public`, `VITE_CF_IMAGES_VARIANT_THUMB=thumb`, `VITE_CF_IMAGES_VARIANT_LARGE=large`
+  - AI (optional): `OPENAI_API_KEY`; otherwise Workers AI is used (requires `[ai]` binding in `wrangler.toml`).
 
-## Security Notes
-- Never expose Apple private keys or Spotify secrets to client-side code
-- Use PKCE flow for Spotify OAuth (no client secret required)
-- Server-side token minting for Apple Music integration
-- HTTP-only cookies for session management
+- Worker secrets (Wrangler)
+  - `STRIPE_SECRET` – Required to enable `/api/stripe/checkout`
+  - `STRIPE_WEBHOOK_SECRET` – For `/api/stripe/webhook` (optional locally)
+  - `SITE_URL` – Used for success/cancel redirects
+
+### Flows
+
+- Featured → Add to cart → Checkout uses Medusa cart id persisted in `localStorage` (`medusa_cart_id`).
+- Shipping options request tries both `GET /store/shipping-options/:cart_id` and `GET /store/shipping-options?cart_id=...` for compatibility.
+- Totals come from `GET /store/carts/:id` and render in the right sidebar.
+- Optional Stripe handoff: `POST /api/stripe/checkout` returns a redirect URL.
+
+- Admin create/edit product:
+  1) Login at `/admin/login` (Medusa admin credentials) → HttpOnly JWT cookie
+  2) `/admin/products/new` → upload images → optional AI suggest → set price and publish state → create
+  3) `/admin/products/:id` → edit fields; add/reorder/remove images; manage variants
+
+### Next Steps (if you’re continuing ecommerce work)
+
+- Wire quantity controls to Medusa line‑item update/delete endpoints.
+- Display shipping option prices and selection state; recompute totals after select.
+- Persist and show line‑level and order‑level discounts if present.
+
+## Styling Approach
+
+- Single‑file CSS: `src/react-app/index.css` is the source of truth.
+  - Sections are numbered. Ecommerce lives under 5.10–5.20.
+  - Prefer BEM‑ish class naming from the guide (e.g., `.product-card__title`).
+  - Avoid inline styles in components; use utilities and component classes.
+- Tailwind is available (via `@tailwindcss/vite` + `@import "tailwindcss";`), but most styles are plain CSS classes for predictability and bundle control.
+- Accessibility: All interactive elements must have focus-visible states; follow WCAG AA contrast using theme tokens.
+
+### Mobile / Compact Mode
+
+- Global compact class `.admin-compact` applied at app root to reduce paddings and font sizes across buttons and inputs.
+- Admin pages and storefront share the compact sizing for better mobile ergonomics.
+
+## Backend APIs
+
+- Spotify PKCE: `/api/spotify/login|callback|session|save|follow`
+- Apple Music developer token: `/api/apple/developer-token`
+- Email (Resend preferred, SendGrid fallback): `/api/booking`
+- Stripe Checkout (optional): `/api/stripe/checkout`, `/api/stripe/webhook`
+- Instagram oEmbed proxy: `/api/instagram/oembed`
+- Medusa Admin proxies: see “Admin Product Management”.
+- Cloudflare Images: `/api/images/*`; AI suggest: `/api/ai/suggest-product`.
+- Events + ICS feed: `/api/events`, `/events.ics`, `/events/:slug.ics`
+
+## Environment Variables (Full)
+
+- Worker (required for features you use)
+  - `SPOTIFY_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
+  - `IG_OEMBED_TOKEN` (Instagram oEmbed)
+  - `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_TO` or `SENDGRID_*`
+  - `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`
+  - `MEDUSA_URL`
+  - `CF_IMAGES_ACCOUNT_ID`, `CF_IMAGES_API_TOKEN`, `CF_IMAGES_VARIANT*`
+  - `OPENAI_API_KEY` or Workers `[ai]` binding
+
+- Client `.env`
+  - `VITE_FACEBOOK_APP_ID`, `VITE_FACEBOOK_PIXEL_ID` (optional)
+  - `VITE_SPOTIFY_ARTIST_ID` (optional)
+  - `VITE_MEDUSA_URL`, `VITE_MEDUSA_PUBLISHABLE_KEY` (cart)
+  - `VITE_STRIPE_PRICE_ID` (demo checkout)
+  - `VITE_CF_IMAGES_VARIANT*` (optional)
+
+## Code Quality Requirements
+
+- TypeScript must compile with strict settings (`tsc -b`).
+- ESLint must pass.
+- Accessibility baseline enforced via `npm run check:a11y` (pa11y threshold <= 10).
+- The build must succeed before deployment.
+
+## Build & Deploy
+
+- Build locally: `npm run build`
+- Preview locally: `npm run preview`
+- Deploy to Cloudflare Workers: `npm run deploy`
+  - Requires `wrangler` auth (`wrangler login`) and valid `account_id` in `wrangler.toml`.
+  - Ensure all required env vars/secrets are set in your Cloudflare project (KV not used; just plain vars).
+
+## Conventions & Tips
+
+- Use the `@/*` path alias for imports.
+- SPA navigation: internal anchors with `data-nav` are hijacked in `index.html`.
+- When adding CSS, keep specificity low and follow the numbered section layout.
+- Keep components small, typed, mobile‑first, and avoid inline styles.
+
+## Known Notes
+
+- Medusa requires CORS to allow calls from the dev origin; configure your store accordingly.
+- Stripe worker code is bundled; the `stripe` package is installed and ready. If you need to externalize it later, update `vite.config.ts`.

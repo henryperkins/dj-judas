@@ -391,6 +391,7 @@ h3 {
 .text-muted {
   color: hsl(var(--text-muted));
 }
+.text-sm { font-size: 0.875rem; }
 
 /* =================================================================
    4. SHARED PATTERNS & COMPONENTS
@@ -662,6 +663,7 @@ h3 {
 .product-card__image { width: 100%; aspect-ratio: 1; object-fit: cover; background: hsl(var(--muted)); }
 .product-card__content { padding: 1rem; flex: 1; display: flex; flex-direction: column; }
 .product-card__title { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem 0; color: hsl(var(--foreground)); line-height: 1.3; }
+.product-card__title { overflow-wrap: anywhere; }
 .product-card__actions { display: flex; gap: 0.5rem; margin-top: auto; }
 @media (max-width: 480px) { .product-card__actions { flex-direction: column; } .product-card__actions .btn { width: 100%; } }
 
@@ -681,6 +683,7 @@ h3 {
 .form-label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: hsl(var(--foreground)); }
 .form-label--required::after { content: " *"; color: hsl(var(--destructive)); }
 .form-input, .form-select, .form-textarea { width: 100%; padding: 0.75rem 1rem; font-size: 1rem; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) * 0.75); background: hsl(var(--background)); color: hsl(var(--foreground)); transition: all 0.2s ease; }
+.form-input-sm, .form-select-sm, .form-textarea-sm { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
 .form-input:hover, .form-select:hover, .form-textarea:hover { border-color: hsl(var(--muted-foreground)); }
 .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: hsl(var(--ring)); box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2); }
 .dark .form-input, .dark .form-select, .dark .form-textarea { background: hsl(var(--card)); border-color: hsl(var(--border)); }
@@ -690,7 +693,31 @@ h3 {
 .form-helper { display: block; font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem; }
 .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 @media (max-width: 640px) { .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .form-grid-4 { grid-template-columns: 1fr; } }
+
+/* --- 5.13 Cart Styles --- */
+.cart-item { display: flex; gap: 1rem; padding: 1rem; border-bottom: 1px solid hsl(var(--border)); }
+.cart-item:last-child { border-bottom: none; }
+.cart-item__image { width: 80px; height: 80px; object-fit: cover; border-radius: calc(var(--radius) * 0.5); background: hsl(var(--muted)); }
+.cart-item__details { flex: 1; }
+.cart-item__name { font-weight: 500; margin-bottom: 0.25rem; }
+.cart-item__name { overflow-wrap: anywhere; }
+.cart-item__variant { font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
+.cart-item__actions { display: flex; align-items: center; gap: 0.5rem; }
+
+/* Quantity Selector */
+.quantity-selector { display: flex; align-items: center; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) * 0.5); }
+.quantity-selector__btn { padding: 0.25rem 0.75rem; background: transparent; border: none; cursor: pointer; color: hsl(var(--foreground)); transition: background 0.2s; }
+.quantity-selector__btn:hover:not(:disabled) { background: hsl(var(--muted)); }
+.quantity-selector__btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.quantity-selector__value { padding: 0.25rem 0.75rem; min-width: 3rem; text-align: center; border-left: 1px solid hsl(var(--border)); border-right: 1px solid hsl(var(--border)); }
+
+/* Cart Summary */
+.cart-summary { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); padding: 1.5rem; }
+.cart-summary__row { display: flex; justify-content: space-between; padding: 0.5rem 0; }
+.cart-summary__row--total { border-top: 2px solid hsl(var(--border)); margin-top: 0.5rem; padding-top: 1rem; font-size: 1.25rem; font-weight: 700; }
 
 /* --- 5.14 Loading States --- */
 .loading-spinner { display: inline-block; width: 1.25rem; height: 1.25rem; border: 2px solid hsl(var(--muted)); border-radius: 50%; border-top-color: hsl(var(--accent)); animation: spin 0.8s linear infinite; }
@@ -715,6 +742,68 @@ h3 {
 .mb-3 { margin-bottom: 1.5rem; }
 .ml-2 { margin-left: 1rem; }
 .w-full { width: 100%; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+.gap-2 { gap: 1rem; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+/* --- 5.17 Enhanced Button Styles (additions) --- */
+.btn-outline { background: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
+.btn-outline:hover:not(:disabled) { background: hsl(var(--muted)); border-color: hsl(var(--muted-foreground)); }
+.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+
+/* Admin compact layout for small screens */
+.admin-compact .section-title { font-size: 1.25rem; }
+.admin-compact .checkout-section__title { font-size: 1.1rem; }
+.admin-compact .form-input, .admin-compact .form-select, .admin-compact .form-textarea { padding: 0.5rem 0.75rem; font-size: 0.95rem; }
+.admin-compact .btn { padding: 0.5rem 0.9rem; font-size: 0.9rem; }
+.btn-lg { padding: 1rem 2rem; font-size: 1.125rem; }
+.btn-icon { padding: 0.75rem; width: 2.75rem; height: 2.75rem; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+.btn-loading { position: relative; color: transparent; }
+.btn-loading::after { content: ""; position: absolute; width: 1rem; height: 1rem; top: 50%; left: 50%; margin-left: -0.5rem; margin-top: -0.5rem; border: 2px solid hsl(var(--accent-foreground, 0 0% 100%)); border-radius: 50%; border-top-color: transparent; animation: spin 0.6s linear infinite; }
+
+/* --- 5.18 Accessibility Enhancements (additions) --- */
+@media (prefers-contrast: high) {
+  .btn,
+  .form-input,
+  .form-select,
+  .form-textarea,
+  .card,
+  .cart-summary { border-width: 2px; }
+  .btn-primary { border: 2px solid currentColor; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* --- 5.19 Mobile-First Checkout Improvements --- */
+@media (max-width: 768px) {
+  .checkout-container { padding: 1rem var(--container-padding); }
+  .checkout-section { border-radius: 0; margin-left: calc(-1 * var(--container-padding)); margin-right: calc(-1 * var(--container-padding)); border-left: none; border-right: none; padding: 1rem var(--container-padding); }
+  .checkout-section .btn { width: 100%; }
+  .payment-methods { display: flex; flex-direction: column; gap: 1rem; }
+  .checkout-footer { position: fixed; bottom: 0; left: 0; right: 0; background: hsl(var(--background)); border-top: 2px solid hsl(var(--accent)); padding: 1rem var(--container-padding); box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1); z-index: 40; }
+  body.has-checkout-footer { padding-bottom: 5rem; }
+  .form-input, .form-select { min-height: 44px; font-size: 16px; padding: 0.5rem 0.75rem; }
+  .form-field { margin-bottom: 0.75rem; }
+  .form-grid-2 { gap: 0.75rem; }
+  .cart-item { position: relative; padding-right: 2rem; }
+  .cart-item__remove { position: absolute; top: 0.5rem; right: 0.5rem; }
+}
+
+/* --- 5.20 Print Styles --- */
+@media print {
+  .checkout-footer,
+  .btn-remove,
+  .quantity-selector,
+  .alert--info { display: none !important; }
+  .checkout-section { break-inside: avoid; }
+  .cart-summary { border: 2px solid #000; padding: 1rem; }
+}
 
 /* Platform badge styling for consistent look across embeds */
 .platform-badge {

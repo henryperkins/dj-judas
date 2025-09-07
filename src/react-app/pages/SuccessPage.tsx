@@ -29,13 +29,25 @@ export default function SuccessPage() {
   }
 
   return (
-    <div className="container" style={{ padding: '2rem var(--container-padding) 3rem' }}>
-      <h1 className="section-title">Thank you!</h1>
-      <p>Your order was received.</p>
+    <div className="container section-py">
+      <div className="alert alert--success">
+        <svg className="alert__icon" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        </svg>
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Thank you for your order!</h1>
+          <p className="text-muted">Your order was received and is being processed.</p>
+        </div>
+      </div>
 
-      {error && <p className="error-message" role="alert">{error}</p>}
+      {error && (
+        <div className="alert alert--error" role="alert">
+          <p>{error}</p>
+        </div>
+      )}
+
       {info && (
-        <div className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
+        <div className="card" style={{ padding: '1rem' }}>
           <p><strong>Status:</strong> {info.payment_status || 'paid'}</p>
           <p><strong>Total:</strong> {formatAmount(info.amount_total, info.currency)}</p>
           {info.client_reference_id && <p><strong>Cart:</strong> {info.client_reference_id}</p>}
@@ -43,10 +55,9 @@ export default function SuccessPage() {
       )}
 
       <div className="cluster" style={{ marginTop: '1.5rem' }}>
-        <button className="btn" onClick={() => navigate('/')}>Back to home</button>
-        <button className="btn" onClick={() => navigate('/checkout')}>Shop more</button>
+        <button className="btn btn-ghost" onClick={() => navigate('/')}>Back to home</button>
+        <button className="btn btn-primary" onClick={() => navigate('/checkout')}>Shop more</button>
       </div>
     </div>
   )
 }
-

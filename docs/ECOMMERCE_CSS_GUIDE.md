@@ -12,6 +12,8 @@ This guide provides a comprehensive CSS implementation for the ecommerce compone
 4. [Component Refactoring Examples](#component-refactoring-examples)
 5. [Best Practices](#best-practices)
 6. [Performance Optimizations](#performance-optimizations)
+7. [Implementation Checklist](#implementation-checklist)
+8. [Summary](#summary)
 
 ## CSS Organization Structure
 
@@ -436,6 +438,7 @@ Add these sections to your `index.css` file after section 5 in your current stru
   position: absolute;
   inset: 0;
   background: hsl(var(--background) / 0.8);
+  -webkit-backdrop-filter: blur(2px); /* Safari */
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -558,6 +561,14 @@ Add these sections to your `index.css` file after section 5 in your current stru
 .text-xl { font-size: 1.25rem; }
 .text-2xl { font-size: 1.5rem; }
 
+/* Section Title */
+.section-title {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+}
+
 .font-normal { font-weight: 400; }
 .font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
@@ -586,6 +597,10 @@ Add these sections to your `index.css` file after section 5 in your current stru
 .gap-2 { gap: 1rem; }
 .gap-3 { gap: 1.5rem; }
 
+/* Stack utility (vertical rhythm) */
+.stack { display: flex; flex-direction: column; }
+.stack > * + * { margin-top: var(--stack-gap, 0.75rem); }
+
 /* Width Utilities */
 .w-full { width: 100%; }
 .w-auto { width: auto; }
@@ -600,12 +615,46 @@ Add these sections to your `index.css` file after section 5 in your current stru
 .shadow { box-shadow: var(--shadow-1); }
 .shadow-lg { box-shadow: var(--shadow-2); }
 .shadow-none { box-shadow: none; }
+
+/* Margin axis/side helpers (used in examples) */
+.ml-1 { margin-left: 0.5rem; }
+.ml-2 { margin-left: 1rem; }
+.mr-1 { margin-right: 0.5rem; }
+.mr-2 { margin-right: 1rem; }
+.mx-1 { margin-left: 0.5rem; margin-right: 0.5rem; }
+.mx-2 { margin-left: 1rem; margin-right: 1rem; }
 ```
 
 ### 5.17 Enhanced Button Styles
 
 ```css
 /* --- 5.17 Enhanced Button Styles --- */
+
+/* Base button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  text-decoration: none;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:focus-visible {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}
 
 .btn-primary {
   background: hsl(var(--accent));
@@ -632,6 +681,17 @@ Add these sections to your `index.css` file after section 5 in your current stru
 .btn-outline:hover:not(:disabled) {
   background: hsl(var(--muted));
   border-color: hsl(var(--muted-foreground));
+}
+
+/* Ghost (minimal) */
+.btn-ghost {
+  background: transparent;
+  color: hsl(var(--foreground));
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: hsl(var(--muted));
 }
 
 .btn-sm {
@@ -676,6 +736,20 @@ Add these sections to your `index.css` file after section 5 in your current stru
   animation: spin 0.6s linear infinite;
 }
 ```
+
+## Implementation Guide
+
+Follow these steps to integrate the ecommerce styles into your project:
+
+1. Add sections 5.10–5.20 to your `index.css` after your existing section 5 header noted in CSS Organization Structure.
+2. Ensure CSS variables for theme colors (e.g., `--accent`, `--card`, `--border`, `--foreground`) exist in your global theme. The button and alert variants rely on them.
+3. Replace inline styles in components with the provided classes. See Component Refactoring Examples for `FeaturedProducts.tsx`, `CheckoutPage.tsx`, and `SuccessPage.tsx`.
+4. Verify responsive behavior at 480px, 640px, 768px, 968px, and desktop widths. Adjust breakpoints to match your design system if different.
+5. Test dark mode by toggling a `.dark` class on the `html` or `body` element. Inputs and hover states have dark-mode variants.
+6. Lint CSS with Stylelint and remove unused utilities with PurgeCSS in production builds.
+7. Mark above-the-fold rules with the `@critical` comment markers if you inline critical CSS in your HTML head.
+
+Tip: If you do not use utility classes broadly, keep only the ones referenced in your components (`.stack`, `.ml-2`, etc.) to minimize bundle size.
 
 ### 5.18 Accessibility Enhancements
 

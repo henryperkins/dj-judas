@@ -26,6 +26,12 @@ interface Env {
   STRIPE_SECRET?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   SITE_URL?: string;
+  MEDUSA_URL?: string; // Base URL to Medusa backend for admin proxy
+  CF_IMAGES_ACCOUNT_ID?: string;
+  CF_IMAGES_API_TOKEN?: string;
+  CF_IMAGES_VARIANT?: string; // e.g., 'public'
+  OPENAI_API_KEY?: string;
+  AI?: any; // Workers AI binding
 }
 const app = new Hono<{ Bindings: Env }>();
 
@@ -212,6 +218,256 @@ app.post('/api/spotify/follow', async (c) => {
 });
 
 export default app;
+
+// --- Medusa Admin proxy (login + create products) ---
+function getAdminTokenFromCookie(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const m = cookieHeader.match(/medusa_admin_jwt=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function getMedusaUrl(c: any): string | null {
+  const base = c.env.MEDUSA_URL;
+  if (!base || !/^https?:\/\//.test(base)) return null;
+  return base.replace(/\/$/, '');
+}
+
+app.post('/api/admin/login', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured', message: 'MEDUSA_URL not set' }, 501);
+  try {
+    const body = await c.req.json<{ email: string; password: string }>();
+    const res = await fetch(`${MEDUSA}/admin/auth`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: body.email, password: body.password })
+    });
+    if (!res.ok) {
+      return c.json({ error: 'invalid_credentials', status: res.status }, 401);
+    }
+    const json = await res.json() as any;
+    const token: string | undefined = json?.token || json?.access_token || json?.jwt || json?.data?.token;
+    if (!token) return c.json({ error: 'no_token_in_response' }, 500);
+    // HttpOnly cookie (avoid Secure in http local dev)
+    const isHttps = new URL(c.req.url).protocol === 'https:';
+    const secure = isHttps ? ' Secure;' : ' ';
+    c.header('Set-Cookie', `medusa_admin_jwt=${encodeURIComponent(token)}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${60 * 60 * 6}`);
+    return c.json({ ok: true });
+  } catch {
+    return c.json({ error: 'bad_request' }, 400);
+  }
+});
+
+app.post('/api/admin/logout', (c) => {
+  const isHttps = new URL(c.req.url).protocol === 'https:';
+  const secure = isHttps ? ' Secure;' : ' ';
+  c.header('Set-Cookie', `medusa_admin_jwt=; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=0`);
+  return c.json({ ok: true });
+});
+
+app.get('/api/admin/session', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ authenticated: false, reason: 'not_configured' }, 200);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ authenticated: false }, 200);
+  // Try a lightweight call to verify token
+  try {
+    const res = await fetch(`${MEDUSA}/admin/products?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } });
+    return c.json({ authenticated: res.ok });
+  } catch {
+    return c.json({ authenticated: false });
+  }
+});
+
+// Proxy create product (body forwarded as-is)
+app.post('/api/admin/products', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  try {
+    const json = await c.req.json();
+    const upstream = await fetch(`${MEDUSA}/admin/products`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify(json)
+    });
+    const text = await upstream.text();
+    return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+  } catch (e) {
+    return c.json({ error: 'bad_request' }, 400);
+  }
+});
+
+// List products (admin)
+app.get('/api/admin/products', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const url = new URL(`${MEDUSA}/admin/products`);
+  const reqUrl = new URL(c.req.url);
+  reqUrl.searchParams.forEach((v, k) => url.searchParams.set(k, v));
+  const upstream = await fetch(url.toString(), { headers: { 'Authorization': `Bearer ${token}` } });
+  const text = await upstream.text();
+  return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+});
+
+// Get product
+app.get('/api/admin/products/:id', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const id = c.req.param('id');
+  const upstream = await fetch(`${MEDUSA}/admin/products/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+  const text = await upstream.text();
+  return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+});
+
+// Update product
+app.patch('/api/admin/products/:id', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const id = c.req.param('id');
+  const body = await c.req.text();
+  const upstream = await fetch(`${MEDUSA}/admin/products/${id}`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${token}`, 'content-type': 'application/json' }, body });
+  const text = await upstream.text();
+  return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+});
+
+// Create variant
+app.post('/api/admin/products/:id/variants', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const id = c.req.param('id');
+  const body = await c.req.text();
+  const upstream = await fetch(`${MEDUSA}/admin/products/${id}/variants`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'content-type': 'application/json' }, body });
+  const text = await upstream.text();
+  return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+});
+
+// Update variant (Medusa often uses POST/PATCH on /admin/variants/:id)
+app.patch('/api/admin/variants/:id', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const id = c.req.param('id');
+  const body = await c.req.text();
+  const upstream = await fetch(`${MEDUSA}/admin/variants/${id}`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${token}`, 'content-type': 'application/json' }, body });
+  const text = await upstream.text();
+  return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+});
+
+// Delete variant
+app.delete('/api/admin/variants/:id', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const id = c.req.param('id');
+  const upstream = await fetch(`${MEDUSA}/admin/variants/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+  const text = await upstream.text();
+  return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
+});
+
+// --- Cloudflare Images: Direct Upload (admin only) ---
+app.post('/api/images/direct-upload', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const accountId = c.env.CF_IMAGES_ACCOUNT_ID;
+  const apiToken = c.env.CF_IMAGES_API_TOKEN;
+  if (!accountId || !apiToken) return c.json({ error: 'not_configured' }, 501);
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v2/direct_upload`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  const text = await res.text();
+  return new Response(text, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+});
+
+// Delete an image by id
+app.delete('/api/images/:id', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const accountId = c.env.CF_IMAGES_ACCOUNT_ID;
+  const apiToken = c.env.CF_IMAGES_API_TOKEN;
+  if (!accountId || !apiToken) return c.json({ error: 'not_configured' }, 501);
+  const id = c.req.param('id');
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  const text = await res.text();
+  return new Response(text, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+});
+
+// --- AI: Suggest product title/description from image (admin only) ---
+app.post('/api/ai/suggest-product', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+  const key = c.env.OPENAI_API_KEY;
+  try {
+    const { image_url, prompt } = await c.req.json<{ image_url: string; prompt?: string }>();
+    if (!image_url) return c.json({ error: 'missing_image' }, 400);
+    const system = 'You generate concise, compelling e-commerce titles and descriptions from product photos. Keep titles under 70 characters; descriptions 2–3 sentences. Return strict JSON with keys title, description.'
+    const userPrompt = prompt || 'Create a product title and description for this image.'
+
+    // Prefer OpenAI if configured
+    if (key) {
+      const payload = {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: [
+            { type: 'text', text: userPrompt },
+            { type: 'image_url', image_url: { url: image_url } }
+          ]}
+        ],
+        response_format: { type: 'json_object' }
+      } as any;
+      const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!upstream.ok) {
+        const t = await upstream.text();
+        return c.json({ error: 'upstream_error', status: upstream.status, body: t }, 502);
+      }
+      const json = await upstream.json() as any;
+      const content = json?.choices?.[0]?.message?.content || '{}';
+      let parsed: any = {};
+      try { parsed = JSON.parse(content) } catch { parsed = { title: content?.slice?.(0, 70) || '', description: content || '' } }
+      return c.json({ title: parsed.title || '', description: parsed.description || '' });
+    }
+
+    // Workers AI fallback
+    if (!c.env.AI) return c.json({ error: 'not_configured', provider: 'workers_ai' }, 501);
+    const imgRes = await fetch(image_url);
+    if (!imgRes.ok) return c.json({ error: 'image_fetch_failed' }, 400);
+    const buf = await imgRes.arrayBuffer();
+    const image = new Uint8Array(buf);
+    const models = ['@cf/meta/llama-3.2-11b-vision-instruct', '@cf/llava-hf/llava-1.5-7b-hf'];
+    for (const model of models) {
+      try {
+        const out: any = await c.env.AI.run(model, { prompt: `${system}\n\n${userPrompt}\nRespond with JSON: {"title":"...","description":"..."}.`, image: [image] });
+        const text = out?.output || out?.response || out?.text || JSON.stringify(out || {});
+        let parsed: any = {};
+        try { parsed = JSON.parse(typeof text === 'string' ? text : JSON.stringify(text)) } catch { parsed = { title: String(text).slice(0,70), description: String(text) } }
+        return c.json({ title: parsed.title || '', description: parsed.description || '' });
+      } catch (e) { /* try next model */ }
+    }
+    return c.json({ error: 'ai_failed' }, 500);
+  } catch (e) {
+    return c.json({ error: 'bad_request' }, 400);
+  }
+});
 
 // --- Booking endpoint ---
 // Basic in-memory rate limit per IP (best-effort, ephemeral)

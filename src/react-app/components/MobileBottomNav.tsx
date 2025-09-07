@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LuHouse, LuMusic, LuCalendar, LuShare2, LuTicket } from 'react-icons/lu';
+import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart } from 'react-icons/lu';
 import { isMobileDevice } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
 
@@ -42,16 +42,16 @@ const defaultNavItems: NavItem[] = [
     href: '#events'
   },
   {
+    id: 'shop',
+    icon: LuShoppingCart,
+    label: 'Shop',
+    action: () => navigate('/products')
+  },
+  {
     id: 'book',
     icon: LuTicket,
     label: 'Book',
     action: () => navigate('/book')
-  },
-  {
-    id: 'share',
-    icon: LuShare2,
-    label: 'Share',
-    action: () => {} // Will trigger share functionality
   }
 ];
 
@@ -66,7 +66,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
 
   const navItems = customItems || defaultNavItems;
@@ -141,10 +140,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       return;
     }
 
-    if (item.id === 'share') {
-      handleShare();
-      return;
-    }
 
     setCurrentActive(item.id);
 
@@ -163,31 +158,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     }
   };
 
-  const handleShare = async () => {
-    const shareData = {
-      title: 'DJ Lee & Voices of Judah',
-      text: 'Check out DJ Lee & Voices of Judah - Gospel music ministry',
-      url: window.location.href
-    };
-
-    // Check if Web Share API is available
-    if (navigator.share && isMobile) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.log('Share cancelled or failed:', err);
-      }
-    } else {
-      // Fallback: Show share menu
-      setShareMenuOpen(true);
-      setTimeout(() => setShareMenuOpen(false), 3000);
-
-      // Copy to clipboard as fallback
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(window.location.href);
-      }
-    }
-  };
 
   // Roving tabindex + arrow key navigation
   const onKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
@@ -286,21 +256,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Share Menu Popup */}
-      <AnimatePresence>
-        {shareMenuOpen && (
-          <motion.div
-            className="share-popup"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            role="status"
-            aria-live="polite"
-          >
-            <span>Link copied to clipboard!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 };

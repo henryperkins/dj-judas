@@ -33,8 +33,8 @@ export default function FeaturedProducts() {
             <div className="product-card__content">
               <h3 className="product-card__title">{p.title}</h3>
               <div className="product-card__actions">
-                <button className="btn btn-ghost" onClick={() => navigate('/checkout')}>Details</button>
-                <button className="btn btn-primary" onClick={async () => {
+                <button className="btn btn-outline btn-sm" onClick={() => navigate('/products')}>View All</button>
+                <button className="btn btn-primary btn-sm" onClick={async () => {
                   const v = p.variants?.[0]?.id
                   if (v) {
                     const ok = await addLineItem(v, 1)

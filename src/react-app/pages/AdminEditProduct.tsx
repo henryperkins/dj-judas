@@ -44,7 +44,13 @@ export default function AdminEditProduct(props: { id: string }) {
       if (!url) throw new Error('No upload URL')
       setUploads(prev => [...prev, { name: file.name, progress: 0, status: 'uploading' }])
       const fd = new FormData(); fd.append('file', file)
-      const up: any = await new Promise((resolve, reject) => {
+      interface UploadResult {
+        result?: {
+          id?: string;
+          variants?: string[];
+        };
+      }
+      const up: UploadResult = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
         xhr.upload.onprogress = (e) => { if (e.lengthComputable) setUploads(prev => prev.map(u => u.name === file.name ? { ...u, progress: Math.round((e.loaded/e.total)*100) } : u)) }
@@ -119,7 +125,7 @@ export default function AdminEditProduct(props: { id: string }) {
         </div>
         <div className="form-field">
           <label className="form-label">Status</label>
-          <select className="form-input form-input-sm" value={p.status || 'draft'} onChange={e => setP({ ...p, status: e.target.value as any })}>
+          <select className="form-input form-input-sm" value={p.status || 'draft'} onChange={e => setP({ ...p, status: e.target.value as 'draft' | 'published' })}>
             <option value="draft">Draft</option>
             <option value="published">Published</option>
           </select>
@@ -148,11 +154,11 @@ export default function AdminEditProduct(props: { id: string }) {
                   </div>
                   <div className="form-field">
                     <label className="form-label">Inventory</label>
-                    <input className="form-input form-input-sm" inputMode="numeric" value={(v.inventory_quantity ?? '') as any} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, inventory_quantity: parseInt(e.target.value||'0', 10) }: x) })} />
+                    <input className="form-input form-input-sm" inputMode="numeric" value={String(v.inventory_quantity ?? '')} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, inventory_quantity: parseInt(e.target.value||'0', 10) }: x) })} />
                   </div>
                   <div className="form-field">
                     <label className="form-label">Price (USD cents)</label>
-                    <input className="form-input form-input-sm" inputMode="numeric" value={(v.prices?.[0]?.amount ?? 0) as any} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, prices: [{ currency_code: 'usd', amount: parseInt(e.target.value||'0', 10) }] }: x) })} />
+                    <input className="form-input form-input-sm" inputMode="numeric" value={String(v.prices?.[0]?.amount ?? 0)} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, prices: [{ currency_code: 'usd', amount: parseInt(e.target.value||'0', 10) }] }: x) })} />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -187,10 +193,10 @@ export default function AdminEditProduct(props: { id: string }) {
               <div className="flex gap-2 mt-2">
                 <button className="btn btn-outline btn-sm" onClick={() => setP(cur => cur ? { ...cur, thumbnail: url } : cur)}>Set thumbnail</button>
                 <button className="btn btn-outline btn-sm" disabled={idx===0} onClick={() => setP(cur => {
-                  if (!cur) return cur; const imgs = [...(cur.images || [])]; const t = imgs[idx]; imgs[idx] = imgs[idx-1]; imgs[idx-1] = t; return { ...cur, images: imgs } as any
+                  if (!cur) return cur; const imgs = [...(cur.images || [])]; const t = imgs[idx]; imgs[idx] = imgs[idx-1]; imgs[idx-1] = t; return { ...cur, images: imgs }
                 })}>Up</button>
                 <button className="btn btn-outline btn-sm" disabled={idx===(p.images?.length||1)-1} onClick={() => setP(cur => {
-                  if (!cur) return cur; const imgs = [...(cur.images || [])]; const t = imgs[idx]; imgs[idx] = imgs[idx+1]; imgs[idx+1] = t; return { ...cur, images: imgs } as any
+                  if (!cur) return cur; const imgs = [...(cur.images || [])]; const t = imgs[idx]; imgs[idx] = imgs[idx+1]; imgs[idx+1] = t; return { ...cur, images: imgs }
                 })}>Down</button>
                 <button className="btn btn-outline btn-sm" onClick={() => setP(cur => cur ? { ...cur, images: (cur.images || []).filter((_, i) => i !== idx) } : cur)}>Remove</button>
               </div>
@@ -213,7 +219,7 @@ export default function AdminEditProduct(props: { id: string }) {
             </div>
             <div className="flex gap-2 mt-2">
               <button className="btn btn-outline" onClick={async () => {
-                for (const img of newImages) { if (img.id) { try { await fetch(`/api/images/${img.id}`, { method: 'DELETE' }) } catch {} } }
+                for (const img of newImages) { if (img.id) { try { await fetch(`/api/images/${img.id}`, { method: 'DELETE' }) } catch { /* ignore */ } } }
                 setNewImages([])
               }}>Delete all unused</button>
             </div>

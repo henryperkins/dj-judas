@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
-import { addLineItem, ensureCart, fetchProducts } from '../utils/cart'
+import { addLineItem, ensureCart, fetchProducts, type Product } from '../utils/cart-sdk'
 import { navigate } from '../utils/nav'
-
-type Product = {
-  id: string
-  title: string
-  thumbnail?: string
-  variants?: { id: string }[]
-}
 
 export default function FeaturedProducts() {
   const [items, setItems] = useState<Product[]>([])

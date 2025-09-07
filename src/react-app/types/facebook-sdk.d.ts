@@ -14,14 +14,14 @@ declare global {
         autoLogAppEvents?: boolean;
       }) => void;
       AppEvents?: { logPageView: () => void };
-      Event?: { subscribe: (event: string, callback: (response: any) => void) => void };
+      Event?: { subscribe: (event: string, callback: (response: unknown) => void) => void };
       XFBML?: { parse: (element?: HTMLElement) => void };
       ui?: (config: Record<string, unknown>, callback: (response: unknown) => void) => void;
     };
 
     // Meta Pixel
     fbq?: (...args: unknown[]) => void;
-    _fbq?: any;
+    _fbq?: unknown;
 
     // Google Analytics gtag
     gtag?: (...args: unknown[]) => void;

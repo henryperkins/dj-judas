@@ -47,11 +47,11 @@ export default function EventGrid() {
           setUpcoming(upcoming);
           setPast(past);
           // Helpful for admins: signal that fallback path was used
-          if (typeof window !== 'undefined' && (window as any).console) {
+          if (typeof window !== 'undefined' && window.console) {
             console.warn('[events] Using static fallback from /content/events.json');
           }
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) setError('Failed to load events');
       } finally {
         if (!cancelled) setLoading(false);

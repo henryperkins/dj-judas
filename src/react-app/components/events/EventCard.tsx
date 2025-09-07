@@ -112,7 +112,7 @@ export default function EventCard({ ev }: { ev: EventItem }) {
 
       {/* Primary action */}
       <div style={{ marginTop: 8 }}>
-        <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel as any} className="btn btn-secondary" aria-label={primaryCalLabel}>
+        <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel as React.HTMLAttributeAnchorTarget} className="btn btn-secondary" aria-label={primaryCalLabel}>
           <LuCalendarPlus size={16} /> {primaryCalLabel}
         </a>
       </div>

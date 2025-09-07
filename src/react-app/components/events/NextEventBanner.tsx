@@ -53,13 +53,17 @@ export default function NextEventBanner() {
           const next = firstUpcoming(data.upcoming || []);
           if (!cancelled && next) return setEvent(next);
         }
-      } catch {}
+      } catch {
+        // Ignore API errors and try static fallback
+      }
       try {
         const staticRes = await fetch('/content/events.json');
         if (!staticRes.ok) return;
         const items: EventItem[] = await staticRes.json();
         if (!cancelled) setEvent(firstUpcoming(items));
-      } catch {}
+      } catch {
+        // Ignore static fetch errors
+      }
     };
     load();
     return () => { cancelled = true; };

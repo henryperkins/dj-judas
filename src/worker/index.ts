@@ -31,7 +31,9 @@ interface Env {
   CF_IMAGES_API_TOKEN?: string;
   CF_IMAGES_VARIANT?: string; // e.g., 'public'
   OPENAI_API_KEY?: string;
-  AI?: any; // Workers AI binding
+  AI?: {
+    run: (model: string, options: { prompt: string; image?: Uint8Array[] }) => Promise<{ output?: string; response?: string; text?: string }>;
+  }; // Workers AI binding
 }
 const app = new Hono<{ Bindings: Env }>();
 
@@ -226,7 +228,7 @@ function getAdminTokenFromCookie(cookieHeader: string | null): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-function getMedusaUrl(c: any): string | null {
+function getMedusaUrl(c: { env: Env }): string | null {
   const base = c.env.MEDUSA_URL;
   if (!base || !/^https?:\/\//.test(base)) return null;
   return base.replace(/\/$/, '');
@@ -245,7 +247,13 @@ app.post('/api/admin/login', async (c) => {
     if (!res.ok) {
       return c.json({ error: 'invalid_credentials', status: res.status }, 401);
     }
-    const json = await res.json() as any;
+    interface MedusaAuthResponse {
+      token?: string;
+      access_token?: string;
+      jwt?: string;
+      data?: { token?: string };
+    }
+    const json = await res.json() as MedusaAuthResponse;
     const token: string | undefined = json?.token || json?.access_token || json?.jwt || json?.data?.token;
     if (!token) return c.json({ error: 'no_token_in_response' }, 500);
     // HttpOnly cookie (avoid Secure in http local dev)
@@ -294,7 +302,7 @@ app.post('/api/admin/products', async (c) => {
     });
     const text = await upstream.text();
     return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
-  } catch (e) {
+  } catch {
     return c.json({ error: 'bad_request' }, 400);
   }
 });
@@ -430,7 +438,7 @@ app.post('/api/ai/suggest-product', async (c) => {
           ]}
         ],
         response_format: { type: 'json_object' }
-      } as any;
+      };
       const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -440,9 +448,16 @@ app.post('/api/ai/suggest-product', async (c) => {
         const t = await upstream.text();
         return c.json({ error: 'upstream_error', status: upstream.status, body: t }, 502);
       }
-      const json = await upstream.json() as any;
+      interface OpenAIResponse {
+        choices?: Array<{ message?: { content?: string } }>;
+      }
+      const json = await upstream.json() as OpenAIResponse;
       const content = json?.choices?.[0]?.message?.content || '{}';
-      let parsed: any = {};
+      interface ParsedContent {
+        title?: string;
+        description?: string;
+      }
+      let parsed: ParsedContent = {};
       try { parsed = JSON.parse(content) } catch { parsed = { title: content?.slice?.(0, 70) || '', description: content || '' } }
       return c.json({ title: parsed.title || '', description: parsed.description || '' });
     }
@@ -456,15 +471,19 @@ app.post('/api/ai/suggest-product', async (c) => {
     const models = ['@cf/meta/llama-3.2-11b-vision-instruct', '@cf/llava-hf/llava-1.5-7b-hf'];
     for (const model of models) {
       try {
-        const out: any = await c.env.AI.run(model, { prompt: `${system}\n\n${userPrompt}\nRespond with JSON: {"title":"...","description":"..."}.`, image: [image] });
+        const out = await c.env.AI!.run(model, { prompt: `${system}\n\n${userPrompt}\nRespond with JSON: {"title":"...","description":"..."}.`, image: [image] });
         const text = out?.output || out?.response || out?.text || JSON.stringify(out || {});
-        let parsed: any = {};
+        interface ParsedAI {
+          title?: string;
+          description?: string;
+        }
+        let parsed: ParsedAI = {};
         try { parsed = JSON.parse(typeof text === 'string' ? text : JSON.stringify(text)) } catch { parsed = { title: String(text).slice(0,70), description: String(text) } }
         return c.json({ title: parsed.title || '', description: parsed.description || '' });
-      } catch (e) { /* try next model */ }
+      } catch { /* try next model */ }
     }
     return c.json({ error: 'ai_failed' }, 500);
-  } catch (e) {
+  } catch {
     return c.json({ error: 'bad_request' }, 400);
   }
 });
@@ -604,7 +623,7 @@ app.post('/api/booking', async (c) => {
 
     // If no provider configured, instruct client to fallback
     return c.json({ ok: false, error: 'no_email_provider' }, 501);
-  } catch (e) {
+  } catch {
     return c.json({ error: 'invalid_request' }, 400);
   }
 });
@@ -652,7 +671,7 @@ app.post('/api/stripe/webhook', async (c) => {
       undefined,
       Stripe.createSubtleCryptoProvider()
     );
-  } catch (err) {
+  } catch {
     return c.json({ error: 'invalid_signature' }, 400);
   }
   if (event.type === 'checkout.session.completed') {
@@ -754,7 +773,7 @@ type EventItem = {
 };
 
 let eventsCache: { data: EventItem[]; exp: number } | null = null;
-async function loadEvents(c: any): Promise<EventItem[]> {
+async function loadEvents(c: { env: Env; req: { url: string } }): Promise<EventItem[]> {
   const now = Date.now();
   if (eventsCache && eventsCache.exp > now) return eventsCache.data;
   const url = new URL('/content/events.json', c.req.url).toString();

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run dev:*)",
       "Bash(npm install:*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__medusa__search_medusa_sources"
     ],
     "deny": [],
     "ask": []

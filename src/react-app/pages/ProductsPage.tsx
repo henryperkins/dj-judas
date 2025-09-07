@@ -1,21 +1,6 @@
 import { useEffect, useState } from 'react'
-import { fetchProducts, addLineItem } from '../utils/cart'
+import { fetchProducts, addLineItem, type Product } from '../utils/cart-sdk'
 import { navigate } from '../utils/nav'
-
-type Product = {
-  id: string
-  title: string
-  description?: string
-  thumbnail?: string
-  variants?: Array<{
-    id: string
-    title?: string
-    prices?: Array<{
-      amount: number
-      currency_code: string
-    }>
-  }>
-}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -43,12 +28,13 @@ export default function ProductsPage() {
   }
 
   const getPrice = (product: Product) => {
-    const price = product.variants?.[0]?.prices?.[0]
-    if (!price) return null
+    const variant = product.variants?.[0]
+    const price = variant?.calculated_price
+    if (!price?.calculated_amount) return null
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: price.currency_code
-    }).format(price.amount / 100)
+      currency: price.currency_code || 'USD'
+    }).format(price.calculated_amount / 100)
   }
 
   if (loading) {

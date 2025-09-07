@@ -7,7 +7,7 @@ import pattern1 from '../../assets/images/pattern1.jpeg';
 import logoImage from '../../assets/images/logo.jpeg';
 
 interface HeroSectionProps {
-  scrollY?: any;
+  scrollY?: number;
   className?: string;
 }
 

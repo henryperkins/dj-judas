@@ -29,7 +29,13 @@ export default function AdminAddProduct() {
       if (!url) throw new Error('No upload URL')
       setUploads(prev => [...prev, { name: file.name, progress: 0, status: 'uploading' }])
       const fd = new FormData(); fd.append('file', file)
-      const up: any = await new Promise((resolve, reject) => {
+      interface UploadResult {
+        result?: {
+          id?: string;
+          variants?: string[];
+        };
+      }
+      const up: UploadResult = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
         xhr.upload.onprogress = (e) => {
@@ -54,7 +60,7 @@ export default function AdminAddProduct() {
         if (!thumbnail) setThumbnail(urlOut)
         setUploads(prev => prev.map(u => u.name === file.name ? { ...u, progress: 100, status: 'done' } : u))
       }
-    } catch (e) {
+    } catch {
       setUploads(prev => prev.map(u => u.name === file.name ? { ...u, status: 'error' } : u))
       alert('Upload failed. Ensure Cloudflare Images is configured.')
     }
@@ -92,13 +98,33 @@ export default function AdminAddProduct() {
         return { currency_code: pr.currency_code.toLowerCase(), amount: Number.isFinite(cents) ? cents : 0 }
       }).filter(p => p.amount > 0)
       const inv = parseInt(v.inventory_quantity || '0', 10)
-      const obj: any = { title: v.title || 'Variant', prices: parsedPrices }
+      interface VariantObj {
+        title: string;
+        prices: Array<{ currency_code: string; amount: number }>;
+        sku?: string;
+        inventory_quantity?: number;
+      }
+      const obj: VariantObj = { title: v.title || 'Variant', prices: parsedPrices }
       if (v.sku) obj.sku = v.sku
       if (!Number.isNaN(inv)) obj.inventory_quantity = inv
       return obj
     })
 
-    const payload: any = {
+    interface ProductPayload {
+      title: string;
+      description: string;
+      handle: string;
+      thumbnail?: string;
+      images?: string[];
+      variants: Array<{
+        title: string;
+        prices: Array<{ currency_code: string; amount: number }>;
+        sku?: string;
+        inventory_quantity?: number;
+      }>;
+      status: 'draft' | 'published';
+    }
+    const payload: ProductPayload = {
       title,
       description,
       handle: slug,
@@ -181,7 +207,7 @@ export default function AdminAddProduct() {
           {toDelete.length > 0 && (
             <div className="flex gap-2 mt-2">
               <button className="btn btn-outline btn-sm" onClick={async () => {
-                for (const id of toDelete) { try { await fetch(`/api/images/${id}`, { method: 'DELETE' }) } catch {} }
+                for (const id of toDelete) { try { await fetch(`/api/images/${id}`, { method: 'DELETE' }) } catch { /* ignore */ } }
                 setToDelete([])
               }}>Delete removed uploads</button>
             </div>

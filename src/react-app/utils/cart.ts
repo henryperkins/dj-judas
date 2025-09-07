@@ -34,8 +34,16 @@ export async function addLineItem(variantId: string, quantity = 1): Promise<bool
   return res.ok
 }
 
+interface Product {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  variants?: Array<{ id: string; title?: string; prices?: Array<{ amount: number; currency_code: string }> }>;
+}
+
 export async function fetchProducts(limit = 12) {
-  if (!MEDUSA_URL) return { products: [] as any[] }
+  if (!MEDUSA_URL) return { products: [] as Product[] }
   const url = new URL(`${MEDUSA_URL}/store/products`)
   url.searchParams.set('limit', String(limit))
   url.searchParams.set('status', 'published')

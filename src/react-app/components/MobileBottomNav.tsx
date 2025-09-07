@@ -134,7 +134,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       // without requiring parent wiring, keeping pages decoupled.
       try {
         window.dispatchEvent(new Event('platform-launcher:open'));
-      } catch (e) {
+      } catch {
         // no-op if not in browser
       }
       return;

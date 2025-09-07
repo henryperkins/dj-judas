@@ -1,0 +1,43 @@
+[build]
+  # Build command for Vite
+  command = "npm run build:client"
+  
+  # Directory to deploy (Vite output)
+  publish = "dist/client"
+  
+  # Node version
+  environment = { NODE_VERSION = "20" }
+
+[build.environment]
+  # These will be replaced by Netlify environment variables
+  VITE_MEDUSA_URL = "http://localhost:9000"
+  VITE_MEDUSA_PUBLISHABLE_KEY = "pk_01J0MZ1Y4D2D8FP8ZH5P9DHBFG"
+  
+  # Your Cloudflare Worker URL for backend APIs
+  VITE_WORKER_URL = "https://dj-judas.lfd.workers.dev"
+
+# SPA routing support
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Proxy API calls to your Cloudflare Worker
+[[redirects]]
+  from = "/api/*"
+  to = "https://dj-judas.lfd.workers.dev/api/:splat"
+  status = 200
+  force = true
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

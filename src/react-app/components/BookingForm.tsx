@@ -68,7 +68,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ tone = 'formal' }) => {
   // Persist changes
   useEffect(() => {
     try {
-      const { website, ...persistable } = formData; // never persist honeypot
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { website: _, ...persistable } = formData; // never persist honeypot
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
     } catch { /* ignore */ }
   }, [formData]);

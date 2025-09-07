@@ -11,7 +11,12 @@ interface InstagramEmbedProps {
 }
 
 // Simple in-memory cache to avoid redundant fetches
-const oEmbedCache = new Map<string, any>();
+interface OEmbedData {
+  html: string;
+  author_name: string;
+  title?: string;
+}
+const oEmbedCache = new Map<string, OEmbedData>();
 
 const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
   url,
@@ -20,7 +25,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
   hideCaptions = false,
   skeletonHeight = 600
 }) => {
-  const [embedData, setEmbedData] = useState<any>(null);
+  const [embedData, setEmbedData] = useState<OEmbedData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);

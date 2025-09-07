@@ -9,7 +9,7 @@ import {
   removeLineItem,
   listShippingOptions,
   createPaymentSessions,
-} from '../utils/cart'
+} from '../utils/cart-sdk'
 
 type Address = {
   email: string
@@ -53,7 +53,7 @@ export default function CheckoutPage() {
         if (id) { localStorage.setItem('medusa_cart_id', id); setCartId(id) }
       })
       .finally(() => setBusy(false))
-  }, [])
+  }, [headers])
 
   // load cart details when we have an id
   useEffect(() => {
@@ -109,13 +109,13 @@ export default function CheckoutPage() {
     if (!MEDUSA_URL || !cartId) return
     setBusy(true)
     // Ensure payment sessions exist (no-op if already created)
-    try { await createPaymentSessions(cartId) } catch {}
+    try { await createPaymentSessions(cartId) } catch { /* ignore */ }
     const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/complete`, { method: 'POST', headers })
     const json = await res.json()
     setBusy(false)
     if (json?.type === 'order') {
       const oid = json?.order?.id || json?.data?.id || json?.id
-      try { localStorage.removeItem('medusa_cart_id') } catch {}
+      try { localStorage.removeItem('medusa_cart_id') } catch { /* ignore */ }
       navigate(`/success${oid ? `?order_id=${encodeURIComponent(oid)}` : ''}`)
       return
     }
@@ -186,7 +186,11 @@ export default function CheckoutPage() {
             <div className="stack">
               <button className="btn btn-outline" onClick={loadOptions} disabled={!cartId}>Load options</button>
               {options?.length ? options.map((o: ShippingOption) => {
-                const selected = !!cart?.shipping_methods?.some((m: any) => (m?.shipping_option_id || m?.shipping_option?.id) === o.id)
+                interface ShippingMethod {
+                  shipping_option_id?: string;
+                  shipping_option?: { id: string };
+                }
+                const selected = !!cart?.shipping_methods?.some((m: ShippingMethod) => (m?.shipping_option_id || m?.shipping_option?.id) === o.id)
                 const price = typeof o.amount === 'number' ? formatAmount(o.amount, cart?.region?.currency_code || 'usd') : (o.price_type === 'calculated' ? 'Calculated at checkout' : '—')
                 return (
                   <button

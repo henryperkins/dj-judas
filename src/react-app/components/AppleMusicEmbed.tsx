@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuMusic, LuExternalLink, LuPlus, LuPlay, LuLogIn } from 'react-icons/lu';
+import { appleMusicKit } from '../utils/appleMusicKit';
 
 interface AppleMusicEmbedProps {
   url: string; // Full Apple Music URL
@@ -18,10 +19,11 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
-  const [musicKitReady] = useState(false); // MusicKit disabled until token configured
+  const [musicKitReady, setMusicKitReady] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [musicKitError, setMusicKitError] = useState<string | null>(null);
 
   // Extract the path from Apple Music URL
   const embedPath = url.replace('https://music.apple.com/', '');
@@ -52,16 +54,37 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
     window.open(buildAffiliateLink('open'), '_blank', 'noopener,noreferrer');
   };
 
-  const handleAddToLibrary = () => {
+  const handleAddToLibrary = async () => {
     trackEngagement('apple_music_add_library', { url });
-    if (!isAuthorized || !musicKitReady) {
+    
+    if (!musicKitReady) {
+      // Fallback to web if MusicKit not available
       window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
       return;
     }
-    // Placeholder MusicKit library add (requires valid song/album IDs)
+
     setActionLoading(true);
-    // Placeholder: MusicKit addToLibrary call would go here when IDs available
-    Promise.resolve().finally(() => setActionLoading(false));
+    try {
+      // Extract content ID from URL
+      const content = appleMusicKit.extractIdFromUrl(url);
+      if (!content) {
+        // Fallback if we can't parse the URL
+        window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // Add to library using MusicKit
+      await appleMusicKit.addToLibrary([content]);
+      
+      // Optional: Show success message
+      console.log('Successfully added to Apple Music library');
+    } catch (error) {
+      console.error('Failed to add to library:', error);
+      // Fallback to web on error
+      window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
 
@@ -79,68 +102,40 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
     return () => window.clearTimeout(t);
   }, [isLoaded]);
 
-  // Lazy-load MusicKit script (only if we might have a token)
+  // Initialize MusicKit
   useEffect(() => {
-    // Skip MusicKit loading if we know there's no token configured
-    // This prevents the console error when Apple Music isn't set up
-    const existing = document.querySelector('script[src*="musickit.js"]');
-    if (existing) return;
-    
-    // Only load MusicKit if user wants to authorize (optional enhancement)
-    // For now, we'll skip loading to prevent errors
-    // const script = document.createElement('script');
-    // script.src = 'https://js-cdn.music.apple.com/musickit/v1/musickit.js';
-    // script.async = true;
-    // script.onload = () => setMusicKitReady(true);
-    // document.body.appendChild(script);
+    const initMusicKit = async () => {
+      try {
+        await appleMusicKit.loadMusicKit();
+        setMusicKitReady(true);
+        setIsAuthorized(appleMusicKit.isAuthorized());
+      } catch (error) {
+        console.error('MusicKit initialization failed:', error);
+        setMusicKitError('Apple Music features unavailable');
+      }
+    };
+
+    initMusicKit();
+
+    // Listen for auth changes
+    const unsubscribe = appleMusicKit.onAuthChange((authorized) => {
+      setIsAuthorized(authorized);
+    });
+
+    return unsubscribe;
   }, []);
 
-  // Initialize MusicKit when ready
-  useEffect(() => {
-  interface MKGlobal { MusicKit?: { configure: (cfg: Record<string, unknown>) => void; getInstance: () => { isAuthorized: boolean; authorize: () => Promise<string> } }; }
-  const win = window as unknown as MKGlobal;
-    if (!musicKitReady || !win.MusicKit) return;
-    
-    // Configure MusicKit with error handling
-    try {
-      win.MusicKit.configure({
-        developerTokenFetcher: async () => {
-          try {
-            const res = await fetch('/api/apple/developer-token');
-            if (!res.ok) {
-              console.error('Failed to fetch Apple Music developer token:', res.status);
-              throw new Error('Developer token unavailable');
-            }
-            const data = await res.json();
-            if (!data.token) {
-              console.error('Apple Music developer token is missing. Please configure APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY environment variables.');
-              throw new Error('Developer token not configured');
-            }
-            return data.token;
-          } catch (error) {
-            console.error('Apple Music token fetch error:', error);
-            throw error;
-          }
-        },
-        app: { name: 'DJ Judas', build: '1.0.0' }
-      });
-      const mk = win.MusicKit.getInstance();
-      setIsAuthorized(mk.isAuthorized);
-    } catch (error) {
-      console.error('Failed to configure MusicKit:', error);
-      // MusicKit configuration failed, but don't break the component
-    }
-  }, [musicKitReady]);
 
   const beginAuthorize = useCallback(async () => {
-  interface MKGlobal { MusicKit?: { getInstance: () => { authorize: () => Promise<string> } } }
-  const win = window as unknown as MKGlobal;
-    if (!win.MusicKit) return;
     setAuthLoading(true);
     try {
-      const mk = win.MusicKit.getInstance();
-      await mk.authorize();
-      setIsAuthorized(true);
+      const authorized = await appleMusicKit.authorize();
+      if (!authorized) {
+        setMusicKitError('Authorization failed');
+      }
+    } catch (error) {
+      console.error('Authorization error:', error);
+      setMusicKitError('Failed to authorize Apple Music');
     } finally {
       setAuthLoading(false);
     }
@@ -257,6 +252,11 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
       <div className="streaming-cta">
         <p>Stream or purchase to support the artist</p>
+        {musicKitError && (
+          <p className="error-message" style={{ color: 'hsl(var(--destructive))', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            {musicKitError}
+          </p>
+        )}
       </div>
     </div>
   );

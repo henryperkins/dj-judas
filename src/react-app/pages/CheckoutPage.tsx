@@ -1,3 +1,4 @@
+import { sdk } from '../lib/medusa-sdk'
 import { useEffect, useMemo, useState } from 'react'
 import { navigate } from '../utils/nav'
 import {
@@ -124,13 +125,36 @@ export default function CheckoutPage() {
   }
 
   const payWithStripe = async () => {
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ priceId: import.meta.env.VITE_STRIPE_PRICE_ID || 'price_xxx', quantity: 1, cartId })
-    })
-    const json = await res.json()
-    if (json.url) window.location.href = json.url
-  }
+    if (!cartId) return;
+    setBusy(true);
+    try {
+      await createPaymentSessions(cartId);
+      const cart = await getCart(cartId);
+      const stripeProvider = cart?.payment_sessions?.find(
+        (ps) => ps.provider_id === "stripe"
+      );
+      if (stripeProvider) {
+        await sdk.store.cart.selectPaymentSession(cartId, {
+          provider_id: "stripe",
+        });
+        const res = await sdk.store.cart.complete(cartId);
+        if (res.type === "order") {
+          const oid = res.data?.id;
+          localStorage.removeItem("medusa_cart_id");
+          navigate(`/success${oid ? `?order_id=${encodeURIComponent(oid)}` : ""}`);
+        } else {
+          setMsg("Unable to complete order. Please check payment and address details.");
+        }
+      } else {
+        setMsg("Stripe payment provider not available.");
+      }
+    } catch (error) {
+      console.error("Failed to pay with Stripe:", error);
+      setMsg("An error occurred while processing your payment. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="checkout-container">

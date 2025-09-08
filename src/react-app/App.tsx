@@ -24,8 +24,11 @@ function App() {
     return off;
   }, []);
 
-  // Initialize Facebook Pixel on app startup
+  // Initialize Facebook SDK and Pixel on app startup
   useEffect(() => {
+    // Load Facebook SDK first (needed for social plugins)
+    metaSDK.loadFacebookSDK().catch(console.error);
+    // Load Facebook Pixel for analytics
     metaSDK.loadPixel().catch(console.error);
   }, []);
 

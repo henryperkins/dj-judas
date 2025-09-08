@@ -13,5 +13,9 @@ upload_source_maps = true
 directory = "./dist/client"
 not_found_handling = "single-page-application"
 
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "b7654d69472c4e1b8eda8bbae8ee2776"
+
 [ai]
 binding = "AI"

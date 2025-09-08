@@ -195,13 +195,13 @@ export default function CheckoutPage() {
                 const price = typeof o.amount === 'number' ? formatAmount(o.amount, cart?.region?.currency_code || 'usd') : (o.price_type === 'calculated' ? 'Calculated at checkout' : '—')
                 return (
                   <button
-                    className={`btn ${selected ? 'btn-primary' : 'btn-outline'}`}
+                    className={`shipping-option ${selected ? 'shipping-option--selected' : ''}`}
                     key={o.id}
                     aria-pressed={selected}
                     onClick={() => addShippingMethod(o.id)}
                   >
-                    {o.name}
-                    <span className="text-muted ml-2">{price}</span>
+                    <span className="shipping-option__name">{o.name}</span>
+                    <span className="shipping-option__price">{price}</span>
                   </button>
                 )
               }) : null}

@@ -575,11 +575,40 @@ app.post('/api/booking', async (c) => {
       message || '(none)'
     ].join('\n');
 
+    // Create confirmation email template for customer
+    const customerConfirmation = `Dear ${name},
+
+Thank you for your booking request with DJ Lee & Voices of Judah!
+
+We have received your request with the following details:
+
+EVENT DETAILS
+Event Type: ${body.eventType}
+Date: ${isoDate}
+Time: ${isoTime}
+Location: ${location}
+
+YOUR CONTACT INFORMATION
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+
+${message ? `Your Message:\n${message}\n\n` : ''}We will review your request and respond within 24-48 hours to confirm availability and discuss further details.
+
+If you need immediate assistance, please feel free to call us directly.
+
+Blessings,
+DJ Lee & Voices of Judah Team
+
+---
+This is an automated confirmation email. Please do not reply directly to this message.`;
+
     // Prefer Resend if configured
     const toResend = c.env.RESEND_TO || 'V.O.J@icloud.com';
     const fromResend = c.env.RESEND_FROM || 'DJ Lee Website <no-reply@djlee.local>';
     if (c.env.RESEND_API_KEY) {
-      const res = await fetch('https://api.resend.com/emails', {
+      // Send to admin
+      const adminRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
@@ -592,7 +621,22 @@ app.post('/api/booking', async (c) => {
           text: summary
         })
       });
-      if (res.ok) {
+      
+      // Send confirmation to customer
+      if (adminRes.ok) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: fromResend,
+            to: [email],
+            subject: `Booking Confirmation - DJ Lee & Voices of Judah`,
+            text: customerConfirmation
+          })
+        });
         return c.json({ ok: true, provider: 'resend' });
       }
       // fall through to SendGrid if available
@@ -602,7 +646,9 @@ app.post('/api/booking', async (c) => {
     if (c.env.SENDGRID_API_KEY) {
       const to = c.env.SENDGRID_TO || 'V.O.J@icloud.com';
       const from = c.env.SENDGRID_FROM || 'no-reply@djlee.local';
-      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      
+      // Send to admin
+      const adminRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${c.env.SENDGRID_API_KEY}`,
@@ -615,9 +661,26 @@ app.post('/api/booking', async (c) => {
           content: [{ type: 'text/plain', value: summary }]
         })
       });
-      if (!res.ok) {
-        return c.json({ error: 'email_send_failed', provider: 'sendgrid', status: res.status }, 500);
+      
+      if (!adminRes.ok) {
+        return c.json({ error: 'email_send_failed', provider: 'sendgrid', status: adminRes.status }, 500);
       }
+      
+      // Send confirmation to customer
+      await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${c.env.SENDGRID_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email }] }],
+          from: { email: from, name: 'DJ Lee & Voices of Judah' },
+          subject: `Booking Confirmation - DJ Lee & Voices of Judah`,
+          content: [{ type: 'text/plain', value: customerConfirmation }]
+        })
+      });
+      
       return c.json({ ok: true, provider: 'sendgrid' });
     }
 
@@ -675,8 +738,22 @@ app.post('/api/stripe/webhook', async (c) => {
     return c.json({ error: 'invalid_signature' }, 400);
   }
   if (event.type === 'checkout.session.completed') {
-    // const session = event.data.object as Stripe.Checkout.Session
-    // TODO: mark order/cart as paid
+    const session = event.data.object as Stripe.Checkout.Session;
+    const cartId = session.client_reference_id;
+    
+    if (cartId) {
+      const MEDUSA = getMedusaUrl(c);
+      if (MEDUSA) {
+        try {
+          await fetch(`${MEDUSA}/store/carts/${cartId}/complete`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' }
+          });
+        } catch (error) {
+          console.error('Failed to complete Medusa cart:', error);
+        }
+      }
+    }
   }
   return c.json({ received: true });
 });

@@ -699,6 +699,41 @@ h3 {
 
 /* --- 5.13 Cart Styles --- */
 .cart-item { display: flex; gap: 1rem; padding: 1rem; border-bottom: 1px solid hsl(var(--border)); }
+
+/* Shipping Options */
+.shipping-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--card));
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.shipping-option:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  background: hsl(var(--accent));
+}
+
+.shipping-option--selected {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+}
+
+.shipping-option__name {
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+.shipping-option__price {
+  font-weight: 600;
+  color: hsl(var(--primary));
+  margin-left: auto;
+}
 .cart-item:last-child { border-bottom: none; }
 .cart-item__image { width: 80px; height: 80px; object-fit: cover; border-radius: calc(var(--radius) * 0.5); background: hsl(var(--muted)); }
 .cart-item__details { flex: 1; }
@@ -905,9 +940,10 @@ h3 {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid hsl(var(--border));
-  z-index: 800;
+  z-index: 900; /* Increased from 800 to stay above other fixed elements */
   padding-bottom: env(safe-area-inset-bottom, 0);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  will-change: transform; /* Optimize animations */
 }
 
 .dark .mobile-bottom-nav {
@@ -920,6 +956,7 @@ body.mobile-nav-visible {
 }
 @media (min-width: 768px) {
   body.mobile-nav-visible { padding-bottom: 0; }
+  .mobile-bottom-nav { display: none; } /* Hide on desktop unless explicitly shown */
 }
 
 .nav-container {
@@ -931,6 +968,21 @@ body.mobile-nav-visible {
   max-width: min(500px, 100vw);
   width: 100%;
   margin: 0 auto;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+}
+
+.nav-li {
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .nav-item {
@@ -962,6 +1014,32 @@ body.mobile-nav-visible {
 
 .nav-icon {
   transition: transform 0.3s ease;
+  width: 24px;
+  height: 24px;
+}
+
+.nav-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-item-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.nav-indicator {
+  position: absolute;
+  bottom: -8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
 }
 
 .nav-item.active .nav-icon {

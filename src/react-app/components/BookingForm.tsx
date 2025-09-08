@@ -16,6 +16,11 @@ interface FormData {
 
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
+interface BookingResponse {
+  error?: string;
+  message?: string;
+}
+
 const getTodayLocal = () => {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -189,7 +194,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ tone = 'formal' }) => {
       } else {
         // Try to extract a meaningful error from the server
         try {
-          const data = await res.json();
+          const data = await res.json() as BookingResponse;
           if (data?.error === 'no_email_provider') {
             setSubmitError('Email delivery is not configured. Tap below to email us directly.');
           } else if (data?.error === 'rate_limited') {

@@ -5,6 +5,22 @@ type Price = { amount: number; currency_code: string }
 type Variant = { id: string; title?: string; sku?: string; inventory_quantity?: number; prices?: Price[] }
 type Product = { id: string; title: string; handle?: string; description?: string; status?: 'draft'|'published'; thumbnail?: string | null; images?: string[]; variants?: Variant[] }
 
+interface AdminSessionResponse {
+  authenticated?: boolean;
+}
+
+interface ProductResponse {
+  product: Product;
+}
+
+interface DirectUploadResponse {
+  result?: {
+    uploadURL: string;
+    id?: string;
+    variants?: string[];
+  };
+}
+
 export default function AdminEditProduct(props: { id: string }) {
   const { id } = props
   const [auth, setAuth] = useState<boolean | null>(null)
@@ -15,11 +31,11 @@ export default function AdminEditProduct(props: { id: string }) {
   const [uploads, setUploads] = useState<Array<{ name: string; progress: number; status: 'uploading'|'done'|'error' }>>([])
 
   useEffect(() => {
-    fetch('/api/admin/session').then(r => r.json()).then(j => setAuth(!!j?.authenticated))
+    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => setAuth(!!j?.authenticated))
   }, [])
 
   useEffect(() => {
-    if (auth) fetch(`/api/admin/products/${id}`).then(r => r.json()).then(j => setP(j?.product || j || null))
+    if (auth) fetch(`/api/admin/products/${id}`).then(r => r.json()).then((j: ProductResponse) => setP(j?.product || j || null))
   }, [auth, id])
 
   const save = async () => {
@@ -39,7 +55,7 @@ export default function AdminEditProduct(props: { id: string }) {
 
   const uploadPhoto = async (file: File) => {
     try {
-      const tok = await fetch('/api/images/direct-upload', { method: 'POST' }).then(r => r.json())
+      const tok = await fetch('/api/images/direct-upload', { method: 'POST' }).then(r => r.json()) as DirectUploadResponse;
       const url = tok?.result?.uploadURL
       if (!url) throw new Error('No upload URL')
       setUploads(prev => [...prev, { name: file.name, progress: 0, status: 'uploading' }])
@@ -74,7 +90,7 @@ export default function AdminEditProduct(props: { id: string }) {
     const cents = Math.round(parseFloat(price) * 100) || 0
     setBusy(true)
     fetch(`/api/admin/products/${p.id}/variants`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, prices: [{ amount: cents, currency_code: 'usd' }] }) })
-      .then(() => fetch(`/api/admin/products/${id}`).then(r => r.json()).then(j => setP(j?.product || j || null)))
+      .then(() => fetch(`/api/admin/products/${id}`).then(r => r.json()).then((j: ProductResponse) => setP(j?.product || j || null)))
       .finally(() => setBusy(false))
   }
 
@@ -93,7 +109,7 @@ export default function AdminEditProduct(props: { id: string }) {
     if (!confirm('Delete this variant?')) return
     setBusy(true)
     await fetch(`/api/admin/variants/${variantId}`, { method: 'DELETE' })
-    await fetch(`/api/admin/products/${id}`).then(r => r.json()).then(j => setP(j?.product || j || null))
+    await fetch(`/api/admin/products/${id}`).then(r => r.json()).then((j: ProductResponse) => setP(j?.product || j || null))
     setBusy(false)
   }
 

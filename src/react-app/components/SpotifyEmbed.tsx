@@ -9,6 +9,14 @@ interface SpotifyEmbedProps {
   onPlay?: () => void;
 }
 
+interface SpotifySessionResponse {
+  authenticated: boolean;
+}
+
+interface SpotifyLoginResponse {
+  authorizeUrl?: string;
+}
+
 const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   url,
   uri,
@@ -161,7 +169,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
       try {
         const res = await fetch('/api/spotify/session');
         if (!cancelled) {
-          const data = await res.json();
+          const data = await res.json() as SpotifySessionResponse;
             setIsAuthed(Boolean(data.authenticated));
         }
       } catch {
@@ -176,7 +184,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
 
   const beginLogin = useCallback(async () => {
     const res = await fetch('/api/spotify/login');
-    const data = await res.json();
+    const data = await res.json() as SpotifyLoginResponse;
     if (data.authorizeUrl) {
       window.location.href = data.authorizeUrl;
     }

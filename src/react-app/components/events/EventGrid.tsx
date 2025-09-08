@@ -5,6 +5,11 @@ import { EventItem } from './EventTypes';
 import { LuCalendar, LuList } from 'react-icons/lu';
 import { isMobileDevice } from '../../utils/platformDetection';
 
+interface EventsApiResponse {
+  upcoming: EventItem[];
+  past: EventItem[];
+}
+
 export default function EventGrid() {
   const [upcoming, setUpcoming] = useState<EventItem[]>([]);
   const [past, setPast] = useState<EventItem[]>([]);
@@ -22,7 +27,7 @@ export default function EventGrid() {
         // Primary: try the API endpoint (served by the Worker in dev/prod)
         const res = await fetch('/api/events');
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as EventsApiResponse;
           // If API returns an empty payload (can happen if assets aren't wired), fall back to static JSON
           const isEmpty = (!data?.upcoming || data.upcoming.length === 0) && (!data?.past || data.past.length === 0);
           if (!cancelled && !isEmpty) {

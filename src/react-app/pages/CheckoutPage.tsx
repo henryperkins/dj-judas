@@ -125,13 +125,13 @@ export default function CheckoutPage() {
   }
 
   const payWithStripe = async () => {
-    if (!cartId) return;
+    if (!cartId || !sdk) return;
     setBusy(true);
     try {
       await createPaymentSessions(cartId);
       const cart = await getCart(cartId);
       const stripeProvider = cart?.payment_sessions?.find(
-        (ps) => ps.provider_id === "stripe"
+        (ps: any) => ps.provider_id === "stripe"
       );
       if (stripeProvider) {
         await sdk.store.cart.selectPaymentSession(cartId, {
@@ -139,7 +139,7 @@ export default function CheckoutPage() {
         });
         const res = await sdk.store.cart.complete(cartId);
         if (res.type === "order") {
-          const oid = res.data?.id;
+          const oid = res.order?.id;
           localStorage.removeItem("medusa_cart_id");
           navigate(`/success${oid ? `?order_id=${encodeURIComponent(oid)}` : ""}`);
         } else {

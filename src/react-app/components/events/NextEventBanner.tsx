@@ -3,6 +3,11 @@ import { LuCalendarPlus, LuMapPin } from 'react-icons/lu';
 import { EventItem } from './EventTypes';
 import { isIOS } from '../../utils/platformDetection';
 
+interface EventsApiResponse {
+  upcoming: EventItem[];
+  past: EventItem[];
+}
+
 function firstUpcoming(items: EventItem[]): EventItem | null {
   const now = Date.now();
   const upcoming = items
@@ -49,7 +54,7 @@ export default function NextEventBanner() {
       try {
         const res = await fetch('/api/events');
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as EventsApiResponse;
           const next = firstUpcoming(data.upcoming || []);
           if (!cancelled && next) return setEvent(next);
         }

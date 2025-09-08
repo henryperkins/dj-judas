@@ -1,6 +1,6 @@
+/// <reference path="../../worker-configuration.d.ts" />
 import { Hono } from "hono";
 import { SignJWT, importPKCS8 } from 'jose';
-import Stripe from 'stripe';
 
 interface SpotifySession {
 	codeVerifier?: string;

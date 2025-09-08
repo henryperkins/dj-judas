@@ -16,6 +16,13 @@ interface InstagramOEmbed {
   title?: string;
   fallback?: boolean;
 }
+interface InstagramOEmbedResponse {
+  html: string;
+  author_name?: string;
+  title?: string;
+  fallback?: boolean;
+}
+
 // Simple in-memory cache to avoid redundant fetches
 const oEmbedCache = new Map<string, InstagramOEmbed>();
 
@@ -75,7 +82,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
         const response = await fetch(`/api/instagram/oembed?${params.toString()}`);
         
         // Don't throw on non-OK responses, let's check the content
-        const data = await response.json();
+        const data = await response.json() as InstagramOEmbedResponse;
         
         if (!response.ok && !data.fallback) {
           throw new Error(`oEmbed fetch failed: ${response.status}`);

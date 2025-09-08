@@ -4,6 +4,29 @@ import { navigate } from '../utils/nav'
 
 type PriceRow = { currency_code: string; amount: string }
 
+interface DirectUploadResponse {
+  result?: {
+    uploadURL: string;
+    id?: string;
+    variants?: string[];
+  };
+}
+
+interface AISuggestionResponse {
+  title?: string;
+  description?: string;
+  error?: string;
+}
+
+interface AdminSessionResponse {
+  authenticated?: boolean;
+}
+
+interface CreateProductResponse {
+  message?: string;
+  error?: string;
+}
+
 export default function AdminAddProduct() {
   const [auth, setAuth] = useState<boolean | null>(null)
   const [title, setTitle] = useState('')
@@ -24,7 +47,7 @@ export default function AdminAddProduct() {
 
   const uploadPhoto = async (file: File) => {
     try {
-      const tok = await fetch('/api/images/direct-upload', { method: 'POST' }).then(r => r.json())
+      const tok = await fetch('/api/images/direct-upload', { method: 'POST' }).then(r => r.json()) as DirectUploadResponse;
       const url = tok?.result?.uploadURL
       if (!url) throw new Error('No upload URL')
       setUploads(prev => [...prev, { name: file.name, progress: 0, status: 'uploading' }])
@@ -71,10 +94,10 @@ export default function AdminAddProduct() {
     try {
       const res = await fetch('/api/ai/suggest-product', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image_url: thumbnail }) })
       if (!res.ok) {
-        const j = await res.json().catch(() => null)
+        const j = await res.json().catch(() => null) as AISuggestionResponse;
         return alert(j?.error || 'AI not configured')
       }
-      const j = await res.json()
+      const j = await res.json() as AISuggestionResponse;
       if (j.title) setTitle(j.title)
       if (j.description) setDescription(j.description)
     } catch {
@@ -83,7 +106,7 @@ export default function AdminAddProduct() {
   }
 
   useEffect(() => {
-    fetch('/api/admin/session').then(r => r.json()).then(j => setAuth(!!j?.authenticated))
+    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => setAuth(!!j?.authenticated))
   }, [])
 
   const slug = useMemo(() => title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), [title])
@@ -144,7 +167,7 @@ export default function AdminAddProduct() {
       setMsg('Product created successfully')
       setTimeout(() => navigate('/products'), 800)
     } else {
-      const j = await res.json().catch(() => null)
+      const j = await res.json().catch(() => null) as CreateProductResponse;
       setMsg(j?.message || j?.error || `Create failed (${res.status})`)
     }
   }

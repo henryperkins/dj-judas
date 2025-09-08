@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../utils/nav'
 
+interface AdminSessionResponse {
+  authenticated?: boolean;
+}
+
+interface AdminLoginResponse {
+  error?: string;
+}
+
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -9,7 +17,7 @@ export default function AdminLogin() {
 
   useEffect(() => {
     // If already authenticated, redirect to admin home
-    fetch('/api/admin/session').then(r => r.json()).then(j => {
+    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => {
       if (j?.authenticated) navigate('/admin')
     })
   }, [])
@@ -22,7 +30,7 @@ export default function AdminLogin() {
     if (res.ok) {
       navigate('/admin')
     } else {
-      const j = await res.json().catch(() => null)
+      const j = await res.json().catch(() => null) as AdminLoginResponse;
       setError(j?.error || 'Login failed')
     }
   }

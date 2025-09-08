@@ -1829,6 +1829,65 @@ body.mobile-nav-visible {
   color: hsl(var(--muted-foreground));
 }
 
+/* Instagram Fallback Styles */
+.instagram-fallback-container {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+}
+
+.instagram-fallback-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: hsl(var(--brand-instagram-start));
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.instagram-fallback-body {
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 16px;
+}
+
+.instagram-fallback-body p {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+}
+
+.instagram-fallback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  text-decoration: none;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.instagram-fallback-link:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.instagram-fallback-link:active {
+  transform: translateY(0);
+}
+
+/* Dark mode adjustments */
+.dark .instagram-fallback-container {
+  background: hsl(var(--card) / 0.8);
+}
+
 .embed-metadata {
   margin-top: 16px;
   padding-top: 16px;

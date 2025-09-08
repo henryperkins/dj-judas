@@ -740,10 +740,10 @@
   dependencies:
     "@babel/types" "^7.25.9"
 
-"@babel/helper-plugin-utils@^7.0.0", "@babel/helper-plugin-utils@^7.10.4", "@babel/helper-plugin-utils@^7.12.13", "@babel/helper-plugin-utils@^7.14.5", "@babel/helper-plugin-utils@^7.18.6", "@babel/helper-plugin-utils@^7.20.2", "@babel/helper-plugin-utils@^7.25.9", "@babel/helper-plugin-utils@^7.26.5", "@babel/helper-plugin-utils@^7.8.0":
-  version "7.26.5"
-  resolved "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.26.5.tgz"
-  integrity sha512-RS+jZcRdZdRFzMyr+wcsaqOmld1/EqTghfaBGQQd/WnRdzdlvSZ//kF7U8VQTxf1ynZ4cjUcYgjVGx13ewNPMg==
+"@babel/helper-plugin-utils@^7.0.0", "@babel/helper-plugin-utils@^7.10.4", "@babel/helper-plugin-utils@^7.12.13", "@babel/helper-plugin-utils@^7.14.5", "@babel/helper-plugin-utils@^7.18.6", "@babel/helper-plugin-utils@^7.20.2", "@babel/helper-plugin-utils@^7.25.9", "@babel/helper-plugin-utils@^7.26.5", "@babel/helper-plugin-utils@^7.27.1", "@babel/helper-plugin-utils@^7.8.0":
+  version "7.27.1"
+  resolved "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.27.1.tgz"
+  integrity sha512-1gn1Up5YXka3YYAHGKpbideQ5Yjf1tDa9qYcgysz+cNCXukyLl6DjPXhD3VRwSb8c0J9tA4b2+rHEZtc6R0tlw==
 
 "@babel/helper-replace-supers@^7.25.9":
   version "7.26.5"
@@ -986,7 +986,7 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.25.9"
 
-"@babel/plugin-transform-classes@^7.0.0":
+"@babel/plugin-transform-classes@^7.0.0", "@babel/plugin-transform-classes@^7.9.5":
   version "7.25.9"
   resolved "https://registry.npmjs.org/@babel/plugin-transform-classes/-/plugin-transform-classes-7.25.9.tgz"
   integrity sha512-mD8APIXmseE7oZvZgGABDyM34GUmK45Um2TXiBUt7PnuAxrgoSVf123qUzPxEr/+/BHrRn5NMZCdE2m/1F8DGg==
@@ -1037,6 +1037,13 @@
     "@babel/helper-compilation-targets" "^7.25.9"
     "@babel/helper-plugin-utils" "^7.25.9"
     "@babel/traverse" "^7.25.9"
+
+"@babel/plugin-transform-instanceof@^7.8.3":
+  version "7.27.1"
+  resolved "https://registry.npmjs.org/@babel/plugin-transform-instanceof/-/plugin-transform-instanceof-7.27.1.tgz"
+  integrity sha512-9P3XssOYPOsDiqMyHSNktw5bKKbPcndYp2ktQ3i/4/2lybuI8wK094t/rlJJjBrsOXGn9wuIPyVkoxBC4NnL6g==
+  dependencies:
+    "@babel/helper-plugin-utils" "^7.27.1"
 
 "@babel/plugin-transform-literals@^7.0.0":
   version "7.25.9"
@@ -1136,7 +1143,7 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.25.9"
 
-"@babel/runtime@^7.0.0", "@babel/runtime@^7.13.10", "@babel/runtime@^7.15.4", "@babel/runtime@^7.22.10", "@babel/runtime@^7.22.5", "@babel/runtime@^7.23.2", "@babel/runtime@^7.23.8", "@babel/runtime@>=7.10.0":
+"@babel/runtime@^7.0.0", "@babel/runtime@^7.13.10", "@babel/runtime@^7.15.4", "@babel/runtime@^7.22.10", "@babel/runtime@^7.22.5", "@babel/runtime@^7.23.2", "@babel/runtime@^7.23.8", "@babel/runtime@^7.7.6", "@babel/runtime@>=7.10.0":
   version "7.28.4"
   resolved "https://registry.npmjs.org/@babel/runtime/-/runtime-7.28.4.tgz"
   integrity sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==
@@ -5891,7 +5898,7 @@ autoprefixer@^10.4.16:
     picocolors "^1.0.1"
     postcss-value-parser "^4.2.0"
 
-awilix@^8.0.1:
+awilix@^8.0.0, awilix@^8.0.1:
   version "8.0.1"
   resolved "https://registry.npmjs.org/awilix/-/awilix-8.0.1.tgz"
   integrity sha512-zDSp4R204scvQIDb2GMoWigzXemn0+3AKKIAt543T9v2h7lmoypvkmcx1W/Jet/nm27R1N1AsqrsYVviAR9KrA==
@@ -7206,7 +7213,7 @@ express-session@^1.17.3:
     safe-buffer "5.2.1"
     uid-safe "~2.1.5"
 
-express@^4.21.0:
+express@^4.17.1, express@^4.21.0:
   version "4.21.2"
   resolved "https://registry.npmjs.org/express/-/express-4.21.2.tgz"
   integrity sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==
@@ -8851,6 +8858,34 @@ media-typer@0.3.0:
   version "0.3.0"
   resolved "https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz"
   integrity sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==
+
+medusa-core-utils@^1.2.3:
+  version "1.2.3"
+  resolved "https://registry.npmjs.org/medusa-core-utils/-/medusa-core-utils-1.2.3.tgz"
+  integrity sha512-mNUqWh8G7BF9dcxt3t22GtSJrm4pfpU98QzvNgpqAvirVbBI4lOCpDQGoKE+jMHOLQJHrLQFoSJeqcofDJvEgA==
+  dependencies:
+    awilix "^8.0.0"
+
+medusa-fulfillment-manual@^1.1.41:
+  version "1.1.41"
+  resolved "https://registry.npmjs.org/medusa-fulfillment-manual/-/medusa-fulfillment-manual-1.1.41.tgz"
+  integrity sha512-4taGA4LKy+NmclyryGLJ7TsbvitvosB3qMOLXj6LqOEU0VJAeGc7eQBNSwquyzs0bm3owtRD02VwrLeJsUi77g==
+  dependencies:
+    "@babel/plugin-transform-classes" "^7.9.5"
+    "@babel/plugin-transform-instanceof" "^7.8.3"
+    "@babel/runtime" "^7.7.6"
+    express "^4.17.1"
+    medusa-core-utils "^1.2.3"
+
+medusa-interfaces@^1.3.7, medusa-interfaces@1.3.10:
+  version "1.3.10"
+  resolved "https://registry.npmjs.org/medusa-interfaces/-/medusa-interfaces-1.3.10.tgz"
+  integrity sha512-S3J8+W/Wy5zoJML7P5mxGd9gRJTdMaRdpiPAhMeod8MmZGcTKpLRB1Ms8d2+pNDPhmoHJ69SAKaWRxp1w7eCUg==
+
+medusa-payment-manual@^1.0.25:
+  version "1.0.25"
+  resolved "https://registry.npmjs.org/medusa-payment-manual/-/medusa-payment-manual-1.0.25.tgz"
+  integrity sha512-TMwAcI9MU3kDbBaY2WydurG2Y3ZCB+MGiRpGiGkhrvPLyzQ2qPAL13sb8cWXyuLWRdyHB1INGSh+WN26z4SHNw==
 
 merge-descriptors@1.0.3:
   version "1.0.3"

@@ -717,22 +717,82 @@ app.get('/api/instagram/oembed', async (c) => {
       return c.json({ error: 'URL parameter is required' }, 400);
     }
 
-    // Use Instagram's public oEmbed endpoint (no auth required but has rate limits)
+    // First, try with Instagram's Graph API if token is available
+    const igToken = c.env.IG_OEMBED_TOKEN;
+    if (igToken) {
+      try {
+        const graphUrl = new URL('https://graph.facebook.com/v18.0/instagram_oembed');
+        graphUrl.searchParams.append('url', url);
+        graphUrl.searchParams.append('access_token', igToken);
+        if (maxwidth) graphUrl.searchParams.append('maxwidth', maxwidth);
+        if (omitscript) graphUrl.searchParams.append('omitscript', omitscript);
+        if (hidecaption) graphUrl.searchParams.append('hidecaption', hidecaption);
+        
+        const graphResponse = await fetch(graphUrl.toString());
+        if (graphResponse.ok) {
+          const data = await graphResponse.json() as OEmbedJSON;
+          return c.json(data, 200, {
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=3600'
+          });
+        }
+      } catch (graphError) {
+        console.error('Instagram Graph API error:', graphError);
+        // Fall through to public API
+      }
+    }
+
+    // Fallback to Instagram's public oEmbed endpoint
     const oembedUrl = new URL('https://api.instagram.com/oembed');
     oembedUrl.searchParams.append('url', url);
-
-    // Add optional parameters
     if (maxwidth) oembedUrl.searchParams.append('maxwidth', maxwidth);
     if (omitscript !== undefined) oembedUrl.searchParams.append('omitscript', omitscript);
     if (hidecaption !== undefined) oembedUrl.searchParams.append('hidecaption', hidecaption);
 
-    const response = await fetch(oembedUrl.toString());
+    // Add headers to mimic a browser request
+    const response = await fetch(oembedUrl.toString(), {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': c.req.header('Referer') || 'https://dj-judas.com/'
+      }
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Instagram oEmbed API error:', response.status, errorText);
-
-      // Cast status to a valid HTTP status code
+      
+      // If Instagram API fails, return a structured fallback response
+      if (response.status === 404 || response.status === 400) {
+        return c.json({
+          error: 'Invalid Instagram URL',
+          message: 'The Instagram post could not be found. It may be private or deleted.'
+        }, 404);
+      }
+      
+      // For rate limiting or server errors, provide a fallback embed structure
+      if (response.status >= 500 || response.status === 429) {
+        // Extract username from URL if possible
+        const match = url.match(/instagram\.com\/([^/]+)/);
+        const username = match ? match[1] : 'iam_djlee';
+        
+        // Return a minimal fallback structure that the frontend can handle
+        return c.json({
+          fallback: true,
+          html: `<div class="instagram-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">View on Instagram @${username}</a></div>`,
+          author_name: username,
+          author_url: `https://www.instagram.com/${username}/`,
+          provider_name: 'Instagram',
+          provider_url: 'https://www.instagram.com',
+          type: 'rich',
+          version: '1.0'
+        }, 200, {
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=300' // Cache fallback for 5 minutes
+        });
+      }
+      
       const status = response.status as 400 | 401 | 403 | 404 | 500 | 502 | 503;
       return c.json({
         error: 'Failed to fetch Instagram embed',
@@ -742,19 +802,32 @@ app.get('/api/instagram/oembed', async (c) => {
     }
 
     const data = await response.json() as OEmbedJSON;
-
-    // Add CORS headers for browser requests
     return c.json(data, 200, {
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+      'Cache-Control': 'public, max-age=3600'
     });
 
   } catch (error) {
     console.error('Instagram oEmbed handler error:', error);
+    
+    // Last resort fallback
+    const url = c.req.query('url') || '';
+    const match = url.match(/instagram\.com\/([^/]+)/);
+    const username = match ? match[1] : 'iam_djlee';
+    
     return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, 500);
+      fallback: true,
+      html: `<div class="instagram-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">View on Instagram @${username}</a></div>`,
+      author_name: username,
+      author_url: `https://www.instagram.com/${username}/`,
+      provider_name: 'Instagram',
+      provider_url: 'https://www.instagram.com',
+      type: 'rich',
+      version: '1.0'
+    }, 200, {
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=300'
+    });
   }
 });
 

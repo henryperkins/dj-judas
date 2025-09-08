@@ -14,6 +14,7 @@ interface InstagramOEmbed {
   html: string;
   author_name?: string;
   title?: string;
+  fallback?: boolean;
 }
 // Simple in-memory cache to avoid redundant fetches
 const oEmbedCache = new Map<string, InstagramOEmbed>();
@@ -72,8 +73,15 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
         });
 
         const response = await fetch(`/api/instagram/oembed?${params.toString()}`);
-        if (!response.ok) throw new Error(`oEmbed fetch failed: ${response.status}`);
+        
+        // Don't throw on non-OK responses, let's check the content
         const data = await response.json();
+        
+        if (!response.ok && !data.fallback) {
+          throw new Error(`oEmbed fetch failed: ${response.status}`);
+        }
+        
+        // Cache the successful response or fallback
         oEmbedCache.set(key, data);
         if (!cancelled) {
           setEmbedData(data);
@@ -170,11 +178,36 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
         )}
 
         {isLoaded && embedData && (
-          <div
-            className="instagram-embed-content"
-            dangerouslySetInnerHTML={{ __html: embedData.html }}
-          />
-        )}
+            <>
+              {embedData.fallback ? (
+                // Render fallback UI
+                <div className="instagram-fallback-container">
+                  <div className="instagram-fallback-header">
+                    <LuInstagram size={20} />
+                    <span>Instagram Post</span>
+                  </div>
+                  <div className="instagram-fallback-body">
+                    <p>This Instagram post cannot be embedded right now.</p>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="instagram-fallback-link"
+                    >
+                      <LuExternalLink size={16} />
+                      View on Instagram
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                // Render normal embed
+                <div
+                  className="instagram-embed-content"
+                  dangerouslySetInnerHTML={{ __html: embedData.html }}
+                />
+              )}
+            </>
+          )}
 
         {hasCarousel && (
           <div className="ig-carousel-nav">

@@ -4,6 +4,7 @@ import {
   getCart,
   formatAmount,
   type Cart,
+  type CartItem,
   type ShippingOption,
   updateLineItem,
   removeLineItem,
@@ -219,7 +220,7 @@ export default function CheckoutPage() {
     <aside className="checkout-summary">
       <h2 className="checkout-section__title">Order Summary</h2>
       {/* Line items */}
-      {cart?.items?.map((li) => (
+      {cart?.items?.map((li: CartItem) => (
         <div key={li.id} className="cart-item">
           {li.thumbnail && <img className="cart-item__image" src={li.thumbnail} alt="" />}
           <div className="cart-item__details">

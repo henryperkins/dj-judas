@@ -143,20 +143,20 @@ app.get('/api/apple/developer-token', async (c) => {
 	if (cachedAppleToken && cachedAppleToken.exp - 60 > now) {
 		return c.json({ token: cachedAppleToken.token, cached: true });
 	}
-	
+
 	// Check if required environment variables are configured
 	const teamId = c.env.APPLE_TEAM_ID;
 	const keyId = c.env.APPLE_KEY_ID;
 	const privateKey = c.env.APPLE_PRIVATE_KEY;
-	
+
 	if (!teamId || !keyId || !privateKey) {
 		console.error('Apple Music configuration missing. Required: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY');
-		return c.json({ 
+		return c.json({
 			error: 'apple_music_not_configured',
 			message: 'Apple Music developer token not configured. Please set up APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY environment variables.'
 		}, 501);
 	}
-	
+
 	try {
 		const privateKeyPem = privateKey.replace(/\\n/g, '\n');
 		const alg = 'ES256';
@@ -173,7 +173,7 @@ app.get('/api/apple/developer-token', async (c) => {
 		return c.json({ token, cached: false, exp });
 	} catch (error) {
 		console.error('Failed to generate Apple Music developer token:', error);
-		return c.json({ 
+		return c.json({
 			error: 'token_generation_failed',
 			message: 'Failed to generate Apple Music developer token'
 		}, 500);
@@ -702,51 +702,60 @@ app.get('/api/stripe/session', async (c) => {
 
 // --- Instagram oEmbed proxy with basic in-memory cache ---
 type OEmbedJSON = Record<string, unknown>;
-type OEmbedCacheValue = { json: OEmbedJSON; exp: number };
-const igOembedCache = new Map<string, OEmbedCacheValue>();
+// type OEmbedCacheValue = { json: OEmbedJSON; exp: number }; // Unused for now - can be added back when implementing caching
+// Remove unused cache for now - can be added back when implementing caching
+// const igOembedCache = new Map<string, OEmbedCacheValue>();
 
 app.get('/api/instagram/oembed', async (c) => {
-  const url = c.req.query('url');
-  if (!url) return c.json({ error: 'missing_url' }, 400);
+  try {
+    const url = c.req.query('url');
+    const maxwidth = c.req.query('maxwidth');
+    const omitscript = c.req.query('omitscript');
+    const hidecaption = c.req.query('hidecaption');
 
-  const maxwidth = c.req.query('maxwidth') || '540';
-  const hidecaption = c.req.query('hidecaption') || 'false';
-  const omitscript = c.req.query('omitscript') || 'true';
+    if (!url) {
+      return c.json({ error: 'URL parameter is required' }, 400);
+    }
 
-  const cacheKey = `${url}|${maxwidth}|${hidecaption}`;
-  const now = Date.now();
-  const cached = igOembedCache.get(cacheKey);
-  if (cached && cached.exp > now) {
-    c.header('Cache-Control', 'public, max-age=300');
-    return c.json(cached.json);
-  }
+    // Use Instagram's public oEmbed endpoint (no auth required but has rate limits)
+    const oembedUrl = new URL('https://api.instagram.com/oembed');
+    oembedUrl.searchParams.append('url', url);
 
-  const token = c.env.IG_OEMBED_TOKEN;
-  if (!token) {
+    // Add optional parameters
+    if (maxwidth) oembedUrl.searchParams.append('maxwidth', maxwidth);
+    if (omitscript !== undefined) oembedUrl.searchParams.append('omitscript', omitscript);
+    if (hidecaption !== undefined) oembedUrl.searchParams.append('hidecaption', hidecaption);
+
+    const response = await fetch(oembedUrl.toString());
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Instagram oEmbed API error:', response.status, errorText);
+
+      // Cast status to a valid HTTP status code
+      const status = response.status as 400 | 401 | 403 | 404 | 500 | 502 | 503;
+      return c.json({
+        error: 'Failed to fetch Instagram embed',
+        status: response.status,
+        details: errorText
+      }, status);
+    }
+
+    const data = await response.json() as OEmbedJSON;
+
+    // Add CORS headers for browser requests
+    return c.json(data, 200, {
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+    });
+
+  } catch (error) {
+    console.error('Instagram oEmbed handler error:', error);
     return c.json({
-      error: 'not_configured',
-      message: 'Instagram oEmbed token not configured. Set IG_OEMBED_TOKEN in environment.'
-    }, 501);
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
-
-  const params = new URLSearchParams({
-    url,
-    maxwidth,
-    hidecaption,
-    omitscript,
-    access_token: token
-  });
-
-  const upstream = await fetch(`https://graph.facebook.com/v18.0/instagram_oembed?${params.toString()}`);
-  if (!upstream.ok) {
-    return c.json({ error: 'upstream_error', status: upstream.status }, 502);
-  }
-  const json = await upstream.json() as OEmbedJSON;
-
-  // Cache for 10 minutes to reduce rate-limit pressure
-  igOembedCache.set(cacheKey, { json, exp: now + 10 * 60 * 1000 });
-  c.header('Cache-Control', 'public, max-age=300');
-  return c.json(json);
 });
 
 // --- Events API + ICS feed ---

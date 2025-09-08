@@ -203,8 +203,8 @@ class SocialMetricsTracker {
     try {
       const res = await fetch('/api/metrics', { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error('Failed metrics fetch');
-      const data = await res.json();
-      const platforms: SocialPlatform[] = (data.platforms as unknown[]).map((p) => {
+      const data = await res.json() as { platforms?: unknown[]; totalReach?: number; topConversionSource?: string };
+      const platforms: SocialPlatform[] = (data.platforms || []).map((p) => {
         const item = p as { id: string; name: string; followers: number; engagement: number; lastUpdated: string };
         return {
           id: item.id,
@@ -215,9 +215,9 @@ class SocialMetricsTracker {
         };
       });
       return {
-        totalReach: data.totalReach as number,
+        totalReach: data.totalReach || 0,
         platforms,
-        topConversionSource: data.topConversionSource,
+        topConversionSource: data.topConversionSource || 'unknown',
         conversionRate: this.getConversionRate()
       };
   } catch {

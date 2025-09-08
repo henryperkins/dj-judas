@@ -9,7 +9,7 @@ export default function AdminHome() {
   const [auth, setAuth] = useState<boolean | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => setAuth(!!j?.authenticated))
+    fetch('/api/admin/session').then(r => r.json() as Promise<AdminSessionResponse>).then(j => setAuth(!!j?.authenticated))
   }, [])
 
   const logout = async () => {

@@ -1,6 +1,12 @@
-/// <reference path="../../worker-configuration.d.ts" />
 import { Hono } from "hono";
 import { SignJWT, importPKCS8 } from 'jose';
+
+// KVNamespace type for Cloudflare Workers
+interface KVNamespace {
+  get(key: string, options?: { type?: "text" | "json" | "arrayBuffer" | "stream" }): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  delete(key: string): Promise<void>;
+}
 
 interface SpotifySession {
 	codeVerifier?: string;
@@ -17,6 +23,8 @@ interface Env {
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
   IG_OEMBED_TOKEN?: string; // Facebook App access token for Instagram oEmbed
+  FB_PAGE_ID?: string; // Facebook Page ID for Graph API
+  FB_PAGE_TOKEN?: string; // Facebook Page access token
   RESEND_API_KEY?: string;
   RESEND_FROM?: string; // e.g., 'Ministry <no-reply@yourdomain>'
   RESEND_TO?: string;   // destination inbox
@@ -1114,6 +1122,188 @@ app.get('/api/instagram/media', async (c) => {
     return c.json({
       error: 'internal_error',
       message: 'Failed to fetch Instagram media'
+    }, 500);
+  }
+});
+
+// --- Dynamic Social Feed API ---
+app.get('/api/social/feed', async (c) => {
+  try {
+    const platforms = c.req.query('platforms')?.split(',') || ['instagram', 'facebook'];
+    const hashtags: string[] = c.req.query('hashtags')?.split(',').filter(Boolean) || [];
+    const limit = parseInt(c.req.query('limit') || '12');
+    const shoppable = c.req.query('shoppable') === 'true';
+    
+    const posts: any[] = [];
+    const errors: any[] = [];
+    
+    // Fetch Instagram posts if requested
+    if (platforms.includes('instagram')) {
+      const igToken = c.env.IG_OEMBED_TOKEN;
+      if (igToken) {
+        try {
+          // Get Instagram Business Account ID
+          const igUserId = c.req.query('ig_user_id') || '17841400000000000'; // Placeholder
+          const fields = 'id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count';
+          
+          const graphUrl = new URL(`https://graph.facebook.com/v18.0/${igUserId}/media`);
+          graphUrl.searchParams.append('fields', fields);
+          graphUrl.searchParams.append('limit', limit.toString());
+          graphUrl.searchParams.append('access_token', igToken);
+          
+          const response = await fetch(graphUrl.toString());
+          if (response.ok) {
+            const data = await response.json() as { data?: Array<{
+              id: string;
+              media_type: string;
+              media_url: string;
+              thumbnail_url?: string;
+              permalink: string;
+              caption?: string;
+              timestamp: string;
+              like_count?: number;
+              comments_count?: number;
+            }> };
+            
+            if (data.data) {
+              for (const item of data.data) {
+                const post = {
+                  id: `ig_${item.id}`,
+                  platform: 'instagram' as const,
+                  type: item.media_type.toLowerCase() as any,
+                  mediaUrl: item.media_url,
+                  thumbnailUrl: item.thumbnail_url,
+                  caption: item.caption || '',
+                  permalink: item.permalink,
+                  timestamp: item.timestamp,
+                  likes: item.like_count,
+                  comments: item.comments_count,
+                  shares: 0, // Instagram doesn't provide share count via API
+                  isShoppable: false,
+                  products: undefined,
+                  hashtags: item.caption ? item.caption.match(/#\w+/g) || [] : [],
+                  mentions: item.caption ? item.caption.match(/@\w+/g) || [] : []
+                };
+                
+                // Filter by hashtags if specified
+                if (hashtags.length === 0) {
+                  posts.push(post);
+                } else {
+                  const postHashtags = post.hashtags as string[];
+                  if (postHashtags && hashtags.some(tag => postHashtags.includes(`#${tag}`))) {
+                    posts.push(post);
+                  }
+                }
+              }
+            }
+          }
+        } catch (err) {
+          errors.push({ platform: 'instagram', error: (err as Error).message });
+        }
+      }
+    }
+    
+    // Fetch Facebook posts if requested
+    if (platforms.includes('facebook')) {
+      const fbPageId = c.env.FB_PAGE_ID;
+      const fbToken = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN; // Can use same token
+      
+      if (fbPageId && fbToken) {
+        try {
+          const fields = 'id,message,full_picture,permalink_url,created_time,likes.summary(true),comments.summary(true),shares';
+          const graphUrl = new URL(`https://graph.facebook.com/v18.0/${fbPageId}/posts`);
+          graphUrl.searchParams.append('fields', fields);
+          graphUrl.searchParams.append('limit', limit.toString());
+          graphUrl.searchParams.append('access_token', fbToken);
+          
+          const response = await fetch(graphUrl.toString());
+          if (response.ok) {
+            const data = await response.json() as { data?: Array<{
+              id: string;
+              message?: string;
+              full_picture?: string;
+              permalink_url: string;
+              created_time: string;
+              likes?: { summary: { total_count: number } };
+              comments?: { summary: { total_count: number } };
+              shares?: { count: number };
+            }> };
+            
+            if (data.data) {
+              for (const item of data.data) {
+                const post = {
+                  id: `fb_${item.id}`,
+                  platform: 'facebook' as const,
+                  type: 'photo' as const, // Simplified - would need additional logic for video detection
+                  mediaUrl: item.full_picture || '',
+                  thumbnailUrl: item.full_picture,
+                  caption: item.message || '',
+                  permalink: item.permalink_url,
+                  timestamp: item.created_time,
+                  likes: item.likes?.summary.total_count,
+                  comments: item.comments?.summary.total_count,
+                  shares: item.shares?.count,
+                  isShoppable: false,
+                  products: undefined,
+                  hashtags: item.message ? item.message.match(/#\w+/g) || [] : [],
+                  mentions: item.message ? item.message.match(/@\w+/g) || [] : []
+                };
+                
+                // Filter by hashtags if specified
+                if (hashtags.length === 0) {
+                  posts.push(post);
+                } else {
+                  const postHashtags = post.hashtags as string[];
+                  if (postHashtags && hashtags.some(tag => postHashtags.includes(`#${tag}`))) {
+                    posts.push(post);
+                  }
+                }
+              }
+            }
+          }
+        } catch (err) {
+          errors.push({ platform: 'facebook', error: (err as Error).message });
+        }
+      }
+    }
+    
+    // Add shoppable data if requested (would integrate with Medusa)
+    if (shoppable && posts.length > 0) {
+      // This would connect to your Medusa backend to tag products
+      // For now, we'll add demo shoppable data to some posts
+      const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
+      for (const post of shoppablePosts) {
+        post.isShoppable = true;
+        post.products = [
+          {
+            id: 'prod_demo_1',
+            title: 'Limited Edition Vinyl',
+            price: 39.99,
+            imageUrl: '/api/placeholder/150/150',
+            productUrl: '/products/vinyl-001',
+            x: 30,
+            y: 40
+          }
+        ];
+      }
+    }
+    
+    // Sort by timestamp (newest first)
+    posts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    // Limit results
+    const limitedPosts = posts.slice(0, limit);
+    
+    return c.json({
+      posts: limitedPosts,
+      errors: errors.length > 0 ? errors : undefined,
+      nextCursor: posts.length > limit ? posts[limit].id : null
+    });
+  } catch (error) {
+    console.error('Social feed error:', error);
+    return c.json({
+      posts: [],
+      error: 'Failed to fetch social feed'
     }, 500);
   }
 });

@@ -49,7 +49,7 @@ export default function CheckoutPage() {
     if (saved) { setCartId(saved); return }
     setBusy(true)
     fetch(`${MEDUSA_URL}/store/carts`, { method: 'POST', headers })
-      .then(r => r.json())
+      .then(r => r.json() as Promise<{ cart?: { id: string } }>)
       .then(d => {
         const id = d?.cart?.id
         if (id) { localStorage.setItem('medusa_cart_id', id); setCartId(id) }
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
     // Ensure payment sessions exist (no-op if already created)
     try { await createPaymentSessions(cartId) } catch { /* ignore */ }
     const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/complete`, { method: 'POST', headers })
-    const json = await res.json()
+    const json = await res.json() as { type?: string; order?: { id?: string }; data?: { id?: string }; id?: string };
     setBusy(false)
     if (json?.type === 'order') {
       const oid = json?.order?.id || json?.data?.id || json?.id
@@ -130,11 +130,21 @@ export default function CheckoutPage() {
     try {
       await createPaymentSessions(cartId);
       const cart = await getCart(cartId);
-      const stripeProvider = cart?.payment_sessions?.find(
-        (ps: any) => ps.provider_id === "stripe"
+      if (!cart) {
+        setMsg("Cart not found");
+        return;
+      }
+      // Check if cart has payment sessions
+      interface CartWithSessions extends Cart {
+        payment_sessions?: Array<{ provider_id: string }>;
+      }
+      const cartWithSessions = cart as CartWithSessions;
+      const stripeProvider = cartWithSessions?.payment_sessions?.find(
+        (ps: { provider_id: string }) => ps.provider_id === "stripe"
       );
       if (stripeProvider) {
-        await sdk.store.cart.selectPaymentSession(cartId, {
+        // Use the initiatePaymentSession instead of non-existent setPaymentProvider
+        await sdk.store.payment.initiatePaymentSession(cart, {
           provider_id: "stripe",
         });
         const res = await sdk.store.cart.complete(cartId);

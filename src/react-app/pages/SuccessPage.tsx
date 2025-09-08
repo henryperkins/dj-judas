@@ -21,8 +21,8 @@ export default function SuccessPage() {
     if (oid) setOrderId(oid)
     if (!sessionId) return
     fetch(`/api/stripe/session?session_id=${encodeURIComponent(sessionId)}`)
-      .then(r => r.ok ? r.json() : r.json().catch(() => ({})).then(j => Promise.reject(j.error || 'Failed to load session')))
-      .then(setInfo)
+      .then(r => r.ok ? r.json() as Promise<SessionInfo> : r.json().catch(() => ({})).then((j: { error?: string }) => Promise.reject(j.error || 'Failed to load session')))
+      .then(data => setInfo(data))
       .catch((e) => setError(typeof e === 'string' ? e : 'Failed to load session'))
   }, [])
 

@@ -1982,6 +1982,891 @@ body.mobile-nav-visible {
   font-size: 0.875rem;
 }
 
+/* =================================================================
+   5.21 DYNAMIC SOCIAL FEED
+   ================================================================= */
+.dynamic-social-feed {
+  padding: 2rem 0;
+}
+
+.feed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.feed-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.feed-notice {
+  background: hsl(var(--muted));
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+}
+
+/* Grid Layout */
+.social-feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .social-feed-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .social-feed-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Post Card */
+.social-post-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.social-post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-2);
+}
+
+.social-post-card.shoppable {
+  border-color: hsl(var(--accent) / 0.3);
+}
+
+/* Post Header */
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--muted) / 0.5);
+}
+
+.platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.platform-badge.instagram {
+  background: linear-gradient(135deg, hsl(var(--brand-instagram-start)), hsl(var(--brand-instagram-end)));
+  color: white;
+}
+
+.platform-badge.facebook {
+  background: hsl(var(--brand-facebook));
+  color: white;
+}
+
+.shoppable-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  background: hsl(var(--success));
+  color: white;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Post Media */
+.post-media {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.post-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.social-post-card:hover .post-media img {
+  transform: scale(1.05);
+}
+
+/* Product Tags */
+.product-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.product-tag {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border: 2px solid hsl(var(--accent));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.product-tag:hover,
+.product-tag.active {
+  transform: translate(-50%, -50%) scale(1.2);
+  background: hsl(var(--accent));
+  color: white;
+}
+
+.product-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  min-width: 150px;
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+}
+
+.product-tooltip img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.product-info {
+  text-align: left;
+}
+
+.product-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.product-price {
+  font-size: 0.9rem;
+  color: hsl(var(--accent));
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Media Type Indicator */
+.media-type-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  pointer-events: none;
+}
+
+/* Post Engagement */
+.post-engagement {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.engagement-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0;
+}
+
+.engagement-btn:hover {
+  color: hsl(var(--accent));
+}
+
+.engagement-btn span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Post Caption */
+.post-caption {
+  padding: 1rem;
+}
+
+.post-caption p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+}
+
+/* Stories Layout */
+.social-feed-stories {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.story-bubble {
+  position: relative;
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, hsl(var(--brand-instagram-start)), hsl(var(--brand-instagram-end))) border-box;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.story-bubble:hover {
+  transform: scale(1.05);
+}
+
+.story-bubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.story-platform {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 2px solid white;
+}
+
+/* Loading State */
+.social-feed-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.social-feed-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid hsl(var(--border));
+  border-top-color: hsl(var(--accent));
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+/* Lightbox Modal */
+.social-post-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 800px;
+  width: 100%;
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.lightbox-content .close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s ease;
+}
+
+.lightbox-content .close-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.lightbox-content img {
+  width: 100%;
+  height: auto;
+}
+
+.lightbox-info {
+  padding: 1.5rem;
+}
+
+.lightbox-info p {
+  margin: 0 0 1rem 0;
+  color: hsl(var(--foreground));
+  line-height: 1.6;
+}
+
+.view-original {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: hsl(var(--accent));
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.view-original:hover {
+  text-decoration: underline;
+}
+
+/* =================================================================
+   5.22 FACEBOOK EVENTS
+   ================================================================= */
+.facebook-events {
+  padding: 2rem 0;
+}
+
+.events-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.events-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.events-notice {
+  background: hsl(var(--muted));
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+}
+
+.events-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* List Layout */
+.fb-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.event-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.event-card.canceled {
+  opacity: 0.6;
+}
+
+.event-cover {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.event-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.canceled-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.event-details {
+  padding: 1.5rem;
+}
+
+.event-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: hsl(var(--accent));
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.event-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.75rem 0;
+}
+
+.event-description {
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.event-location {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: hsl(var(--foreground));
+  font-size: 0.9rem;
+}
+
+.event-location .city {
+  color: hsl(var(--muted-foreground));
+}
+
+.online-badge {
+  display: inline-flex;
+  padding: 0.25rem 0.75rem;
+  background: hsl(var(--success));
+  color: white;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.event-stats {
+  display: flex;
+  gap: 1rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.85rem;
+}
+
+.event-stats .stat {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.event-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Grid Layout */
+.fb-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.event-grid-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.event-grid-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.event-grid-cover {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.event-grid-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.canceled-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.75rem;
+  background: hsl(var(--destructive));
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.online-indicator {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.25rem 0.75rem;
+  background: hsl(var(--success));
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.event-grid-content {
+  padding: 1rem;
+}
+
+.event-grid-date {
+  color: hsl(var(--accent));
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.event-grid-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.event-grid-location {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.event-grid-stats {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.85rem;
+}
+
+/* Timeline Layout */
+.fb-events-timeline {
+  position: relative;
+  padding-left: 3rem;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -3rem;
+  width: 40px;
+  height: 40px;
+  background: hsl(var(--accent));
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.timeline-line {
+  position: absolute;
+  left: -1.3rem;
+  top: 40px;
+  width: 2px;
+  height: calc(100% + 2rem);
+  background: hsl(var(--border));
+  z-index: 1;
+}
+
+.timeline-date {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.timeline-card:hover {
+  box-shadow: var(--shadow-1);
+}
+
+.timeline-card h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.timeline-location {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* Compact Layout */
+.fb-events-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.compact-event {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.compact-event:hover {
+  background: hsl(var(--muted) / 0.5);
+  transform: translateX(4px);
+}
+
+.compact-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 0.5rem;
+  background: hsl(var(--accent));
+  color: white;
+  border-radius: 8px;
+}
+
+.compact-date .day {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.compact-date .month {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.compact-info h5 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.compact-info p {
+  font-size: 0.85rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* Event Modal */
+.event-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  position: relative;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-cover {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.modal-body h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+}
+
+.modal-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  color: hsl(var(--foreground));
+}
+
+.modal-meta > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.address {
+  margin-left: 1.5rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+}
+
+.modal-description {
+  line-height: 1.6;
+  color: hsl(var(--foreground));
+  margin-bottom: 2rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Loading State */
+.fb-events-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.fb-events-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid hsl(var(--border));
+  border-top-color: hsl(var(--accent));
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
 /* Enhanced Spotify Embed Styling */
 .spotify-embed-wrapper {
   background: hsl(var(--card));

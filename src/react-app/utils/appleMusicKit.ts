@@ -100,7 +100,7 @@ class AppleMusicKitManager {
         throw new Error(`Failed to fetch developer token: ${res.status}`);
       }
       
-      const data = await res.json();
+      const data = await res.json() as { token?: string };
       if (!data.token) {
         throw new Error('Developer token not configured on server');
       }

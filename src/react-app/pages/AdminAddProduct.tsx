@@ -106,7 +106,7 @@ export default function AdminAddProduct() {
   }
 
   useEffect(() => {
-    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => setAuth(!!j?.authenticated))
+    fetch('/api/admin/session').then(r => r.json() as Promise<AdminSessionResponse>).then(j => setAuth(!!j?.authenticated))
   }, [])
 
   const slug = useMemo(() => title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), [title])

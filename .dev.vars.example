@@ -1,0 +1,42 @@
+# Worker Environment Variables for Development
+# Copy this to .dev.vars and update with your actual values
+
+# Spotify OAuth
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+
+# Apple Music
+APPLE_TEAM_ID=your_apple_team_id
+APPLE_KEY_ID=your_apple_key_id
+APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----
+your_apple_private_key_here
+-----END PRIVATE KEY-----
+
+# Instagram oEmbed
+IG_OEMBED_TOKEN=your_instagram_token
+
+# Email Service (Choose one)
+# Option 1: Resend
+RESEND_API_KEY=re_your_api_key
+RESEND_FROM=DJ Judas <noreply@djjudas.com>
+RESEND_TO=bookings@djjudas.com
+
+# Option 2: SendGrid
+# SENDGRID_API_KEY=SG.your_api_key
+# SENDGRID_FROM=noreply@djjudas.com
+# SENDGRID_TO=bookings@djjudas.com
+
+# Site URL (for callbacks and redirects)
+SITE_URL=http://localhost:5173
+
+# Medusa Admin Proxy
+MEDUSA_URL=http://localhost:9000
+
+# Cloudflare Images
+CF_IMAGES_ACCOUNT_ID=your_account_id
+CF_IMAGES_API_TOKEN=your_api_token
+CF_IMAGES_VARIANT=public
+CF_IMAGES_VARIANT_THUMB=thumb
+CF_IMAGES_VARIANT_LARGE=large
+
+# AI (Optional - for product suggestions)
+OPENAI_API_KEY=sk-your_openai_key

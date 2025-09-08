@@ -3,6 +3,14 @@ import { navigate } from '../utils/nav'
 
 type Product = { id: string; title: string; status?: string; thumbnail?: string | null; handle?: string }
 
+interface AdminSessionResponse {
+  authenticated?: boolean;
+}
+
+interface ProductsResponse {
+  products: Product[];
+}
+
 export default function AdminProductsList() {
   const [auth, setAuth] = useState<boolean | null>(null)
   const [items, setItems] = useState<Product[]>([])
@@ -17,12 +25,12 @@ export default function AdminProductsList() {
     const res = await fetch(u.toString())
     setLoading(false)
     if (!res.ok) return
-    const j = await res.json()
+    const j = await res.json() as ProductsResponse;
     setItems(j?.products || [])
   }
 
   useEffect(() => {
-    fetch('/api/admin/session').then(r => r.json()).then(j => {
+    fetch('/api/admin/session').then(r => r.json() as Promise<AdminSessionResponse>).then(j => {
       const ok = !!j?.authenticated
       setAuth(ok)
       if (ok) load()

@@ -17,7 +17,7 @@ export default function AdminLogin() {
 
   useEffect(() => {
     // If already authenticated, redirect to admin home
-    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => {
+    fetch('/api/admin/session').then(r => r.json() as Promise<AdminSessionResponse>).then(j => {
       if (j?.authenticated) navigate('/admin')
     })
   }, [])

@@ -31,11 +31,11 @@ export default function AdminEditProduct(props: { id: string }) {
   const [uploads, setUploads] = useState<Array<{ name: string; progress: number; status: 'uploading'|'done'|'error' }>>([])
 
   useEffect(() => {
-    fetch('/api/admin/session').then(r => r.json()).then((j: AdminSessionResponse) => setAuth(!!j?.authenticated))
+    fetch('/api/admin/session').then(r => r.json() as Promise<AdminSessionResponse>).then(j => setAuth(!!j?.authenticated))
   }, [])
 
   useEffect(() => {
-    if (auth) fetch(`/api/admin/products/${id}`).then(r => r.json()).then((j: ProductResponse) => setP(j?.product || j || null))
+    if (auth) fetch(`/api/admin/products/${id}`).then(r => r.json() as Promise<ProductResponse>).then(j => setP(j?.product || j || null))
   }, [auth, id])
 
   const save = async () => {
@@ -90,7 +90,7 @@ export default function AdminEditProduct(props: { id: string }) {
     const cents = Math.round(parseFloat(price) * 100) || 0
     setBusy(true)
     fetch(`/api/admin/products/${p.id}/variants`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, prices: [{ amount: cents, currency_code: 'usd' }] }) })
-      .then(() => fetch(`/api/admin/products/${id}`).then(r => r.json()).then((j: ProductResponse) => setP(j?.product || j || null)))
+      .then(() => fetch(`/api/admin/products/${id}`).then(r => r.json() as Promise<ProductResponse>).then(j => setP(j?.product || j || null)))
       .finally(() => setBusy(false))
   }
 
@@ -109,7 +109,7 @@ export default function AdminEditProduct(props: { id: string }) {
     if (!confirm('Delete this variant?')) return
     setBusy(true)
     await fetch(`/api/admin/variants/${variantId}`, { method: 'DELETE' })
-    await fetch(`/api/admin/products/${id}`).then(r => r.json()).then((j: ProductResponse) => setP(j?.product || j || null))
+    await fetch(`/api/admin/products/${id}`).then(r => r.json() as Promise<ProductResponse>).then(j => setP(j?.product || j || null))
     setBusy(false)
   }
 

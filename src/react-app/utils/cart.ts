@@ -16,7 +16,7 @@ export async function ensureCart(): Promise<string | null> {
   const existing = getCartId()
   if (existing) return existing
   const res = await fetch(`${MEDUSA_URL}/store/carts`, { method: 'POST', headers })
-  const json = await res.json()
+  const json = await res.json() as { cart?: { id?: string } };
   const id = json?.cart?.id || null
   if (id) localStorage.setItem('medusa_cart_id', id)
   return id
@@ -48,7 +48,7 @@ export async function fetchProducts(limit = 12) {
   url.searchParams.set('limit', String(limit))
   url.searchParams.set('status', 'published')
   const res = await fetch(url.toString(), { headers: PUB ? { 'x-publishable-api-key': PUB } : undefined })
-  return res.json()
+  return res.json() as Promise<{ products: Product[] }>
 }
 
 export type CartItem = {
@@ -81,7 +81,7 @@ export async function getCart(id?: string | null): Promise<Cart | null> {
   if (!cartId) return null
   const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}`, { headers })
   if (!res.ok) return null
-  const json = await res.json()
+  const json = await res.json() as { cart?: Cart };
   return json?.cart ?? null
 }
 
@@ -124,8 +124,8 @@ export async function listShippingOptions(cartId: string): Promise<ShippingOptio
     res = await fetch(u.toString(), { headers })
   }
   if (!res.ok) return []
-  const json = await res.json()
-  return json?.shipping_options || json || []
+  const json = await res.json() as { shipping_options?: ShippingOption[] } | ShippingOption[];
+  return (json as { shipping_options?: ShippingOption[] })?.shipping_options || (json as ShippingOption[]) || []
 }
 
 export async function createPaymentSessions(cartId: string): Promise<boolean> {

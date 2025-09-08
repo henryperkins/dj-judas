@@ -90,11 +90,12 @@ const MusicHub: React.FC<MusicHubProps> = ({
 
   const trackEngagement = (action: string, data: EngagementData) => {
     console.log('Track engagement:', action, data);
-    interface GtagWindow extends Window {
+    // Define gtag on window interface
+    const gtagWindow = window as Window & {
       gtag?: (command: string, eventName: string, parameters: Record<string, unknown>) => void;
-    }
-    if (typeof window !== 'undefined' && (window as GtagWindow).gtag) {
-      (window as GtagWindow).gtag('event', action, {
+    };
+    if (typeof window !== 'undefined' && gtagWindow.gtag) {
+      gtagWindow.gtag('event', action, {
         event_category: 'Music Hub',
         event_label: data.trackTitle || '',
         ...data

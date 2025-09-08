@@ -145,39 +145,54 @@ const EnhancedLandingPageV2: React.FC = () => {
         {/* Featured Products (Medusa) */}
         <FeaturedProducts />
 
-        {/* Booking CTA to dedicated page */}
-        <section id="booking" className="booking-section">
+        {/* Booking CTA - Minimal mobile-first design */}
+        <section id="booking" className="booking-section-minimal">
           <div className="container">
-            <h2 className="section-title">Book Us</h2>
-            <p className="section-subtitle" style={{ marginBottom: '1rem' }}>Quick form. Friendly follow-up within 24 hours.</p>
-            <Button size="lg" onClick={() => navigate('/book')}>Open Booking Form</Button>
+            <div className="booking-content">
+              <h2 className="booking-title">Book Us</h2>
+              <p className="booking-subtitle">Quick form • 24hr response</p>
+              <Button 
+                className="booking-cta-button" 
+                onClick={() => navigate('/book')}
+                aria-label="Open booking form"
+              >
+                Start Booking
+              </Button>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="site-footer">
+      {/* Footer - Mobile-first minimal design */}
+      <footer className="site-footer-minimal">
         <div className="container">
-          <div className="footer-content">
-            <div className="footer-info">
-              <img src={logoImage} alt="DJ Lee & Voices of Judah" className="footer-logo" style={{ maxWidth: '200px', marginBottom: '1rem' }} />
-              <h3>DJ Lee & Voices of Judah</h3>
-              <p>Spreading the Gospel Through Music</p>
+          <div className="footer-main">
+            {/* Logo and brand */}
+            <div className="footer-brand">
+              <img 
+                src={logoImage} 
+                alt="DJ Lee & Voices of Judah" 
+                className="footer-logo" 
+                loading="lazy"
+              />
+              <h3 className="footer-title">DJ Lee & Voices of Judah</h3>
+              <p className="footer-tagline">Gospel Ministry • Est. 2008</p>
             </div>
-            <div className="footer-links">
-              <a href="#about">About</a>
-              <a href="#music">Music</a>
-              <a href="#services">Services</a>
-              <a href="/book" data-nav>Contact</a>
-            </div>
-            <div className="footer-social">
-              <p>Follow us on social media</p>
-              {/* Avoid duplicating the Connect & Listen block: it's already rendered above for desktop
-                  and available via FAB on mobile. Omit inline launcher here. */}
-            </div>
+
+            {/* Quick links - horizontal on mobile */}
+            <nav className="footer-nav" aria-label="Footer navigation">
+              <a href="#about" className="footer-link">About</a>
+              <a href="#media" className="footer-link">Media</a>
+              <a href="#services" className="footer-link">Services</a>
+              <a href="/book" data-nav className="footer-link">Book</a>
+            </nav>
           </div>
+
+          {/* Copyright - minimal */}
           <div className="footer-bottom">
-            <p>&copy; {new Date().getFullYear()} DJ Lee & Voices of Judah. All rights reserved.</p>
+            <p className="footer-copyright">
+              © {new Date().getFullYear()} DJ Lee & VOJ
+            </p>
           </div>
         </div>
       </footer>

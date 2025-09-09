@@ -147,12 +147,18 @@
 4. Update `.dev.vars`:
    ```
    IG_OEMBED_TOKEN=your_token
+   FB_PAGE_ID=your_page_id
+   FB_PAGE_TOKEN=your_page_access_token
    ```
 5. Update `.env.local` for tracking:
    ```
    VITE_FACEBOOK_APP_ID=your_app_id
    VITE_FACEBOOK_PIXEL_ID=your_pixel_id
    ```
+6. Optional: verify Events API
+   - Start the Worker locally: `wrangler dev --local`
+   - Hit `http://localhost:8788/api/facebook/events?limit=3`
+   - If not configured, it falls back to `/api/events` (static `public/content/events.json`).
 
 ### 5. Cloudflare Images (Product Photos)
 

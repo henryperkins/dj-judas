@@ -97,10 +97,16 @@ class AppleMusicKitManager {
     try {
       const res = await fetch('/api/apple/developer-token');
       if (!res.ok) {
-        throw new Error(`Failed to fetch developer token: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to fetch developer token: ${res.status}`);
       }
       
-      const data = await res.json() as { token?: string };
+      const data = await res.json() as { token?: string; error?: string; message?: string };
+      
+      if (data.error) {
+        throw new Error(data.message || 'Apple Music configuration error');
+      }
+      
       if (!data.token) {
         throw new Error('Developer token not configured on server');
       }
@@ -112,7 +118,16 @@ class AppleMusicKitManager {
       return data.token;
     } catch (error) {
       console.error('Apple Music developer token fetch error:', error);
-      throw error;
+      // Provide more user-friendly error message
+      if (error instanceof Error) {
+        if (error.message.includes('not configured')) {
+          throw new Error('Apple Music integration is not configured. Please contact the site administrator.');
+        }
+        if (error.message.includes('placeholder values')) {
+          throw new Error('Apple Music credentials need to be set up. Please contact the site administrator.');
+        }
+      }
+      throw new Error('Failed to initialize Apple Music. Please try again later.');
     }
   }
 

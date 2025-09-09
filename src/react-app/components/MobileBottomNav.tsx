@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart } from 'react-icons/lu';
+import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart, LuUsers } from 'react-icons/lu';
 import { navigate } from '../utils/nav';
 
 
@@ -39,6 +39,12 @@ const defaultNavItems: NavItem[] = [
     icon: LuCalendar,
     label: 'Events',
     href: '#events'
+  },
+  {
+    id: 'social',
+    icon: LuUsers,
+    label: 'Social',
+    action: () => navigate('/social')
   },
   {
     id: 'shop',

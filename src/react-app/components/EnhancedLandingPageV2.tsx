@@ -11,6 +11,8 @@ import FeaturedProducts from './FeaturedProducts';
 import MobileBottomNav from './MobileBottomNav';
 import EventGrid from './events/EventGrid';
 import NextEventBanner from './events/NextEventBanner';
+import DynamicSocialFeed from './social/DynamicSocialFeed';
+import FacebookEvents from './social/FacebookEvents';
 import { isMobileDevice } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
 import logoImage from '../assets/images/logo.jpeg';
@@ -89,7 +91,25 @@ const EnhancedLandingPageV2: React.FC = () => {
         <NextEventBanner />
 
         {/* Events Section first for quick access */}
-        <EventGrid />
+        <section id="events" className="events-section">
+          <div className="container">
+            <h2 className="section-title">Upcoming Events</h2>
+            
+            {/* Facebook Events Integration */}
+            <div className="facebook-events-wrapper">
+              <FacebookEvents 
+                layout="grid"
+                limit={3}
+                showPastEvents={false}
+                autoRefresh={true}
+                refreshInterval={1800}
+              />
+            </div>
+            
+            {/* Original Event Grid as fallback */}
+            <EventGrid />
+          </div>
+        </section>
 
         {/* Stats Section moved below events */}
         <StatsSection />
@@ -127,7 +147,36 @@ const EnhancedLandingPageV2: React.FC = () => {
         </section>
 
 
-        {/* Social Section removed as per request */}
+        {/* Dynamic Social Feed - New shoppable posts and events */}
+        <section id="social" className="social-section">
+          <div className="container">
+            <h2 className="section-title">Latest Updates</h2>
+            <p className="section-subtitle">Follow our journey on social media</p>
+            
+            {/* Shoppable Instagram Feed */}
+            <div className="social-feed-wrapper">
+              <DynamicSocialFeed 
+                platforms={['instagram']}
+                layout="grid"
+                limit={6}
+                enableShoppable={true}
+                autoRefresh={true}
+                refreshInterval={300}
+              />
+            </div>
+            
+            {/* View More Link */}
+            <div className="social-cta">
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/social')}
+                className="view-all-social"
+              >
+                View All Social Updates →
+              </Button>
+            </div>
+          </div>
+        </section>
 
         {/* Gallery Section - Lazy loaded */}
         <section id="gallery" className="gallery-section">

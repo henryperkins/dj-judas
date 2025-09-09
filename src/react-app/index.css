@@ -2309,6 +2309,45 @@ body.mobile-nav-visible {
   margin-bottom: 1rem;
 }
 
+/* Landing Page Social Integration */
+.social-section {
+  padding: 4rem 0;
+  background: hsl(var(--background));
+}
+
+.social-section .section-subtitle {
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 2rem;
+}
+
+.social-feed-wrapper {
+  margin-bottom: 2rem;
+}
+
+.social-cta {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.view-all-social {
+  font-weight: 600;
+  transition: transform 0.2s ease;
+}
+
+.view-all-social:hover {
+  transform: translateX(4px);
+}
+
+.facebook-events-wrapper {
+  margin-bottom: 2rem;
+}
+
+.events-section .section-title {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
 /* Lightbox Modal */
 .social-post-lightbox {
   position: fixed;

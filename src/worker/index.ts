@@ -49,14 +49,26 @@ app.get("/api/", (c) => c.json({ name: "Cloudflare" }));
 
 // Real aggregated social metrics endpoint with caching
 app.get('/api/metrics', async (c) => {
-	// Check cache first
+	// Check cache first (guard if KV not bound in local dev build)
 	const cacheKey = 'social_metrics:aggregate';
-	const cached = await c.env.SESSIONS.get(cacheKey);
-	if (cached) {
-		return c.json(JSON.parse(cached), 200, {
-			'Cache-Control': 'public, max-age=900',
-			'X-Cache': 'HIT'
-		});
+	let kvGet: ((key: string) => Promise<string | null>) | null = null;
+	let kvPut: ((key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void>) | null = null;
+	try {
+		const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+		kvGet = kv?.get?.bind(kv) ?? null;
+		kvPut = kv?.put?.bind(kv) ?? null;
+	} catch {}
+
+	if (kvGet) {
+		try {
+			const cached = await kvGet(cacheKey);
+			if (cached) {
+				return c.json(JSON.parse(cached), 200, {
+					'Cache-Control': 'public, max-age=900',
+					'X-Cache': 'HIT'
+				});
+			}
+		} catch {}
 	}
 
 	const metrics = {
@@ -157,12 +169,12 @@ app.get('/api/metrics', async (c) => {
 	);
 	metrics.topConversionSource = topPlatform.id;
 
-	// Cache for 15 minutes
-	await c.env.SESSIONS.put(
-		cacheKey,
-		JSON.stringify(metrics),
-		{ expirationTtl: 900 }
-	);
+	// Cache for 15 minutes if KV available
+	try {
+		if (kvPut) {
+			await kvPut(cacheKey, JSON.stringify(metrics), { expirationTtl: 900 });
+		}
+	} catch {}
 
 	return c.json(metrics, 200, {
 		'Cache-Control': 'public, max-age=900',
@@ -296,45 +308,57 @@ app.get('/api/spotify/session', async (c) => {
 // Apple Developer Token (ES256). Cache in memory until near expiry.
 let cachedAppleToken: { token: string; exp: number } | null = null;
 app.get('/api/apple/developer-token', async (c) => {
-	const now = Math.floor(Date.now() / 1000);
-	if (cachedAppleToken && cachedAppleToken.exp - 60 > now) {
-		return c.json({ token: cachedAppleToken.token, cached: true });
-	}
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedAppleToken && cachedAppleToken.exp - 60 > now) {
+    return c.json({ token: cachedAppleToken.token, cached: true });
+  }
 
-	// Check if required environment variables are configured
-	const teamId = c.env.APPLE_TEAM_ID;
-	const keyId = c.env.APPLE_KEY_ID;
-	const privateKey = c.env.APPLE_PRIVATE_KEY;
+  // Check if required environment variables are configured
+  const teamId = c.env.APPLE_TEAM_ID;
+  const keyId = c.env.APPLE_KEY_ID;
+  const privateKey = c.env.APPLE_PRIVATE_KEY;
 
-	if (!teamId || !keyId || !privateKey) {
-		console.error('Apple Music configuration missing. Required: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY');
-		return c.json({
-			error: 'apple_music_not_configured',
-			message: 'Apple Music developer token not configured. Please set up APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY environment variables.'
-		}, 501);
-	}
+  if (!teamId || !keyId || !privateKey) {
+    console.error('Apple Music configuration missing. Required: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY');
+    return c.json({
+      error: 'apple_music_not_configured',
+      message: 'Apple Music developer token not configured. Please set up APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY environment variables in your .dev.vars file.',
+      documentation: 'https://developer.apple.com/documentation/applemusicapi/getting_keys_and_creating_tokens'
+    }, 501);
+  }
 
-	try {
-		const privateKeyPem = privateKey.replace(/\\n/g, '\n');
-		const alg = 'ES256';
-		const iat = now;
-		const exp = iat + 60 * 60 * 12; // 12h validity (max 6 months allowed; keep shorter)
-		const pk = await importPKCS8(privateKeyPem, alg);
-		const token = await new SignJWT({})
-			.setProtectedHeader({ alg, kid: keyId })
-			.setIssuedAt(iat)
-			.setExpirationTime(exp)
-			.setIssuer(teamId)
-			.sign(pk);
-		cachedAppleToken = { token, exp };
-		return c.json({ token, cached: false, exp });
-	} catch (error) {
-		console.error('Failed to generate Apple Music developer token:', error);
-		return c.json({
-			error: 'token_generation_failed',
-			message: 'Failed to generate Apple Music developer token'
-		}, 500);
-	}
+  // Check if the values are still the placeholder values
+  if (teamId.includes('your_apple_team_id') || keyId.includes('your_apple_key_id') || privateKey.includes('your_apple_private_key')) {
+    console.error('Apple Music configuration uses placeholder values');
+    return c.json({
+      error: 'apple_music_not_configured',
+      message: 'Apple Music developer token configuration uses placeholder values. Please replace with actual Apple Music credentials.',
+      documentation: 'https://developer.apple.com/documentation/applemusicapi/getting_keys_and_creating_tokens'
+    }, 501);
+  }
+
+  try {
+    const privateKeyPem = privateKey.replace(/\\n/g, '\n');
+    const alg = 'ES256';
+    const iat = now;
+    const exp = iat + 60 * 60 * 12; // 12h validity (max 6 months allowed; keep shorter)
+    const pk = await importPKCS8(privateKeyPem, alg);
+    const token = await new SignJWT({})
+      .setProtectedHeader({ alg, kid: keyId })
+      .setIssuedAt(iat)
+      .setExpirationTime(exp)
+      .setIssuer(teamId)
+      .sign(pk);
+    cachedAppleToken = { token, exp };
+    return c.json({ token, cached: false, exp });
+  } catch (error) {
+    console.error('Failed to generate Apple Music developer token:', error);
+    return c.json({
+      error: 'token_generation_failed',
+      message: 'Failed to generate Apple Music developer token. Please check your private key format.',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
 });
 
 async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null): Promise<SpotifySession | null> {
@@ -1267,26 +1291,64 @@ app.get('/api/social/feed', async (c) => {
       }
     }
     
-    // Add shoppable data if requested (would integrate with Medusa)
-    if (shoppable && posts.length > 0) {
-      // This would connect to your Medusa backend to tag products
-      // For now, we'll add demo shoppable data to some posts
-      const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
-      for (const post of shoppablePosts) {
-        post.isShoppable = true;
-        post.products = [
-          {
-            id: 'prod_demo_1',
-            title: 'Limited Edition Vinyl',
-            price: 39.99,
-            imageUrl: '/api/placeholder/150/150',
-            productUrl: '/products/vinyl-001',
-            x: 30,
-            y: 40
+  // Add shoppable data if requested (would integrate with Medusa)
+  if (shoppable && posts.length > 0) {
+      // Try Medusa storefront API first
+      type MedusaProduct = { id: string; title: string; handle?: string; thumbnail?: string; variants?: Array<{ prices?: Array<{ amount: number; currency_code: string }> }> };
+      let medusaProducts: MedusaProduct[] = [];
+      if (c.env.MEDUSA_URL) {
+        try {
+          const base = c.env.MEDUSA_URL.replace(/\/$/, '');
+          const res = await fetch(`${base}/store/products?limit=10`, { headers: { 'accept': 'application/json' } });
+          if (res.ok) {
+            const data = await res.json() as { products?: MedusaProduct[] };
+            medusaProducts = data.products || [];
           }
-        ];
+        } catch {
+          // ignore – fall back to demo data
+        }
       }
-    }
+
+      const pickPrice = (p: MedusaProduct): number => {
+        const cents = p.variants?.[0]?.prices?.[0]?.amount;
+        return typeof cents === 'number' ? Math.round(cents) / 100 : 39.99;
+      };
+
+      const toTagged = (p: MedusaProduct, i: number) => ({
+        id: p.id,
+        title: p.title,
+        price: pickPrice(p),
+        imageUrl: p.thumbnail || '/api/placeholder/150/150',
+        productUrl: p.handle ? `/products#${p.handle}` : '/products',
+        x: (i % 2 === 0) ? 30 : 70,
+        y: (i % 3 === 0) ? 40 : 60
+      });
+
+      const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
+      for (const [idx, post] of shoppablePosts.entries()) {
+        post.isShoppable = true;
+        if (medusaProducts.length > 0) {
+          // Simple mapping: try to match by hashtag to product title; else take first few
+          const tags = (post.hashtags || []).map((h: string) => h.replace(/^#/, '').toLowerCase());
+          const matched = medusaProducts.filter(p => tags.some((t: string) => p.title.toLowerCase().includes(t)));
+          const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
+          post.products = chosen.map((p, i) => toTagged(p, i));
+        } else {
+          // Fallback demo product
+          post.products = [
+            {
+              id: 'prod_demo_1',
+              title: 'Limited Edition Vinyl',
+              price: 39.99,
+              imageUrl: '/api/placeholder/150/150',
+              productUrl: '/products',
+              x: (idx % 2 === 0) ? 28 : 72,
+              y: (idx % 3 === 0) ? 38 : 62
+            }
+          ];
+        }
+      }
+  }
     
     // Sort by timestamp (newest first)
     posts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -1466,4 +1528,109 @@ app.get('/events/:slug.ics', async (c) => {
   if (!match) return c.text('Not Found', 404);
   const ics = buildICS([match], c.req.url);
   return new Response(ics, { headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="${slug}.ics"` } });
+});
+
+// Facebook Events proxy (Graph API) with graceful fallback
+app.get('/api/facebook/events', async (c) => {
+  try {
+    const pageId = c.req.query('page_id') || c.env.FB_PAGE_ID;
+    const token = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN;
+    const includePast = c.req.query('include_past') === 'true';
+    const limit = parseInt(c.req.query('limit') || '10');
+
+    // If not configured, fall back to internal events API
+    if (!pageId || !token) {
+      const url = new URL('/api/events', c.req.url);
+      const res = await fetch(url.toString()).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json() as { upcoming?: any[]; past?: any[] };
+        const merged = includePast ? [...(data.upcoming || []), ...(data.past || [])] : (data.upcoming || []);
+        const events = merged.slice(0, limit).map((ev) => ({
+          id: ev.id,
+          name: ev.title,
+          description: ev.description,
+          startTime: ev.startDateTime,
+          endTime: ev.endDateTime,
+          place: ev.venueName ? { name: ev.venueName } : undefined,
+          coverPhoto: ev.flyerUrl,
+          eventUrl: ev.rsvpUrl || ev.ticketUrl || new URL('/#events', c.req.url).toString(),
+          isOnline: ev.tags?.includes('online') || false,
+          ticketUri: ev.ticketUrl,
+          interestedCount: undefined,
+          attendingCount: undefined,
+          isCanceled: ev.status === 'archived' || false,
+          category: undefined
+        }));
+        return c.json({ events }, 200, { 'Cache-Control': 'public, max-age=300' });
+      }
+      return c.json({ events: [], note: 'facebook_api_not_configured' }, 200);
+    }
+
+    // Try cache first (if KV bound in this environment)
+    const cacheKey = `fb_events:${pageId}:${includePast ? 'all' : 'upcoming'}:${limit}`;
+    try {
+      const cached = await (c.env.SESSIONS as KVNamespace | undefined)?.get?.(cacheKey);
+      if (cached) {
+        return c.json(JSON.parse(cached), 200, { 'Cache-Control': 'public, max-age=300', 'X-Cache': 'HIT' });
+      }
+    } catch {}
+
+    // Build Graph API request
+    const graphUrl = new URL(`https://graph.facebook.com/v18.0/${pageId}/events`);
+    graphUrl.searchParams.set('time_filter', includePast ? 'all' : 'upcoming');
+    graphUrl.searchParams.set('limit', String(Math.min(Math.max(limit, 1), 50)));
+    graphUrl.searchParams.set(
+      'fields',
+      [
+        'id',
+        'name',
+        'description',
+        'start_time',
+        'end_time',
+        'place{ name, location{ city, country, latitude, longitude, street, zip } }',
+        'is_online',
+        'is_canceled',
+        'ticket_uri',
+        'interested_count',
+        'attending_count',
+        'cover{ source }',
+        'event_times'
+      ].join(',')
+    );
+    graphUrl.searchParams.set('access_token', token);
+
+    const fbRes = await fetch(graphUrl.toString());
+    if (!fbRes.ok) {
+      const error = await fbRes.json().catch(() => ({}));
+      console.error('Facebook Events API error:', error);
+      return c.json({ error: 'facebook_api_error', details: error }, 502);
+    }
+
+    const payload = await fbRes.json() as { data?: any[] };
+    const events = (payload.data || []).map((ev) => ({
+      id: ev.id as string,
+      name: ev.name as string,
+      description: ev.description as string | undefined,
+      startTime: ev.start_time as string,
+      endTime: (ev.end_time as string | undefined) || undefined,
+      place: ev.place ? { name: ev.place.name as string, location: ev.place.location } : undefined,
+      coverPhoto: ev.cover?.source as string | undefined,
+      eventUrl: `https://facebook.com/events/${ev.id}`,
+      isOnline: !!ev.is_online,
+      ticketUri: ev.ticket_uri as string | undefined,
+      interestedCount: ev.interested_count as number | undefined,
+      attendingCount: ev.attending_count as number | undefined,
+      isCanceled: !!ev.is_canceled,
+      category: undefined
+    }));
+
+    const result = { events };
+    try {
+      await (c.env.SESSIONS as KVNamespace | undefined)?.put?.(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
+    } catch {}
+    return c.json(result, 200, { 'Cache-Control': 'public, max-age=300', 'X-Cache': 'MISS' });
+  } catch (err) {
+    console.error('facebook_events_handler_error', err);
+    return c.json({ error: 'internal_error' }, 500);
+  }
 });

@@ -15,7 +15,8 @@ const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct'));
 const AdminProductsList = lazy(() => import('./pages/AdminProductsList'));
 const AdminEditProduct = lazy(() => import('./pages/AdminEditProduct'));
 import { onNavigate } from './utils/nav';
-import { metaSDK } from './utils/metaSdk';
+import { initMeta } from './integrations';
+import { useMetaPixelPageViews } from './hooks/useMetaPixelPageViews';
 
 function App() {
   const [path, setPath] = useState<string>(typeof window !== 'undefined' ? window.location.pathname : '/');
@@ -27,11 +28,11 @@ function App() {
 
   // Initialize Facebook SDK and Pixel on app startup
   useEffect(() => {
-    // Load Facebook SDK first (needed for social plugins)
-    metaSDK.loadFacebookSDK().catch(console.error);
-    // Load Facebook Pixel for analytics
-    metaSDK.loadPixel().catch(console.error);
+    initMeta();
   }, []);
+
+  // Fire Meta Pixel PageView on SPA route changes
+  useMetaPixelPageViews(path);
 
   // Facebook SDK is loaded via our internal metaSDK when needed.
   // Removing react-facebook provider prevents double-initialization.

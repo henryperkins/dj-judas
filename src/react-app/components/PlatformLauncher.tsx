@@ -104,19 +104,22 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               onClick={() => handlePlatformClick(link)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-                    style={{
-                      '--platform-color': getPlatformColor(link.platform)
-                    } as React.CSSProperties}
+              aria-label={`Open ${link.label}`}
+              style={{
+                '--platform-color': getPlatformColor(link.platform)
+              } as React.CSSProperties}
             >
               <PlatformIcon
                 platform={link.platform}
                 size={20}
                 className="platform-icon-svg"
               />
+              {/* Always provide a discernible name for a11y */}
+              <span className="sr-only">{link.label}</span>
               {showLabels && (
                 <>
                   <span className="platform-name">{link.label}</span>
-                  <ExternalIcon className="platform-external-icon" size={14} />
+                  <ExternalIcon className="platform-external-icon" size={14} aria-hidden />
                 </>
               )}
             </motion.button>

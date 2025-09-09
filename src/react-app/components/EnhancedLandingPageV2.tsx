@@ -6,13 +6,14 @@ import StatsSection from './sections/StatsSection';
 import AboutSection from './sections/AboutSection';
 import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
-import CreatorMediaPanel from './CreatorMediaPanel';
-import FeaturedProducts from './FeaturedProducts';
 import MobileBottomNav from './MobileBottomNav';
-import EventGrid from './events/EventGrid';
-import NextEventBanner from './events/NextEventBanner';
-import DynamicSocialFeed from './social/DynamicSocialFeed';
-import FacebookEvents from './social/FacebookEvents';
+// Lazy-load heavier sections to reduce main chunk
+const CreatorMediaPanel = lazy(() => import('./CreatorMediaPanel'));
+const FeaturedProducts = lazy(() => import('./FeaturedProducts'));
+const EventGrid = lazy(() => import('./events/EventGrid'));
+const NextEventBanner = lazy(() => import('./events/NextEventBanner'));
+const DynamicSocialFeed = lazy(() => import('./social/DynamicSocialFeed'));
+const FacebookEvents = lazy(() => import('./social/FacebookEvents'));
 import { isMobileDevice } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
 import logoImage from '../assets/images/logo.jpeg';
@@ -88,7 +89,9 @@ const EnhancedLandingPageV2: React.FC = () => {
 
       <main id="main" tabIndex={-1}>
         {/* Next Event Banner */}
-        <NextEventBanner />
+        <Suspense fallback={<LoadingFallback />}>
+          <NextEventBanner />
+        </Suspense>
 
         {/* Events Section first for quick access */}
         <section id="events" className="events-section">
@@ -97,17 +100,21 @@ const EnhancedLandingPageV2: React.FC = () => {
             
             {/* Facebook Events Integration */}
             <div className="facebook-events-wrapper">
-              <FacebookEvents 
-                layout="grid"
-                limit={3}
-                showPastEvents={false}
-                autoRefresh={true}
-                refreshInterval={1800}
-              />
+              <Suspense fallback={<LoadingFallback />}>
+                <FacebookEvents 
+                  layout="grid"
+                  limit={3}
+                  showPastEvents={false}
+                  autoRefresh={true}
+                  refreshInterval={1800}
+                />
+              </Suspense>
             </div>
             
             {/* Original Event Grid as fallback */}
-            <EventGrid />
+            <Suspense fallback={<LoadingFallback />}>
+              <EventGrid />
+            </Suspense>
           </div>
         </section>
 
@@ -130,7 +137,8 @@ const EnhancedLandingPageV2: React.FC = () => {
         {/* Creator Media Panel - Modern unified interface */}
         <section id="media" className="media-section">
           <div className="container">
-            <CreatorMediaPanel
+            <Suspense fallback={<LoadingFallback />}>
+              <CreatorMediaPanel
               artist="DJ Lee & The Voices of Judah"
               tagline="Gospel Ministry from Gary, Indiana • Established 2008"
               // Actual music content
@@ -142,7 +150,8 @@ const EnhancedLandingPageV2: React.FC = () => {
               facebookVideoHref="https://www.facebook.com/facebookapp/videos/10153231379946729/"
               instagramPermalink="https://www.instagram.com/iam_djlee/"
               // Additional content can be added here as needed
-            />
+              />
+            </Suspense>
           </div>
         </section>
 
@@ -155,14 +164,16 @@ const EnhancedLandingPageV2: React.FC = () => {
             
             {/* Shoppable Instagram Feed */}
             <div className="social-feed-wrapper">
-              <DynamicSocialFeed 
-                platforms={['instagram']}
-                layout="grid"
-                limit={6}
-                enableShoppable={true}
-                autoRefresh={true}
-                refreshInterval={300}
-              />
+              <Suspense fallback={<LoadingFallback />}>
+                <DynamicSocialFeed 
+                  platforms={['instagram']}
+                  layout="grid"
+                  limit={6}
+                  enableShoppable={true}
+                  autoRefresh={true}
+                  refreshInterval={300}
+                />
+              </Suspense>
             </div>
             
             {/* View More Link */}
@@ -192,7 +203,9 @@ const EnhancedLandingPageV2: React.FC = () => {
         <ServicesSection />
 
         {/* Featured Products (Medusa) */}
-        <FeaturedProducts />
+        <Suspense fallback={<LoadingFallback />}>
+          <FeaturedProducts />
+        </Suspense>
 
         {/* Booking CTA - Minimal mobile-first design */}
         <section id="booking" className="booking-section-minimal">
@@ -234,6 +247,25 @@ const EnhancedLandingPageV2: React.FC = () => {
               <a href="#media" className="footer-link">Media</a>
               <a href="#services" className="footer-link">Services</a>
               <a href="/book" data-nav className="footer-link">Book</a>
+              {(() => {
+                const medusaAdminUrl = (import.meta.env?.VITE_MEDUSA_ADMIN_URL as string | undefined) || undefined;
+                const medusaUrl = (import.meta.env?.VITE_MEDUSA_URL as string | undefined) || undefined;
+                const computed = medusaAdminUrl || (medusaUrl ? `${medusaUrl.replace(/\/$/, '')}/app` : '/admin');
+                const isExternal = /^https?:\/\//i.test(computed);
+                return isExternal ? (
+                  <a
+                    href={computed}
+                    className="footer-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open Medusa Admin in a new tab"
+                  >
+                    Admin
+                  </a>
+                ) : (
+                  <a href={computed} data-nav className="footer-link">Admin</a>
+                );
+              })()}
             </nav>
           </div>
 

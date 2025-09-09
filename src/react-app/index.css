@@ -1328,6 +1328,10 @@ body.mobile-nav-visible {
   color: white;
   font-size: 0.95rem;
   font-weight: 600;
+  background: rgba(0,0,0,0.6);
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
 }
 
 .lightbox-overlay {
@@ -1445,7 +1449,7 @@ body.mobile-nav-visible {
 }
 
 .next-event-date { font-weight: 700; font-size: 0.9rem; }
-.next-event-time { font-size: 0.85rem; color: hsl(var(--muted-foreground)); }
+.next-event-time { font-size: 0.85rem; color: hsl(var(--foreground)); }
 
 .next-event-title { font-weight: 600; line-height: 1.2; }
 .next-event-meta { font-size: 0.85rem; color: hsl(var(--muted-foreground)); }
@@ -2003,12 +2007,13 @@ body.mobile-nav-visible {
 }
 
 .feed-notice {
-  background: hsl(var(--muted));
+  background: hsl(var(--card));
   padding: 1rem;
   border-radius: var(--radius);
   margin-bottom: 1.5rem;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--foreground));
   font-size: 0.9rem;
+  border: 1px solid hsl(var(--border));
 }
 
 /* Grid Layout */
@@ -2068,16 +2073,20 @@ body.mobile-nav-visible {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
 }
 
 .platform-badge.instagram {
-  background: linear-gradient(135deg, hsl(var(--brand-instagram-start)), hsl(var(--brand-instagram-end)));
-  color: white;
+  /* Darkened for contrast */
+  background: #2d0a47;
+  color: #fff;
 }
 
 .platform-badge.facebook {
-  background: hsl(var(--brand-facebook));
-  color: white;
+  /* Darkened Facebook blue for contrast */
+  background: #0a5bd3;
+  color: #fff;
 }
 
 .shoppable-badge {
@@ -2085,11 +2094,33 @@ body.mobile-nav-visible {
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.75rem;
-  background: hsl(var(--success));
+  background: hsl(160 84% 25%);
   color: white;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+/* Events widget notice */
+.events-notice {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+/* Ensure gallery captions have a solid backing for contrast */
+.photo-gallery .gallery-grid button > div > p {
+  background: rgba(0,0,0,0.6);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+/* Stronger error color for contrast */
+.apple-music-embed-container .error-message {
+  color: #991b1b; /* darker red for 4.5:1 on light bg */
 }
 
 /* Post Media */
@@ -2631,7 +2662,7 @@ body.mobile-nav-visible {
   top: 1rem;
   left: 1rem;
   padding: 0.25rem 0.75rem;
-  background: hsl(var(--success));
+  background: #064e3b;
   color: white;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -3056,10 +3087,20 @@ body.mobile-nav-visible {
   width: 100%;
 }
 
+.login-btn, .add-library-btn {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  border-color: hsl(var(--foreground));
+}
+
+.login-btn:hover, .add-library-btn:hover {
+  filter: brightness(0.95);
+}
+
 .play-btn {
-  background: hsl(var(--accent));
-  border-color: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  background: hsl(var(--foreground));
+  border-color: hsl(var(--foreground));
+  color: hsl(var(--background));
 }
 
 .play-btn:hover {
@@ -3088,9 +3129,9 @@ body.mobile-nav-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-  border: 1px solid hsl(var(--accent));
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  border: 1px solid hsl(var(--foreground));
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius);
   font-size: 0.9rem;
@@ -3100,9 +3141,7 @@ body.mobile-nav-visible {
   text-align: center;
 }
 
-.subscribe-btn:hover {
-  filter: brightness(1.05);
-}
+.subscribe-btn:hover { filter: brightness(0.95); }
 
 /* --- Instagram Hub --- */
 .instagram-hub {
@@ -3893,8 +3932,7 @@ body.mobile-nav-visible {
 
 .footer-copyright {
   font-size: 0.75rem;
-  color: hsl(var(--muted-foreground));
-  opacity: 0.7;
+  color: hsl(var(--foreground));
 }
 
 /* Tablet and up adjustments */

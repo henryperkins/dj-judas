@@ -66,8 +66,13 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
       if (!response.ok) throw new Error('Failed to fetch Facebook events');
       
       const data = await response.json();
-      setEvents(data.events || generateDemoEvents());
-      setError(null);
+      if (!data?.events?.length) {
+        setEvents(generateDemoEvents());
+        setError('Using demo data - API connection pending');
+      } else {
+        setEvents(data.events);
+        setError(null);
+      }
     } catch (err) {
       console.error('Facebook events error:', err);
       // Use fallback demo data

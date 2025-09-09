@@ -272,7 +272,6 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
 
       <div 
         className={`spotify-embed-container ${compact ? 'compact' : ''} ${theme}`}
-        aria-label="Spotify player"
       >
         <div ref={embedRef} className="spotify-iframe-container">
           {!isLoaded && (

@@ -18,13 +18,16 @@ class MetaSDKLoader {
     // Allow env-provided defaults (Vite exposes import.meta.env)
   const envAppId = import.meta.env?.VITE_FACEBOOK_APP_ID;
   const envPixelId = import.meta.env?.VITE_FACEBOOK_PIXEL_ID;
+  const envSdkVersion = import.meta.env?.VITE_FACEBOOK_SDK_VERSION as string | undefined;
+  const consentRevoke = (import.meta.env?.VITE_META_CONSENT_DEFAULT_REVOKE as string | undefined) === 'true';
     this.config = {
-      version: 'v18.0',
+      version: envSdkVersion || 'v22.0',
       enableAnalytics: true,
       appId: envAppId || config.appId,
       pixelId: envPixelId || config.pixelId,
       ...config
     };
+    (this as any)._consentRevoke = consentRevoke;
   }
 
   static getInstance(config?: MetaSDKConfig): MetaSDKLoader {
@@ -132,6 +135,13 @@ class MetaSDKLoader {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
+
+        // Ensure SPA manual control to avoid duplicate PageView on pushState
+        fbq.disablePushState = true;
+        // Disable autoConfig for this pixel to keep manual control
+        try { fbq('set','autoConfig','false','${this.config.pixelId}'); } catch (e) {}
+        // Optional: start with consent revoked; grant later via UI
+        ${((this as any)._consentRevoke) ? "try { fbq('consent','revoke'); } catch(e) {}" : ''}
 
         fbq('init', '${this.config.pixelId}');
         fbq('track', 'PageView');

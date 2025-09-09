@@ -253,7 +253,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
       <div className="streaming-cta">
         <p>Stream or purchase to support the artist</p>
         {musicKitError && (
-          <p className="error-message" style={{ color: 'hsl(var(--destructive))', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+          <p className="error-message" style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
             {musicKitError}
           </p>
         )}

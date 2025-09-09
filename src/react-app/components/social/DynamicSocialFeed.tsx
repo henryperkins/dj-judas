@@ -69,8 +69,13 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       if (!response.ok) throw new Error('Failed to fetch social feed');
       
       const data = await response.json();
-      setPosts(data.posts || []);
-      setError(null);
+      if (!data?.posts?.length) {
+        setPosts(generateDemoData());
+        setError('Using demo data - API connection pending');
+      } else {
+        setPosts(data.posts);
+        setError(null);
+      }
     } catch (err) {
       console.error('Social feed error:', err);
       // Use fallback data for demo
@@ -172,6 +177,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
                     key={product.id}
                     className={`product-tag ${hoveredProduct === product.id ? 'active' : ''}`}
                     style={{ left: `${product.x}%`, top: `${product.y}%` }}
+                    aria-label={`View ${product.title} for $${product.price}`}
                     onMouseEnter={() => setHoveredProduct(product.id)}
                     onMouseLeave={() => setHoveredProduct(null)}
                     onClick={(e) => {
@@ -180,7 +186,8 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
                       window.location.href = product.productUrl;
                     }}
                   >
-                    <LuShoppingBag size={16} />
+                    <LuShoppingBag size={16} aria-hidden />
+                    <span className="sr-only">{`View ${product.title} for $${product.price}`}</span>
                     {hoveredProduct === product.id && (
                       <div className="product-tooltip">
                         <img src={product.imageUrl} alt={product.title} />

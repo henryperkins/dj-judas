@@ -17,7 +17,6 @@ import {
   type PlatformId
 } from '@/react-app/config/platforms';
 import {
-  buildTrackedUrl,
   getCanonicalUrl,
   getPageMetadata,
   copyToClipboard,

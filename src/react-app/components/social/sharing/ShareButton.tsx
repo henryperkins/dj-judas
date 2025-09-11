@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fa6';
 import { shareWithTracking } from '../utils/metaSdk';
 import { socialMetrics } from '../utils/socialMetrics';
+import { addUtm } from '@/react-app/utils/utm';
 
 export interface ShareTarget {
   id: string;
@@ -41,18 +42,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   onShare,
   buildUrlFn
 }) => {
-  const buildShareUrl = (base: string, source: string) => {
-    // Use custom build function if provided
-    if (buildUrlFn) {
-      return buildUrlFn(base, source);
-    }
-    
-    const shareUrl = new URL(base);
-    shareUrl.searchParams.set('utm_source', source);
-    shareUrl.searchParams.set('utm_medium', 'social');
-    shareUrl.searchParams.set('utm_campaign', campaign || utmSource);
-    return shareUrl.toString();
-  };
+  // Helper to apply consistent UTM logic (falls back to custom buildUrlFn when provided)
+  const utm = (base: string, source: string) =>
+    buildUrlFn ? buildUrlFn(base, source) : addUtm(base, { source, medium: 'social', campaign: campaign || utmSource });
 
   const shareText = title || `${artist} – ${tagline}`;
   const shareTargets: ShareTarget[] = [
@@ -67,7 +59,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         )}`,
       onClick: async (base) => {
         await shareWithTracking({
-          url: buildShareUrl(base, 'facebook'),
+          url: utm(base, 'facebook'),
           quote: shareText,
           source: utmSource
         });
@@ -99,17 +91,17 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       icon: FaFacebookMessenger,
       color: '#0084FF',
       buildUrl: (base) => {
-        const shareUrl = buildShareUrl(base, 'messenger');
+        const shareLink = utm(base, 'messenger');
         const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
         if (facebookAppId && typeof window !== 'undefined') {
           const params = new URLSearchParams({
             app_id: facebookAppId,
-            link: shareUrl,
+            link: shareLink,
             redirect_uri: window.location.origin
           });
           return `https://www.facebook.com/dialog/send?${params}`;
         }
-        return `fb-messenger://share?link=${encodeURIComponent(shareUrl)}`;
+        return `fb-messenger://share?link=${encodeURIComponent(shareLink)}`;
       }
     }
   ];

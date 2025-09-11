@@ -1,57 +1,14 @@
-/**
- * Share utilities for building tracked URLs and managing share operations
- */
-
-export interface UtmParams {
-  source?: string;
-  medium?: string;
-  campaign?: string;
-  content?: string;
-  term?: string;
-}
+import { addUtm, UtmParams } from '@/react-app/utils/utm';
 
 /**
  * Build a URL with UTM tracking parameters
  */
-export function buildTrackedUrl(
-  baseUrl: string,
-  params: UtmParams
-): string {
-  const url = new URL(baseUrl, window.location.origin);
-  
-  // Add UTM parameters
-  if (params.source) url.searchParams.set('utm_source', params.source);
-  if (params.medium) url.searchParams.set('utm_medium', params.medium);
-  if (params.campaign) url.searchParams.set('utm_campaign', params.campaign);
-  if (params.content) url.searchParams.set('utm_content', params.content);
-  if (params.term) url.searchParams.set('utm_term', params.term);
-  
-  return url.toString();
-}
+export const buildTrackedUrl = addUtm;
 
 /**
  * Append UTM parameters to an existing URL
  */
-export function appendUtmParams(
-  url: string,
-  params: UtmParams
-): string {
-  try {
-    const urlObj = new URL(url);
-    
-    // Add UTM parameters
-    if (params.source) urlObj.searchParams.set('utm_source', params.source);
-    if (params.medium) urlObj.searchParams.set('utm_medium', params.medium);
-    if (params.campaign) urlObj.searchParams.set('utm_campaign', params.campaign);
-    if (params.content) urlObj.searchParams.set('utm_content', params.content);
-    if (params.term) urlObj.searchParams.set('utm_term', params.term);
-    
-    return urlObj.toString();
-  } catch {
-    // If URL parsing fails, return original
-    return url;
-  }
-}
+export const appendUtmParams = addUtm;
 
 /**
  * Get the canonical URL for sharing

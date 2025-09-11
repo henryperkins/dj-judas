@@ -1,3 +1,4 @@
+import { addUtm } from '@/react-app/utils/utm';
 // Unified social-to-music conversion tracking system
 
 interface SocialPlatform {
@@ -267,12 +268,5 @@ export const generateSocialLink = (
   source: string,
   medium: string,
   campaign?: string
-): string => {
-  const params = new URLSearchParams({
-    utm_source: source,
-    utm_medium: medium,
-    ...(campaign && { utm_campaign: campaign })
-  });
-
-  return `${destination}?${params.toString()}`;
-};
+): string =>
+  addUtm(destination, { source, medium, campaign });

@@ -24,6 +24,7 @@ import {
   supportsNativeShare,
   nativeShare
 } from './shareUtils';
+import { addUtm } from '@/react-app/utils/utm';
 
 export interface DeepLink {
   id: string;
@@ -82,7 +83,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({
   
   // Build share URL with UTM params
   const shareUrl = useMemo(() => {
-    return buildTrackedUrl(canonicalUrl, {
+    return addUtm(canonicalUrl, {
       source: 'share',
       medium: 'social',
       campaign
@@ -253,7 +254,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({
   const handleDeepLinkClick = useCallback((link: DeepLink) => {
     markInteracted();
     
-    const trackedUrl = buildTrackedUrl(link.url, {
+    const trackedUrl = addUtm(link.url, {
       source: link.platform || link.id,
       medium: 'deeplink',
       campaign

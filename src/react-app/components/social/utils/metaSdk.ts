@@ -1,4 +1,5 @@
 import { socialMetrics } from './socialMetrics';
+import { addUtm } from '@/react-app/utils/utm';
 
 interface MetaSDKConfig {
   appId?: string;
@@ -230,23 +231,24 @@ class MetaSDKLoader {
 
     if (!FB) return;
 
-    // Add UTM parameters to track shares
-    const shareUrl = new URL(data.url);
-    shareUrl.searchParams.set('utm_source', 'facebook');
-    shareUrl.searchParams.set('utm_medium', 'share');
-    shareUrl.searchParams.set('utm_campaign', data.source);
+    // Replaced manual UTM construction with helper
+    const shareUrl = addUtm(data.url, {
+      source: 'facebook',
+      medium: 'share',
+      campaign: data.source
+    });
 
   if (!FB || !FB.ui) return;
   FB.ui({
       method: 'share',
-      href: shareUrl.toString(),
+      href: shareUrl,
       quote: data.quote,
       hashtag: data.hashtag
     }, (response: unknown) => {
       const r = response as { error_message?: string } | undefined;
       if (r && !r.error_message) {
         socialMetrics.trackSocialInteraction('facebook', 'share_complete', {
-          url: shareUrl.toString(),
+          url: shareUrl,
           source: data.source
         });
       }

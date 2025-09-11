@@ -1,21 +1,10 @@
-// src/App.tsx
-
-import EnhancedLandingPage from "./components/EnhancedLandingPageV2";
 import ThemeToggle from './components/ThemeToggle';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { useEffect, useState, lazy, Suspense } from 'react';
-const BookingPage = lazy(() => import('./pages/BookingPage'));
-const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
-const SuccessPage = lazy(() => import('./pages/SuccessPage'));
-const ProductsPage = lazy(() => import('./pages/ProductsPage'));
-const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const AdminHome = lazy(() => import('./pages/AdminHome'));
-const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct'));
-const AdminProductsList = lazy(() => import('./pages/AdminProductsList'));
-const AdminEditProduct = lazy(() => import('./pages/AdminEditProduct'));
+import { useEffect, useState, Suspense } from 'react';
 import { onNavigate, navigate } from './utils/nav';
 import { SocialProvider } from './providers/SocialProvider';
 import { useMetaPixelPageViews } from './hooks/useMetaPixelPageViews';
+import Router from './Router';
 
 function App() {
   const [path, setPath] = useState<string>(typeof window !== 'undefined' ? window.location.pathname : '/');
@@ -55,19 +44,10 @@ function App() {
         
         <ErrorBoundary>
           <Suspense fallback={<div className="container section-py"><div className="skeleton-title" /><div className="skeleton-text" /><div className="skeleton-text" /></div>}>
-            {path === '/book' ? <BookingPage />
-            : path === '/checkout' ? <CheckoutPage />
-            : path === '/success' ? <SuccessPage />
-            : path === '/products' ? <ProductsPage />
-            : path === '/admin/login' ? <AdminLogin />
-            : path === '/admin' ? <AdminHome />
-            : path === '/admin/products' ? <AdminProductsList />
-            : path === '/admin/products/new' ? <AdminAddProduct />
-            : /^\/admin\/products\/.+/.test(path) ? <AdminEditProduct id={path.replace('/admin/products/','')} />
-            : <EnhancedLandingPage />}
-        </Suspense>
-      </ErrorBoundary>
-    </div>
+            <Router path={path} />
+          </Suspense>
+        </ErrorBoundary>
+      </div>
     </SocialProvider>
   );
 }

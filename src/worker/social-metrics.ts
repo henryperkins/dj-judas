@@ -11,6 +11,7 @@ interface Env {
   SESSIONS: KVNamespace;
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
+  SPOTIFY_ARTIST_ID?: string;
   IG_USER_ID?: string;
   IG_OEMBED_TOKEN?: string;
   FB_PAGE_ID?: string;
@@ -19,6 +20,7 @@ interface Env {
   FB_APP_SECRET?: string;
   GA_PROPERTY_ID?: string;
   GA_SERVICE_ACCOUNT?: string;
+  APPLE_DEVELOPER_TOKEN?: string;
 }
 
 interface SocialMetrics {
@@ -40,7 +42,7 @@ const graphBase = () => {
 };
 
 async function getSpotifyMetrics(env: Env): Promise<{ followers: number; popularity: number } | null> {
-  if (!env.SPOTIFY_CLIENT_ID || !env.SPOTIFY_CLIENT_SECRET) return null;
+  if (!env.SPOTIFY_CLIENT_ID || !env.SPOTIFY_CLIENT_SECRET || !env.SPOTIFY_ARTIST_ID) return null;
 
   try {
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
@@ -55,7 +57,7 @@ async function getSpotifyMetrics(env: Env): Promise<{ followers: number; popular
     if (!tokenRes.ok) throw new Error('Failed to get Spotify token');
     const { access_token } = await tokenRes.json() as { access_token: string };
 
-    const artistId = '5WICYLl8MXvOY2x3mkoSqK';
+    const artistId = env.SPOTIFY_ARTIST_ID;
     const artistRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
       headers: { 'Authorization': `Bearer ${access_token}` }
     });
@@ -145,6 +147,43 @@ async function getFacebookMetrics(env: Env): Promise<{ followers: number; engage
   }
 }
 
+async function getAppleMusicMetrics(env: Env): Promise<{ monthlyListeners: number; playlistReach: number } | null> {
+  if (!env.APPLE_DEVELOPER_TOKEN) return null;
+
+  try {
+    // This is a placeholder. In a real-world scenario, you would use the Apple Music API
+    // to fetch artist data. This would involve using the developer token to authorize
+    // requests to the Apple Music API.
+    //
+    // For example:
+    // const artistId = '12345'; // Replace with the actual artist ID
+    // const res = await fetch(`https://api.music.apple.com/v1/catalog/us/artists/${artistId}`,
+    //   {
+    //     headers: { 'Authorization': `Bearer ${env.APPLE_DEVELOPER_TOKEN}` }
+    //   }
+    // );
+    //
+    // if (!res.ok) throw new Error('Failed to fetch Apple Music artist data');
+    // const data = await res.json();
+    //
+    // // Process the data to extract the desired metrics
+    // const monthlyListeners = data.monthlyListeners;
+    // const playlistReach = data.playlistReach;
+
+    // For now, we'll return some mock data.
+    const monthlyListeners = 450;
+    const playlistReach = 32.1;
+
+    return {
+      monthlyListeners,
+      playlistReach
+    };
+  } catch (error) {
+    console.error('Apple Music metrics error:', error);
+    return null;
+  }
+}
+
 async function getTopConversionSource(): Promise<string> {
   return 'instagram';
 }
@@ -157,80 +196,56 @@ export async function getSocialMetrics(env: Env): Promise<SocialMetrics> {
     conversionRate: 4.2
   };
 
-  const [spotifyData, instagramData, facebookData] = await Promise.all([
+  const [spotifyData, instagramData, facebookData, appleMusicData] = await Promise.all([
     getSpotifyMetrics(env),
     getInstagramMetrics(env),
-    getFacebookMetrics(env)
+    getFacebookMetrics(env),
+    getAppleMusicMetrics(env)
   ]);
 
-  if (instagramData) {
-    metrics.platforms.push({
-      id: 'instagram',
-      name: 'Instagram',
-      followers: instagramData.followers,
-      engagement: instagramData.engagement,
-      lastUpdated: new Date().toISOString()
-    });
-    metrics.totalReach += instagramData.followers;
-  } else {
-    metrics.platforms.push({
-      id: 'instagram',
-      name: 'Instagram',
-      followers: 2300,
-      engagement: 12.3,
-      lastUpdated: new Date().toISOString()
-    });
-    metrics.totalReach += 2300;
-  }
+  const instagramFollowers = instagramData?.followers || 2300;
+  const instagramEngagement = instagramData?.engagement || 12.3;
+  metrics.platforms.push({
+    id: 'instagram',
+    name: 'Instagram',
+    followers: instagramFollowers,
+    engagement: instagramEngagement,
+    lastUpdated: new Date().toISOString()
+  });
+  metrics.totalReach += instagramFollowers;
 
-  if (facebookData) {
-    metrics.platforms.push({
-      id: 'facebook',
-      name: 'Facebook',
-      followers: facebookData.followers,
-      engagement: facebookData.engagement,
-      lastUpdated: new Date().toISOString()
-    });
-    metrics.totalReach += facebookData.followers;
-  } else {
-    metrics.platforms.push({
-      id: 'facebook',
-      name: 'Facebook',
-      followers: 1500,
-      engagement: 8.7,
-      lastUpdated: new Date().toISOString()
-    });
-    metrics.totalReach += 1500;
-  }
+  const facebookFollowers = facebookData?.followers || 1500;
+  const facebookEngagement = facebookData?.engagement || 8.7;
+  metrics.platforms.push({
+    id: 'facebook',
+    name: 'Facebook',
+    followers: facebookFollowers,
+    engagement: facebookEngagement,
+    lastUpdated: new Date().toISOString()
+  });
+  metrics.totalReach += facebookFollowers;
 
-  if (spotifyData) {
-    metrics.platforms.push({
-      id: 'spotify',
-      name: 'Spotify',
-      followers: spotifyData.followers,
-      engagement: spotifyData.popularity / 4,
-      lastUpdated: new Date().toISOString()
-    });
-    metrics.totalReach += spotifyData.followers;
-  } else {
-    metrics.platforms.push({
-      id: 'spotify',
-      name: 'Spotify',
-      followers: 850,
-      engagement: 45.2,
-      lastUpdated: new Date().toISOString()
-    });
-    metrics.totalReach += 850;
-  }
+  const spotifyFollowers = spotifyData?.followers || 850;
+  const spotifyEngagement = spotifyData ? spotifyData.popularity / 4 : 45.2;
+  metrics.platforms.push({
+    id: 'spotify',
+    name: 'Spotify',
+    followers: spotifyFollowers,
+    engagement: spotifyEngagement,
+    lastUpdated: new Date().toISOString()
+  });
+  metrics.totalReach += spotifyFollowers;
 
+  const appleMusicFollowers = appleMusicData?.monthlyListeners || 450;
+  const appleMusicEngagement = appleMusicData?.playlistReach || 32.1;
   metrics.platforms.push({
     id: 'apple-music',
     name: 'Apple Music',
-    followers: 450,
-    engagement: 32.1,
+    followers: appleMusicFollowers,
+    engagement: appleMusicEngagement,
     lastUpdated: new Date().toISOString()
   });
-  metrics.totalReach += 450;
+  metrics.totalReach += appleMusicFollowers;
 
   metrics.topConversionSource = await getTopConversionSource();
 

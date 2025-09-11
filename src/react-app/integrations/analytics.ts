@@ -1,19 +1,26 @@
 export type AnalyticsPayload = Record<string, unknown>;
 
+interface WindowWithAnalytics extends Window {
+  gtag?: (...args: unknown[]) => void;
+  fbq?: (...args: unknown[]) => void;
+}
+
 export function track(event: string, data?: AnalyticsPayload) {
   // GA4
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', event, data || {});
+  const win = window as unknown as WindowWithAnalytics;
+  if (typeof window !== 'undefined' && win.gtag) {
+    win.gtag('event', event, data || {});
   }
   // Meta Pixel (custom)
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    (window as any).fbq('trackCustom', event, data || {});
+  if (typeof window !== 'undefined' && win.fbq) {
+    win.fbq('trackCustom', event, data || {});
   }
 }
 
 export function trackStandard(event: string, data?: AnalyticsPayload) {
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    (window as any).fbq('track', event, data || {});
+  const win = window as unknown as WindowWithAnalytics;
+  if (typeof window !== 'undefined' && win.fbq) {
+    win.fbq('track', event, data || {});
   }
   // mirror to GA as a custom event
   track(event, data);

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import React, { useState, useEffect, useRef, KeyboardEvent, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart, LuUsers } from 'react-icons/lu';
 import { navigate } from '../utils/nav';
+import { isMobileDevice } from '@/react-app/utils/platformDetection';
 
 
 export interface NavItem {
@@ -60,33 +61,32 @@ const defaultNavItems: NavItem[] = [
   }
 ];
 
-const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
+export function MobileBottomNav({
   activeItem = 'home',
   onItemClick,
   onPlatformLauncherOpen,
   customItems,
   showOnDesktop = false
-}) => {
+}: MobileBottomNavProps) {
   const [currentActive, setCurrentActive] = useState(activeItem);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => isMobileDevice());
   const listRef = useRef<HTMLUListElement | null>(null);
 
   const navItems = customItems || defaultNavItems;
 
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile =
-        typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches;
-      setIsMobile(mobile);
-      setIsVisible(mobile || showOnDesktop);
-    };
+  const checkMobile = useCallback(() => {
+    const mobile = isMobileDevice();
+    setIsMobile(mobile);
+    setIsVisible(mobile || showOnDesktop);
+  }, [showOnDesktop]);
 
+  useEffect(() => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, [showOnDesktop]);
+  }, [checkMobile]);
 
   useEffect(() => {
     if (!isMobile && !showOnDesktop) return;

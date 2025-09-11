@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { metaSDK } from '../components/social/utils/metaSdk';
 import { socialMetrics } from '../components/social/utils/socialMetrics';
+import { isMobileDevice } from '@/react-app/utils/platformDetection';
 
 interface SocialSDKConfig {
   meta?: {
@@ -22,7 +23,7 @@ interface SocialSDKConfig {
   };
 }
 
-interface SocialSDKState {
+export interface SocialSDKState {
   meta: boolean;
   twitter: boolean;
   tiktok: boolean;
@@ -36,7 +37,7 @@ interface SocialProviderContextType {
   config: SocialSDKConfig;
 }
 
-const SocialProviderContext = createContext<SocialProviderContextType | null>(null);
+export const SocialProviderContext = createContext<SocialProviderContextType | null>(null);
 
 const DEFAULT_CONFIG: SocialSDKConfig = {
   meta: {
@@ -63,11 +64,13 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     apple: false,
     spotify: false
   });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
   const loadMetaSDK = useCallback(async () => {
-    if (isLoaded.meta) return;
+    if (isLoaded.meta || window.FB) return;
     
     try {
       await metaSDK.loadFacebookSDK();
@@ -82,7 +85,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     }
   }, [isLoaded.meta, mergedConfig.meta]);
 
-  const loadTwitterSDK = useCallback(async () => {
+  const loadTwitterSDK = useCallback(() => {
     if (isLoaded.twitter || !mergedConfig.twitter?.enabled) return;
     
     return new Promise<void>((resolve) => {
@@ -109,7 +112,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     });
   }, [isLoaded.twitter, mergedConfig.twitter]);
 
-  const loadTikTokSDK = useCallback(async () => {
+  const loadTikTokSDK = useCallback(() => {
     if (isLoaded.tiktok || !mergedConfig.tiktok?.enabled) return;
     
     return new Promise<void>((resolve) => {
@@ -136,52 +139,56 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     });
   }, [isLoaded.tiktok, mergedConfig.tiktok]);
 
-  const loadAppleMusicSDK = useCallback(async () => {
+  const loadAppleMusicSDK = useCallback(() => {
     if (isLoaded.apple) return;
     
-    return new Promise<void>(async (resolve) => {
+    return new Promise<void>((resolve) => {
       if (document.getElementById('apple-music-js')) {
         setIsLoaded(prev => ({ ...prev, apple: true }));
         resolve();
         return;
       }
 
-      try {
-        const tokenResponse = await fetch('/api/apple/developer-token');
-        if (!tokenResponse.ok) throw new Error('Failed to get Apple developer token');
-        const { token } = await tokenResponse.json();
+      const initAppleMusic = async () => {
+        try {
+          const tokenResponse = await fetch('/api/apple/developer-token');
+          if (!tokenResponse.ok) throw new Error('Failed to get Apple developer token');
+          const { token } = await tokenResponse.json();
 
-        const script = document.createElement('script');
-        script.id = 'apple-music-js';
-        script.src = 'https://js-cdn.music.apple.com/musickit/v3/musickit.js';
-        script.async = true;
-        script.onload = () => {
-          if (window.MusicKit) {
-            window.MusicKit.configure({
-              developerToken: token,
-              app: {
-                name: 'DJ Judas',
-                build: '1.0.0'
-              }
-            });
-            setIsLoaded(prev => ({ ...prev, apple: true }));
-            socialMetrics.trackSDKLoad('apple');
-          }
+          const script = document.createElement('script');
+          script.id = 'apple-music-js';
+          script.src = 'https://js-cdn.music.apple.com/musickit/v3/musickit.js';
+          script.async = true;
+          script.onload = () => {
+            if (window.MusicKit) {
+              window.MusicKit.configure({
+                developerToken: token,
+                app: {
+                  name: 'DJ Judas',
+                  build: '1.0.0'
+                }
+              });
+              setIsLoaded(prev => ({ ...prev, apple: true }));
+              socialMetrics.trackSDKLoad('apple');
+            }
+            resolve();
+          };
+          script.onerror = () => {
+            console.error('Failed to load Apple Music SDK');
+            resolve();
+          };
+          document.body.appendChild(script);
+        } catch (error) {
+          console.error('Failed to initialize Apple Music:', error);
           resolve();
-        };
-        script.onerror = () => {
-          console.error('Failed to load Apple Music SDK');
-          resolve();
-        };
-        document.body.appendChild(script);
-      } catch (error) {
-        console.error('Failed to initialize Apple Music:', error);
-        resolve();
-      }
+        }
+      };
+
+      initAppleMusic();
     });
   }, [isLoaded.apple]);
 
-  const loadSpotifySDK = useCallback(async () => {
+  const loadSpotifySDK = useCallback(() => {
     if (isLoaded.spotify) return;
     
     return new Promise<void>((resolve) => {
@@ -232,13 +239,19 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     }
   }, [loadMetaSDK, loadTwitterSDK, loadTikTokSDK, loadAppleMusicSDK, loadSpotifySDK]);
 
+  const checkMobile = useCallback(() => {
+    const mobile = isMobileDevice();
+    setIsMobile(mobile);
+  }, []);
+
   useEffect(() => {
+    checkMobile();
     if (!document.getElementById('fb-root')) {
       const fbRoot = document.createElement('div');
       fbRoot.id = 'fb-root';
       document.body.appendChild(fbRoot);
     }
-  }, []);
+  }, [checkMobile]);
 
   const contextValue: SocialProviderContextType = {
     isLoaded,
@@ -253,13 +266,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
   );
 };
 
-export const useSocialSDK = () => {
-  const context = useContext(SocialProviderContext);
-  if (!context) {
-    throw new Error('useSocialSDK must be used within a SocialProvider');
-  }
-  return context;
-};
+
 
 declare global {
   interface Window {

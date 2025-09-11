@@ -11,7 +11,8 @@ export async function initMeta() {
 
 export function pageView() {
   try {
-    (window as any).fbq?.('track', 'PageView');
+    const win = window as unknown as { fbq?: (...args: unknown[]) => void };
+    win.fbq?.('track', 'PageView');
   } catch {
     // ignore
   }

@@ -8,13 +8,13 @@ interface AnalyticsEvent {
   category?: string;
   label?: string;
   value?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 
 interface ErrorEvent {
   error: Error;
-  errorInfo?: any;
+  errorInfo?: unknown;
   fatal?: boolean;
 }
 
@@ -52,7 +52,7 @@ class Analytics {
     }
   }
   
-  private log(...args: any[]): void {
+  private log(...args: unknown[]): void {
     if (this.debug) {
       console.log('[Analytics]', ...args);
     }
@@ -132,7 +132,7 @@ class Analytics {
         description: err.message,
         fatal,
         error_stack: err.stack,
-        ...errorInfo
+        ...(errorInfo && typeof errorInfo === 'object' ? errorInfo : {})
       });
     }
     
@@ -141,7 +141,7 @@ class Analytics {
         message: err.message,
         fatal,
         stack: err.stack,
-        ...errorInfo
+        ...(errorInfo && typeof errorInfo === 'object' ? errorInfo : {})
       });
     }
     
@@ -165,7 +165,7 @@ class Analytics {
   /**
    * Track music/platform interactions
    */
-  trackMusic(platform: string, action: string, metadata?: Record<string, any>): void {
+  trackMusic(platform: string, action: string, metadata?: Record<string, unknown>): void {
     this.track({
       action: `music_${action}`,
       category: 'music',
@@ -188,7 +188,7 @@ class Analytics {
   /**
    * Track ecommerce events
    */
-  trackEcommerce(action: string, data: Record<string, any>): void {
+  trackEcommerce(action: string, data: Record<string, unknown>): void {
     const ecommerceEvents: Record<string, string> = {
       'view_item': 'view_item',
       'add_to_cart': 'add_to_cart',
@@ -220,7 +220,7 @@ class Analytics {
         window.fbq('track', fbEvents[action] || action, {
           currency: data.currency || 'USD',
           value: data.value,
-          content_ids: data.items?.map((i: any) => i.id),
+          content_ids: (data.items as Array<{ id: string }> | undefined)?.map((i) => i.id),
           content_type: 'product',
           ...data
         });
@@ -238,7 +238,7 @@ class Analytics {
   /**
    * Track custom events
    */
-  trackCustom(eventName: string, parameters?: Record<string, any>): void {
+  trackCustom(eventName: string, parameters?: Record<string, unknown>): void {
     if (window.gtag) {
       window.gtag('event', eventName, parameters);
     }
@@ -259,6 +259,6 @@ export const trackEvent = (event: AnalyticsEvent) => analytics.track(event);
 export const trackPageView = (path?: string, title?: string) => analytics.trackPageView(path, title);
 export const trackError = (error: ErrorEvent) => analytics.trackError(error);
 export const trackSocial = (platform: string, action: string, target?: string) => analytics.trackSocial(platform, action, target);
-export const trackMusic = (platform: string, action: string, metadata?: Record<string, any>) => analytics.trackMusic(platform, action, metadata);
-export const trackEcommerce = (action: string, data: Record<string, any>) => analytics.trackEcommerce(action, data);
-export const trackCustom = (eventName: string, parameters?: Record<string, any>) => analytics.trackCustom(eventName, parameters);
+export const trackMusic = (platform: string, action: string, metadata?: Record<string, unknown>) => analytics.trackMusic(platform, action, metadata);
+export const trackEcommerce = (action: string, data: Record<string, unknown>) => analytics.trackEcommerce(action, data);
+export const trackCustom = (eventName: string, parameters?: Record<string, unknown>) => analytics.trackCustom(eventName, parameters);

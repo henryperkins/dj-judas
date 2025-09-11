@@ -224,8 +224,8 @@ export async function listShippingOptions(cartId: string) {
       res = await fetch(u.toString(), { headers })
     }
     if (!res.ok) return []
-    const json = await res.json() as { shipping_options?: any[] } | any[]
-    return (json as any).shipping_options || (json as any[]) || []
+    const json = await res.json() as { shipping_options?: unknown[] } | unknown[]
+    return (json as { shipping_options?: unknown[] }).shipping_options || (json as unknown[]) || []
   } catch (error) {
     console.error('Failed to list shipping options via fetch:', error)
     return []

@@ -1,10 +1,13 @@
 import React, { lazy, Suspense, useEffect } from 'react';
-import { useSocialSDK } from '../../../providers/SocialProvider';
+import { useSocialSDK } from '../../../hooks/useSocialSDK';
+import type { SocialSDKState } from '../../../providers/SocialProvider';
 
 const SpotifyEmbed = lazy(() => import('./SpotifyEmbed'));
 const AppleMusicEmbed = lazy(() => import('./AppleMusicEmbed'));
 const InstagramEmbed = lazy(() => import('./InstagramEmbed'));
 const FacebookEmbed = lazy(() => import('./FacebookEmbed'));
+const TwitterEmbed = lazy(() => import('./TwitterEmbed'));
+const TikTokEmbed = lazy(() => import('./TikTokEmbed'));
 
 interface EmbedLoaderProps {
   platform: 'spotify' | 'apple' | 'instagram' | 'facebook' | 'twitter' | 'tiktok';
@@ -15,7 +18,7 @@ const EmbedLoader: React.FC<EmbedLoaderProps> = ({ platform, children }) => {
   const { loadSDK } = useSocialSDK();
 
   useEffect(() => {
-    const platformMap: Record<string, keyof typeof loadSDK extends (platform: infer P) => any ? P : never> = {
+    const platformMap: Record<string, keyof SocialSDKState> = {
       instagram: 'meta',
       facebook: 'meta',
       twitter: 'twitter',
@@ -26,7 +29,7 @@ const EmbedLoader: React.FC<EmbedLoaderProps> = ({ platform, children }) => {
 
     const sdkPlatform = platformMap[platform];
     if (sdkPlatform) {
-      loadSDK(sdkPlatform as any);
+      loadSDK(sdkPlatform);
     }
   }, [platform, loadSDK]);
 
@@ -71,6 +74,22 @@ export const LazyFacebookEmbed: React.FC<{ url: string; type?: 'post' | 'video' 
   </EmbedLoader>
 );
 
+export const LazyTwitterEmbed: React.FC<{ url: string }> = ({ url }) => (
+  <EmbedLoader platform="twitter">
+    <Suspense fallback={<EmbedSkeleton />}>
+      <TwitterEmbed url={url} />
+    </Suspense>
+  </EmbedLoader>
+);
+
+export const LazyTikTokEmbed: React.FC<{ url: string }> = ({ url }) => (
+  <EmbedLoader platform="tiktok">
+    <Suspense fallback={<EmbedSkeleton />}>
+      <TikTokEmbed url={url} />
+    </Suspense>
+  </EmbedLoader>
+);
+
 interface LazyUniversalEmbedProps {
   url: string;
   platform?: string;
@@ -89,7 +108,11 @@ export const LazyUniversalEmbed: React.FC<LazyUniversalEmbedProps> = ({ url, pla
     case 'instagram':
       return <LazyInstagramEmbed url={url} />;
     case 'facebook':
-      return <LazyFacebookEmbed url={url} type={type as any} />;
+      return <LazyFacebookEmbed url={url} type={(type === 'post' || type === 'video') ? type : undefined} />;
+    case 'twitter':
+      return <LazyTwitterEmbed url={url} />;
+    case 'tiktok':
+      return <LazyTikTokEmbed url={url} />;
     default:
       return <div className="embed-error">Unsupported embed URL</div>;
   }

@@ -104,7 +104,7 @@ export const SHARE_PLATFORMS = {
     name: 'Messenger',
     color: '#006AFF',
     shareUrl: 'https://www.facebook.com/dialog/send',
-    params: (url: string, _title?: string) => ({
+    params: (url: string) => ({
       app_id: PLATFORM_CONFIG.facebook.appId,
       link: url,
       redirect_uri: url,
@@ -115,11 +115,11 @@ export const SHARE_PLATFORMS = {
 // Analytics configuration
 export const ANALYTICS_CONFIG = {
   google: {
-    enabled: typeof window !== 'undefined' && !!(window as any).gtag,
+    enabled: typeof window !== 'undefined' && !!(window as unknown as { gtag?: unknown }).gtag,
     measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID,
   },
   facebook: {
-    enabled: typeof window !== 'undefined' && !!(window as any).fbq,
+    enabled: typeof window !== 'undefined' && !!(window as unknown as { fbq?: unknown }).fbq,
     pixelId: PLATFORM_CONFIG.facebook.pixelId,
   },
 } as const;
@@ -158,7 +158,7 @@ export function buildShareUrl(platformId: keyof typeof SHARE_PLATFORMS, url: str
   const platform = SHARE_PLATFORMS[platformId];
   if (!platform) return url;
   
-  const params = new URLSearchParams(platform.params(url, title) as any);
+  const params = new URLSearchParams(platform.params(url, title) as Record<string, string>);
   return `${platform.shareUrl}?${params.toString()}`;
 }
 

@@ -1,0 +1,9 @@
+{
+  "autoAccept": true,
+  "hideTips": true,
+  "hideContextSummary": true,
+  "showMemoryUsage": true,
+  "showLineNumbers": true,
+  "showCitations": true,
+  "useRipgrep": true
+}

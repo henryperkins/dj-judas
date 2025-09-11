@@ -33,7 +33,6 @@ interface ShareButtonProps {
 export const ShareButton: React.FC<ShareButtonProps> = ({
   url,
   title,
-  description: _description,
   artist = 'DJ Lee & The Voices of Judah',
   tagline = 'Gospel that lifts the room',
   utmSource = 'share',

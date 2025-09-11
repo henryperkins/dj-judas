@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuFacebook, LuCalendar, LuMapPin, LuClock, LuUsers, LuTicket, LuExternalLink, LuRefreshCw } from 'react-icons/lu';
-import { socialMetrics } from '../../utils/socialMetrics';
+import { socialMetrics } from '../utils/socialMetrics';
 
 interface FacebookEvent {
   id: string;

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LuMusic, LuExternalLink } from 'react-icons/lu';
-import SpotifyEmbed from './SpotifyEmbed';
-import AppleMusicEmbed from './AppleMusicEmbed';
+import { SpotifyEmbed, AppleMusicEmbed } from './social';
 
 interface Track {
   id: string;

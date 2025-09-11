@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuInstagram, LuFacebook, LuShoppingBag, LuHeart, LuMessageCircle, LuShare2, LuRefreshCw } from 'react-icons/lu';
-import { socialMetrics } from '../../utils/socialMetrics';
+import { socialMetrics } from '../utils/socialMetrics';
 
 interface SocialPost {
   id: string;

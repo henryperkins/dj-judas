@@ -111,18 +111,18 @@ src/react-app/components/social/
 
 #### 2.1 Remove Deprecated Components
 - [x] Delete `/social` route from App.tsx
-- [ ] Remove `SocialHub` page component
-- [ ] Delete `InstagramHub` component
-- [ ] Delete `FacebookHub` component
-- [ ] Delete `FacebookPageEmbed` component
+- [x] Remove `SocialHub` page component
+- [x] Delete `InstagramHub` component
+- [x] Delete `FacebookHub` component
+- [x] Delete `FacebookPageEmbed` component
 - [ ] Remove `lib/share.ts`
-- [ ] Clean up `useFacebookEmbed` hook if redundant
+- [x] Clean up `useFacebookEmbed` hook if redundant
 
 #### 2.2 Update Imports
-- [ ] Update all imports in `EnhancedLandingPageV2`
-- [ ] Update imports in `CreatorMediaPanel`
-- [ ] Update any other components using social features
-- [ ] Update barrel exports in component directories
+- [x] Update all imports in `EnhancedLandingPageV2`
+- [x] Update imports in `CreatorMediaPanel`
+- [x] Update any other components using social features
+- [x] Update barrel exports in component directories
 
 ### Phase 3: Integration & Testing
 

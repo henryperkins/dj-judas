@@ -5,7 +5,7 @@ import {
   PLATFORM_COLORS,
   ACTION_ICONS,
 } from './icons/PlatformIcons';
-import { socialMetrics } from '../utils/socialMetrics';
+import { socialMetrics } from './social/utils/socialMetrics';
 import { FaStar, FaMapMarkerAlt } from 'react-icons/fa';
 
 const {

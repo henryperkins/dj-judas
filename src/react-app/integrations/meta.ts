@@ -1,4 +1,4 @@
-import { metaSDK } from '@/react-app/utils/metaSdk';
+import { metaSDK } from '@/react-app/components/social/utils/metaSdk';
 
 export async function initMeta() {
   try {

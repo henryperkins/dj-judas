@@ -1,4 +1,4 @@
-import { socialMetrics } from './socialMetrics';
+import { socialMetrics } from '../components/social/utils/socialMetrics';
 
 interface MusicKitInstance {
   isAuthorized: boolean;

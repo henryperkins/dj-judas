@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuMusic, LuExternalLink, LuPlus, LuPlay, LuLogIn } from 'react-icons/lu';
-import { appleMusicKit } from '../utils/appleMusicKit';
+import { appleMusicKit } from '@/react-app/utils/appleMusicKit';
 
 interface AppleMusicEmbedProps {
   url: string; // Full Apple Music URL

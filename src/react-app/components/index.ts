@@ -13,13 +13,12 @@ export { default as ServicesSection } from './sections/ServicesSection';
 
 // Core components still needed
 export { default as MusicHub } from './MusicHub';
-export { default as SpotifyEmbed } from './SpotifyEmbed';
-export { default as AppleMusicEmbed } from './AppleMusicEmbed';
+export { SpotifyEmbed, AppleMusicEmbed } from './social';
 export { default as PhotoGallery } from './PhotoGallery';
 export { default as BookingForm } from './BookingForm';
 
 
 // Utilities
 export * from '../utils/platformDetection';
-export * from '../utils/metaSdk.ts';
-export * from '../utils/socialMetrics.ts';
+export * from './social/utils/metaSdk';
+export * from './social/utils/socialMetrics';

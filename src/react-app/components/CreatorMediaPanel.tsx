@@ -4,14 +4,15 @@ import {
   LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuCopy, LuCheck, LuLink2, LuGlobe, LuMic, LuQrCode
 } from "react-icons/lu";
 import { FaXTwitter, FaWhatsapp, FaLinkedinIn, FaFacebookMessenger, FaTelegram } from 'react-icons/fa6';
-import QrShareCard from './QrShareCard';
-import SpotifyEmbed from "./SpotifyEmbed";
-import AppleMusicEmbed from "./AppleMusicEmbed";
-import FacebookVideo from "./FacebookVideo";
-import FacebookPage from "./FacebookPage";
-import InstagramEmbed from "./InstagramEmbed";
-import SocialEmbed from "./SocialEmbed";
-import { shareWithTracking } from "../utils/metaSdk";
+import {
+  SpotifyEmbed,
+  AppleMusicEmbed,
+  FacebookEmbed,
+  InstagramEmbed,
+  UniversalEmbed,
+  QrShareCard,
+  shareWithTracking
+} from './social';
 
 export type CreatorMediaPanelProps = {
   artist?: string;
@@ -226,8 +227,8 @@ export default function CreatorMediaPanel({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Facebook Video / Live" hint="Public videos & live streams">
                   {facebookVideoHref ? (
-                    <FacebookVideo
-                      href={facebookVideoHref}
+                    <FacebookEmbed
+                      videoUrl={facebookVideoHref}
                       height={400}
                     />
                   ) : (
@@ -237,7 +238,7 @@ export default function CreatorMediaPanel({
 
                 <SectionCard title="Facebook Page" hint="Timeline embed">
                   {(facebookPageUrl || defaultFacebookPageUrl) ? (
-                    <FacebookPage
+                    <FacebookEmbed
                       pageUrl={facebookPageUrl || defaultFacebookPageUrl!}
                       tabs="timeline"
                       height={560}
@@ -282,7 +283,7 @@ export default function CreatorMediaPanel({
 
                 <SectionCard title="Universal Embed" hint="TikTok, YouTube, X, LinkedIn and more">
                   {(socialEmbedUrl || defaultSocialEmbedUrl) ? (
-                    <SocialEmbed url={(socialEmbedUrl || defaultSocialEmbedUrl)!} />
+                    <UniversalEmbed url={(socialEmbedUrl || defaultSocialEmbedUrl)!} />
                   ) : (
                     <EmptyState text="Provide any supported social post URL (e.g., TikTok/YouTube/Twitter)." />
                   )}

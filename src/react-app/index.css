@@ -1615,6 +1615,69 @@ footer .platform-launcher-title {
   text-align: center;
 }
 
+/* =================================================================
+   Platform Launcher - Standardized BEM Structure
+   ================================================================= */
+
+/* Base BEM block */
+.platform-launcher {
+  --platform-button-bg: hsl(var(--card));
+  --platform-button-border: hsl(var(--border));
+  --platform-button-hover-bg: color-mix(in oklab, hsl(var(--card)) 92%, hsl(0 0% 0% / 8%));
+}
+
+.dark .platform-launcher {
+  --platform-button-bg: hsl(var(--secondary));
+  --platform-button-border: hsl(var(--border) / 0.7);
+  --platform-button-hover-bg: color-mix(in oklab, hsl(var(--secondary)) 92%, hsl(0 0% 0% / 8%));
+}
+
+/* Shared button styles */
+.platform-launcher__button {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--platform-button-bg);
+  border: 1px solid var(--platform-button-border);
+  border-radius: var(--radius);
+}
+
+.platform-launcher__button:hover {
+  background: var(--platform-button-hover-bg);
+}
+
+.platform-launcher__button:focus-visible {
+  outline: 3px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Icon base styles */
+.platform-launcher__icon {
+  color: var(--platform-color);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.platform-launcher__button:active .platform-launcher__icon {
+  transform: scale(0.9);
+}
+
+/* Size modifiers */
+.platform-launcher__icon--sm {
+  width: 20px;
+  height: 20px;
+}
+
+.platform-launcher__icon--md {
+  width: 28px;
+  height: 28px;
+}
+
+.platform-launcher__icon--lg {
+  width: 32px;
+  height: 32px;
+}
+
 /* Platform Launcher - FAB Mode */
 :root {
   --fab-bottom-offset: 2rem;
@@ -1624,7 +1687,7 @@ body.mobile-nav-visible {
   --fab-bottom-offset: 5rem;
 }
 
-.platform-launcher-fab {
+.platform-launcher--fab {
   position: fixed;
   bottom: var(--fab-bottom-offset);
   right: 1rem;
@@ -1632,7 +1695,7 @@ body.mobile-nav-visible {
   transition: bottom 0.3s ease-in-out;
 }
 
-.fab-trigger {
+.platform-launcher__fab-trigger {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -1647,15 +1710,15 @@ body.mobile-nav-visible {
   transition: all 0.3s ease;
 }
 
-.fab-trigger:hover {
+.platform-launcher__fab-trigger:hover {
   box-shadow: 0 6px 20px hsla(var(--accent) / 0.6);
 }
 
-.fab-trigger:active {
+.platform-launcher__fab-trigger:active {
   transform: scale(0.95);
 }
 
-.fab-menu {
+.platform-launcher__fab-menu {
   position: absolute;
   bottom: calc(100% + 0.75rem);
   right: 0;
@@ -1666,41 +1729,33 @@ body.mobile-nav-visible {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-.fab-platforms {
+.platform-launcher__fab-platforms {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.fab-platform-btn {
+.platform-launcher__fab-button {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
   background: transparent;
   border: 1px solid hsl(var(--border));
   border-radius: 8px;
-  cursor: pointer;
   transition: all 0.3s ease;
   color: var(--text-primary);
   text-align: left;
   font-size: 0.9rem;
 }
 
-.fab-platform-btn:hover {
+.platform-launcher__fab-button:hover {
   background: var(--platform-color);
   border-color: var(--platform-color);
   color: white;
   transform: translateX(-4px);
 }
 
-.fab-platform-icon {
-  font-size: 1.25rem;
-  margin-right: 0.75rem;
-  min-width: 24px;
-  text-align: center;
-}
-
-.fab-backdrop {
+.platform-launcher__fab-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.3);
@@ -4410,6 +4465,40 @@ body.mobile-nav-visible .site-footer-minimal {
 }
 .platform-card:active .platform-icon-svg {
   transform: scale(0.9);
+}
+
+/* Consolidated platform icon classes with BEM naming */
+.platform-launcher__icon {
+  color: var(--platform-color);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.platform-launcher__icon--sm {
+  width: 20px;
+  height: 20px;
+}
+
+.platform-launcher__icon--md {
+  width: 28px;
+  height: 28px;
+}
+
+.platform-launcher__icon--lg {
+  width: 32px;
+  height: 32px;
+}
+
+/* Platform color contrast safeguards */
+.platform-launcher__button--colored {
+  background: var(--platform-color);
+  border-color: var(--platform-color);
+  color: white;
+  --platform-foreground: color-contrast(var(--platform-color) vs hsl(0 0% 0%), hsl(0 0% 100%));
+}
+
+.platform-launcher__button--colored .platform-launcher__icon {
+  color: var(--platform-foreground, white);
 }
 
 /* Floating FAB refinements */

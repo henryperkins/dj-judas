@@ -67,20 +67,19 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 
       const response = await fetch(`/api/social/feed?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch social feed');
-      
+
       const data = await response.json();
       if (!data?.posts?.length) {
-        setPosts(generateDemoData());
-        setError('Using demo data - API connection pending');
+        setPosts([]);
+        setError('No posts available');
       } else {
         setPosts(data.posts);
         setError(null);
       }
     } catch (err) {
       console.error('Social feed error:', err);
-      // Use fallback data for demo
-      setPosts(generateDemoData());
-      setError('Using demo data - API connection pending');
+      setPosts([]);
+      setError('Failed to load social feed');
     } finally {
       setLoading(false);
     }
@@ -89,7 +88,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   // Initial fetch and auto-refresh
   useEffect(() => {
     fetchPosts();
-    
+
     if (autoRefresh && refreshInterval > 0) {
       const interval = setInterval(fetchPosts, refreshInterval * 1000);
       return () => clearInterval(interval);
@@ -112,38 +111,13 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     }
   };
 
-  // Generate demo data
-  const generateDemoData = (): SocialPost[] => {
-    const demoProducts = [
-      { id: 'p1', title: 'Limited Edition Vinyl', price: 39.99, imageUrl: '/api/placeholder/150/150', productUrl: '/products/vinyl-001', x: 30, y: 40 },
-      { id: 'p2', title: 'Tour Merchandise', price: 29.99, imageUrl: '/api/placeholder/150/150', productUrl: '/products/merch-001', x: 70, y: 60 }
-    ];
-
-    return Array.from({ length: 6 }, (_, i) => ({
-      id: `demo-${i}`,
-      platform: i % 2 === 0 ? 'instagram' : 'facebook',
-      type: ['photo', 'video', 'carousel', 'reel'][i % 4] as 'photo' | 'video' | 'carousel' | 'reel',
-      mediaUrl: `/api/placeholder/400/${300 + (i * 50)}`,
-      thumbnailUrl: `/api/placeholder/200/200`,
-      caption: `Amazing performance last night! 🎵 #DJLee #VoicesOfJudah #LiveMusic ${i % 2 === 0 ? '#NewAlbum' : '#Tour2025'}`,
-      permalink: `https://${i % 2 === 0 ? 'instagram' : 'facebook'}.com/post/${i}`,
-      timestamp: new Date(Date.now() - i * 86400000).toISOString(),
-      likes: Math.floor(Math.random() * 5000) + 100,
-      comments: Math.floor(Math.random() * 200) + 10,
-      shares: Math.floor(Math.random() * 100) + 5,
-      isShoppable: i % 3 === 0,
-      products: i % 3 === 0 ? demoProducts.slice(0, Math.floor(Math.random() * 2) + 1) : undefined,
-      hashtags: ['#DJLee', '#VoicesOfJudah', '#LiveMusic'],
-      mentions: ['@voicesofjudah', '@djlee']
-    }));
-  };
 
   // Render based on layout
   const renderGrid = () => (
     <div className="social-feed-grid">
       {posts.map((post) => (
-        <div 
-          key={post.id} 
+        <div
+          key={post.id}
           className={`social-post-card ${post.isShoppable ? 'shoppable' : ''}`}
           onClick={() => onPostClick ? onPostClick(post) : setSelectedPost(post)}
         >
@@ -163,12 +137,12 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 
           {/* Media */}
           <div className="post-media">
-            <img 
-              src={post.thumbnailUrl || post.mediaUrl} 
+            <img
+              src={post.thumbnailUrl || post.mediaUrl}
               alt={post.caption.substring(0, 50)}
               loading="lazy"
             />
-            
+
             {/* Product Tags */}
             {post.isShoppable && post.products && (
               <div className="product-tags">
@@ -210,7 +184,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 
           {/* Engagement */}
           <div className="post-engagement">
-            <button 
+            <button
               className="engagement-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -220,7 +194,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
               <LuHeart size={16} />
               <span>{post.likes?.toLocaleString()}</span>
             </button>
-            <button 
+            <button
               className="engagement-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -230,7 +204,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
               <LuMessageCircle size={16} />
               <span>{post.comments?.toLocaleString()}</span>
             </button>
-            <button 
+            <button
               className="engagement-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -296,7 +270,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       {/* Header */}
       <div className="feed-header">
         <h3>Latest from Social</h3>
-        <button 
+        <button
           className="btn btn-ghost"
           onClick={fetchPosts}
           disabled={loading}
@@ -321,12 +295,12 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 
       {/* Lightbox Modal */}
       {selectedPost && (
-        <div 
+        <div
           className="social-post-lightbox"
           onClick={() => setSelectedPost(null)}
         >
           <div className="lightbox-content" onClick={e => e.stopPropagation()}>
-            <button 
+            <button
               className="close-btn"
               onClick={() => setSelectedPost(null)}
             >
@@ -335,7 +309,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
             <img src={selectedPost.mediaUrl} alt={selectedPost.caption} />
             <div className="lightbox-info">
               <p>{selectedPost.caption}</p>
-              <a 
+              <a
                 href={selectedPost.permalink}
                 target="_blank"
                 rel="noopener noreferrer"

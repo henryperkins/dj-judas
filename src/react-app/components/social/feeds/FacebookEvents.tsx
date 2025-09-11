@@ -64,20 +64,19 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
 
       const response = await fetch(`/api/facebook/events?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch Facebook events');
-      
+
       const data = await response.json();
       if (!data?.events?.length) {
-        setEvents(generateDemoEvents());
-        setError('Using demo data - API connection pending');
+        setEvents([]);
+        setError('No upcoming events');
       } else {
         setEvents(data.events);
         setError(null);
       }
     } catch (err) {
       console.error('Facebook events error:', err);
-      // Use fallback demo data
-      setEvents(generateDemoEvents());
-      setError('Using demo data - API connection pending');
+      setEvents([]);
+      setError('Failed to load events');
     } finally {
       setLoading(false);
     }
@@ -86,70 +85,13 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
   // Initial fetch and auto-refresh
   useEffect(() => {
     fetchEvents();
-    
+
     if (autoRefresh && refreshInterval > 0) {
       const interval = setInterval(fetchEvents, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
   }, [fetchEvents, autoRefresh, refreshInterval]);
 
-  // Generate demo events
-  const generateDemoEvents = (): FacebookEvent[] => {
-    const now = new Date();
-    return [
-      {
-        id: 'demo1',
-        name: 'DJ Lee & Voices of Judah - Live Concert',
-        description: 'Experience an unforgettable night of worship and praise with DJ Lee & Voices of Judah!',
-        startTime: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endTime: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
-        place: {
-          name: 'Grace Cathedral',
-          location: {
-            city: 'San Francisco',
-            street: '1100 California St',
-            zip: '94108'
-          }
-        },
-        coverPhoto: '/api/placeholder/800/400',
-        eventUrl: 'https://facebook.com/events/demo1',
-        ticketUri: 'https://tickets.example.com/event1',
-        interestedCount: 234,
-        attendingCount: 89,
-        category: 'MUSIC_EVENT'
-      },
-      {
-        id: 'demo2',
-        name: 'Worship Night - Special Guest Performance',
-        description: 'Join us for a powerful evening of worship and ministry.',
-        startTime: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        place: {
-          name: 'Community Church',
-          location: {
-            city: 'Oakland',
-            street: '2501 Harrison St'
-          }
-        },
-        coverPhoto: '/api/placeholder/800/400',
-        eventUrl: 'https://facebook.com/events/demo2',
-        interestedCount: 156,
-        attendingCount: 67,
-        category: 'RELIGIOUS_EVENT'
-      },
-      {
-        id: 'demo3',
-        name: 'Virtual Worship Session',
-        description: 'Join us online for an intimate worship experience.',
-        startTime: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-        isOnline: true,
-        coverPhoto: '/api/placeholder/800/400',
-        eventUrl: 'https://facebook.com/events/demo3',
-        interestedCount: 512,
-        attendingCount: 203,
-        category: 'ONLINE_EVENT'
-      }
-    ];
-  };
 
   // Format date for display
   const formatEventDate = (date: string) => {
@@ -178,8 +120,8 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
   const renderList = () => (
     <div className="fb-events-list">
       {events.map((event) => (
-        <div 
-          key={event.id} 
+        <div
+          key={event.id}
           className={`event-card ${event.isCanceled ? 'canceled' : ''}`}
           onClick={() => {
             handleEventInteraction(event, 'view');
@@ -198,21 +140,21 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               )}
             </div>
           )}
-          
+
           <div className="event-details">
             <div className="event-date">
               <LuCalendar size={16} />
               <span>{formatEventDate(event.startTime)}</span>
             </div>
-            
+
             <h3 className="event-name">{event.name}</h3>
-            
+
             {event.description && (
               <p className="event-description">
                 {event.description.substring(0, 150)}...
               </p>
             )}
-            
+
             <div className="event-meta">
               {event.place && (
                 <div className="event-location">
@@ -223,13 +165,13 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   )}
                 </div>
               )}
-              
+
               {event.isOnline && (
                 <div className="event-online">
                   <span className="online-badge">Online Event</span>
                 </div>
               )}
-              
+
               <div className="event-stats">
                 {event.attendingCount && (
                   <span className="stat">
@@ -244,7 +186,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                 )}
               </div>
             </div>
-            
+
             <div className="event-actions">
               {event.ticketUri && (
                 <button
@@ -283,8 +225,8 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
   const renderGrid = () => (
     <div className="fb-events-grid">
       {events.map((event) => (
-        <div 
-          key={event.id} 
+        <div
+          key={event.id}
           className={`event-grid-card ${event.isCanceled ? 'canceled' : ''}`}
           onClick={() => {
             handleEventInteraction(event, 'view');
@@ -296,7 +238,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
           }}
         >
           <div className="event-grid-cover">
-            <img src={event.coverPhoto || '/api/placeholder/400/200'} alt={event.name} />
+            {event.coverPhoto && <img src={event.coverPhoto} alt={event.name} />}
             {event.isCanceled && (
               <div className="canceled-badge">CANCELED</div>
             )}
@@ -304,7 +246,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               <div className="online-indicator">Online</div>
             )}
           </div>
-          
+
           <div className="event-grid-content">
             <div className="event-grid-date">
               {formatEventDate(event.startTime)}
@@ -331,12 +273,12 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
             <LuCalendar size={16} />
           </div>
           {index < events.length - 1 && <div className="timeline-line" />}
-          
+
           <div className="timeline-content">
             <div className="timeline-date">
               {formatEventDate(event.startTime)}
             </div>
-            <div 
+            <div
               className={`timeline-card ${event.isCanceled ? 'canceled' : ''}`}
               onClick={() => {
                 handleEventInteraction(event, 'view');
@@ -415,7 +357,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
           <LuFacebook size={20} />
           Upcoming Events
         </h3>
-        <button 
+        <button
           className="btn btn-ghost"
           onClick={fetchEvents}
           disabled={loading}
@@ -448,29 +390,29 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
 
       {/* Event Detail Modal */}
       {selectedEvent && (
-        <div 
+        <div
           className="event-modal"
           onClick={() => setSelectedEvent(null)}
         >
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button 
+            <button
               className="modal-close"
               onClick={() => setSelectedEvent(null)}
             >
               ×
             </button>
-            
+
             {selectedEvent.coverPhoto && (
-              <img 
-                src={selectedEvent.coverPhoto} 
+              <img
+                src={selectedEvent.coverPhoto}
                 alt={selectedEvent.name}
                 className="modal-cover"
               />
             )}
-            
+
             <div className="modal-body">
               <h2>{selectedEvent.name}</h2>
-              
+
               <div className="modal-meta">
                 <div>
                   <LuClock size={16} />
@@ -479,7 +421,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                     <> - {formatEventDate(selectedEvent.endTime)}</>
                   )}
                 </div>
-                
+
                 {selectedEvent.place && (
                   <div>
                     <LuMapPin size={16} />
@@ -493,11 +435,11 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {selectedEvent.description && (
                 <p className="modal-description">{selectedEvent.description}</p>
               )}
-              
+
               <div className="modal-actions">
                 {selectedEvent.ticketUri && (
                   <a

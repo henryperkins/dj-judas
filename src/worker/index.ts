@@ -65,6 +65,7 @@ interface Env {
 	SESSIONS: KVNamespace;
 	SPOTIFY_CLIENT_ID: string;
 	SPOTIFY_CLIENT_SECRET?: string;
+	SPOTIFY_ARTIST_ID?: string;
 	APPLE_TEAM_ID: string;
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
@@ -187,10 +188,10 @@ app.get('/api/metrics', async (c) => {
         url.searchParams.set('fields', 'followers_count,media_count,name');
         const bearer = (await getAppAccessToken(c.env)) || c.env.IG_OEMBED_TOKEN as string;
         const igResponse = await fetch(url.toString(), bearer ? { headers: { Authorization: `Bearer ${bearer}` } } : undefined).catch(() => null);
-			
+
 			if (igResponse && igResponse.ok) {
 				const igData = await igResponse.json() as { followers_count?: number; media_count?: number };
-				const followers = igData.followers_count || 2300;
+				const followers = typeof igData.followers_count === 'number' ? igData.followers_count : 0;
 				metrics.platforms.push({
 					id: 'instagram',
 					name: 'Instagram',
@@ -202,68 +203,81 @@ app.get('/api/metrics', async (c) => {
 			}
 		} catch (error) {
 			console.error('Failed to fetch Instagram metrics:', error);
-			// Use fallback values
-			metrics.platforms.push({
-				id: 'instagram',
-				name: 'Instagram',
-				followers: 2300,
-				engagement: 12.3,
-				lastUpdated: new Date().toISOString()
-			});
-			metrics.totalReach += 2300;
 		}
 	} else {
-		// Fallback Instagram metrics
-		metrics.platforms.push({
-			id: 'instagram',
-			name: 'Instagram',
-			followers: 2300,
-			engagement: 12.3,
-			lastUpdated: new Date().toISOString()
-		});
-		metrics.totalReach += 2300;
+		// Instagram metrics not configured; skipping.
 	}
 
 	// Fetch Spotify metrics
 	try {
-		// Artist ID for future API calls: 5WICYLl8MXvOY2x3mkoSqK (DJ Lee & Voices of Judah)
-		// Try to get metrics using client credentials flow (if implemented)
-		// For now, use static values
-		metrics.platforms.push({
-			id: 'spotify',
-			name: 'Spotify',
-			followers: 850,
-			engagement: 45.2,
-			lastUpdated: new Date().toISOString()
-		});
-		metrics.totalReach += 850;
+		const clientId = c.env.SPOTIFY_CLIENT_ID;
+		const clientSecret = c.env.SPOTIFY_CLIENT_SECRET;
+		const artistId = c.env.SPOTIFY_ARTIST_ID || '5WICYLl8MXvOY2x3mkoSqK';
+		if (clientId && clientSecret && artistId) {
+			const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
+				},
+				body: new URLSearchParams({ grant_type: 'client_credentials' })
+			});
+			if (tokenRes.ok) {
+				const tokenJson = await tokenRes.json() as { access_token: string };
+				const artRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+					headers: { Authorization: `Bearer ${tokenJson.access_token}` }
+				});
+				if (artRes.ok) {
+					const art = await artRes.json() as { followers?: { total?: number }; popularity?: number };
+					const followers = art.followers?.total ?? 0;
+					const engagement = typeof art.popularity === 'number' ? art.popularity : 0;
+					metrics.platforms.push({
+						id: 'spotify',
+						name: 'Spotify',
+						followers,
+						engagement,
+						lastUpdated: new Date().toISOString()
+					});
+					metrics.totalReach += followers;
+				}
+			}
+		}
 	} catch (error) {
 		console.error('Failed to fetch Spotify metrics:', error);
-		metrics.platforms.push({
-			id: 'spotify',
-			name: 'Spotify',
-			followers: 850,
-			engagement: 45.2,
-			lastUpdated: new Date().toISOString()
-		});
-		metrics.totalReach += 850;
 	}
 
-	// Facebook metrics (would use Graph API with page access token)
-	metrics.platforms.push({
-		id: 'facebook',
-		name: 'Facebook',
-		followers: 1600,
-		engagement: 8.5,
-		lastUpdated: new Date().toISOString()
-	});
-	metrics.totalReach += 1600;
+	// Facebook metrics via Graph API if configured
+	try {
+		const fbPageId = c.env.FB_PAGE_ID;
+		const fbToken = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN;
+		if (fbPageId && fbToken) {
+			const pageUrl = new URL(`${graphBase(c.env)}/${fbPageId}`);
+			pageUrl.searchParams.set('fields', 'fan_count,name');
+			const pageRes = await fetch(pageUrl.toString(), { headers: { Authorization: `Bearer ${fbToken}` } });
+			if (pageRes.ok) {
+				const page = await pageRes.json() as { fan_count?: number; name?: string };
+				const followers = page.fan_count ?? 0;
+				metrics.platforms.push({
+					id: 'facebook',
+					name: 'Facebook',
+					followers,
+					engagement: 0,
+					lastUpdated: new Date().toISOString()
+				});
+				metrics.totalReach += followers;
+			}
+		}
+	} catch (e) {
+		console.error('Failed to fetch Facebook metrics:', e);
+	}
 
 	// Determine top conversion source based on engagement
-	const topPlatform = metrics.platforms.reduce((prev, current) => 
-		prev.engagement > current.engagement ? prev : current
-	);
-	metrics.topConversionSource = topPlatform.id;
+	if (metrics.platforms.length > 0) {
+		const topPlatform = metrics.platforms.reduce((prev, current) =>
+			prev.engagement > current.engagement ? prev : current
+		);
+		metrics.topConversionSource = topPlatform.id;
+	}
 
 	// Cache for 15 minutes if KV available
 	try {
@@ -368,7 +382,7 @@ app.get('/api/spotify/callback', async (c) => {
 		return c.json({ error: 'token_exchange_failed', status: tokenRes.status }, 500);
 	}
 		const tokenJson = await tokenRes.json() as { access_token: string; refresh_token?: string; expires_in: number };
-		
+
 		// Generate unique session ID
 		const sessionId = randomString(32);
 		const session: SpotifySession = {
@@ -376,14 +390,14 @@ app.get('/api/spotify/callback', async (c) => {
 			refreshToken: tokenJson.refresh_token,
 			expiresAt: Date.now() + tokenJson.expires_in * 1000
 		};
-		
+
 		// Store session in KV with 30-day TTL
 		await kv.put(
 			`spotify:${sessionId}`,
 			JSON.stringify(session),
 			{ expirationTtl: 60 * 60 * 24 * 30 }
 		);
-		
+
 		c.header('Set-Cookie', `spotify_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
 		return c.json({ success: true });
 });
@@ -401,7 +415,7 @@ app.get('/api/spotify/session', async (c) => {
 
   const session = JSON.parse(sessionData) as SpotifySession;
   if (!session.accessToken) return c.json({ authenticated: false });
-	
+
 	// Check if token expired and needs refresh
 	if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
 		if (session.refreshToken) {
@@ -413,7 +427,7 @@ app.get('/api/spotify/session', async (c) => {
 		}
 		return c.json({ authenticated: false, reason: 'token_expired' });
 	}
-	
+
 	return c.json({ authenticated: true, expiresAt: session.expiresAt });
 });
 
@@ -482,10 +496,10 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 	if (!kv) return null;
 	const sessionData = await kv.get(`spotify:${match[1]}`);
 	if (!sessionData) return null;
-	
+
 	const session = JSON.parse(sessionData) as SpotifySession;
 	if (!session.accessToken) return null;
-	
+
 	// Check if token needs refresh
 	if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
 		if (session.refreshToken) {
@@ -493,14 +507,14 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 		}
 		return null;
 	}
-	
+
 	return session;
 }
 
 // Refresh Spotify access token
 async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: SpotifySession): Promise<SpotifySession | null> {
 	if (!session.refreshToken || !c.env.SPOTIFY_CLIENT_ID) return null;
-	
+
 	try {
 		const res = await fetch('https://accounts.spotify.com/api/token', {
 			method: 'POST',
@@ -511,16 +525,16 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 				client_id: c.env.SPOTIFY_CLIENT_ID
 			})
 		});
-		
+
 		if (!res.ok) return null;
-		
+
 		const tokenJson = await res.json() as { access_token: string; refresh_token?: string; expires_in: number };
 		session.accessToken = tokenJson.access_token;
 		if (tokenJson.refresh_token) {
 			session.refreshToken = tokenJson.refresh_token;
 		}
 		session.expiresAt = Date.now() + tokenJson.expires_in * 1000;
-		
+
 		// Update session in KV (if available)
 		const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
 		if (kv) {
@@ -530,7 +544,7 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 				{ expirationTtl: 60 * 60 * 24 * 30 }
 			);
 		}
-		
+
 		return session;
 	} catch {
 		return null;
@@ -968,7 +982,7 @@ This is an automated confirmation email. Please do not reply directly to this me
           text: summary
         })
       });
-      
+
       // Send confirmation to customer
       if (adminRes.ok) {
         await fetch('https://api.resend.com/emails', {
@@ -993,7 +1007,7 @@ This is an automated confirmation email. Please do not reply directly to this me
     if (c.env.SENDGRID_API_KEY) {
       const to = c.env.SENDGRID_TO || 'V.O.J@icloud.com';
       const from = c.env.SENDGRID_FROM || 'no-reply@djlee.local';
-      
+
       // Send to admin
       const adminRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -1008,11 +1022,11 @@ This is an automated confirmation email. Please do not reply directly to this me
           content: [{ type: 'text/plain', value: summary }]
         })
       });
-      
+
       if (!adminRes.ok) {
         return c.json({ error: 'email_send_failed', provider: 'sendgrid', status: adminRes.status }, 500);
       }
-      
+
       // Send confirmation to customer
       await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -1027,7 +1041,7 @@ This is an automated confirmation email. Please do not reply directly to this me
           content: [{ type: 'text/plain', value: customerConfirmation }]
         })
       });
-      
+
       return c.json({ ok: true, provider: 'sendgrid' });
     }
 
@@ -1056,7 +1070,7 @@ app.get('/api/instagram/oembed', async (c) => {
 
     // Create cache key from parameters
     const cacheKey = `ig:${url}:${maxwidth || ''}:${omitscript || ''}:${hidecaption || ''}`;
-    
+
     // Check KV cache first
     const cached = await c.env.SESSIONS.get(cacheKey);
     if (cached) {
@@ -1084,14 +1098,14 @@ app.get('/api/instagram/oembed', async (c) => {
         });
         if (graphResponse.ok) {
           const data = await graphResponse.json() as OEmbedJSON;
-          
+
           // Cache in KV for 1 hour
           await c.env.SESSIONS.put(
             cacheKey,
             JSON.stringify(data),
             { expirationTtl: 3600 }
           );
-          
+
           return c.json(data, 200, {
             'Access-Control-Allow-Origin': '*',
             'Cache-Control': 'public, max-age=3600',
@@ -1124,7 +1138,7 @@ app.get('/api/instagram/oembed', async (c) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Instagram oEmbed API error:', response.status, errorText);
-      
+
       // If Instagram API fails, return a structured fallback response
       if (response.status === 404 || response.status === 400) {
         return c.json({
@@ -1132,13 +1146,13 @@ app.get('/api/instagram/oembed', async (c) => {
           message: 'The Instagram post could not be found. It may be private or deleted.'
         }, 404);
       }
-      
+
       // For rate limiting or server errors, provide a fallback embed structure
       if (response.status >= 500 || response.status === 429) {
         // Extract username from URL if possible
         const match = url.match(/instagram\.com\/([^/]+)/);
         const username = match ? match[1] : 'iam_djlee';
-        
+
         // Return a minimal fallback structure that the frontend can handle
         return c.json({
           fallback: true,
@@ -1154,7 +1168,7 @@ app.get('/api/instagram/oembed', async (c) => {
           'Cache-Control': 'public, max-age=300' // Cache fallback for 5 minutes
         });
       }
-      
+
       const status = response.status as 400 | 401 | 403 | 404 | 500 | 502 | 503;
       return c.json({
         error: 'Failed to fetch Instagram embed',
@@ -1164,14 +1178,14 @@ app.get('/api/instagram/oembed', async (c) => {
     }
 
     const data = await response.json() as OEmbedJSON;
-    
+
     // Cache successful response in KV for 1 hour
     await c.env.SESSIONS.put(
       cacheKey,
       JSON.stringify(data),
       { expirationTtl: 3600 }
     );
-    
+
     return c.json(data, 200, {
       'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'public, max-age=3600',
@@ -1180,12 +1194,12 @@ app.get('/api/instagram/oembed', async (c) => {
 
   } catch (error) {
     console.error('Instagram oEmbed handler error:', error);
-    
+
     // Last resort fallback
     const url = c.req.query('url') || '';
     const match = url.match(/instagram\.com\/([^/]+)/);
     const username = match ? match[1] : 'iam_djlee';
-    
+
     return c.json({
       fallback: true,
       html: `<div class="instagram-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">View on Instagram @${username}</a></div>`,
@@ -1206,9 +1220,9 @@ app.get('/api/instagram/oembed', async (c) => {
 app.get('/api/instagram/media', async (c) => {
   const igToken = c.env.IG_OEMBED_TOKEN;
   if (!igToken) {
-    return c.json({ 
+    return c.json({
       error: 'not_configured',
-      message: 'Instagram Graph API not configured' 
+      message: 'Instagram Graph API not configured'
     }, 501);
   }
 
@@ -1217,7 +1231,7 @@ app.get('/api/instagram/media', async (c) => {
     const igUserId = c.req.query('user_id') || c.env.IG_USER_ID || 'me';
     const limit = c.req.query('limit') || '12';
     const fields = c.req.query('fields') || 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username';
-    
+
     // Check cache first
     const cacheKey = `ig_media:${igUserId}:${limit}:${fields}`;
     const cached = await c.env.SESSIONS.get(cacheKey);
@@ -1245,7 +1259,7 @@ app.get('/api/instagram/media', async (c) => {
     }
 
     const data = await response.json() as { data: [] };
-    
+
     // Cache for 15 minutes
     await c.env.SESSIONS.put(
       cacheKey,
@@ -1287,7 +1301,7 @@ app.get('/api/social/feed', async (c) => {
 
     const posts: SocialPost[] = [];
     const errors: Array<{ platform: string; error: string }> = [];
-    
+
     // Fetch Instagram posts if requested
     if (platforms.includes('instagram')) {
       const igToken = c.env.IG_OEMBED_TOKEN;
@@ -1296,7 +1310,7 @@ app.get('/api/social/feed', async (c) => {
           // Get Instagram Business Account ID
           const igUserId = c.req.query('ig_user_id') || '17841400000000000'; // Placeholder
           const fields = 'id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count';
-          
+
           const graphUrl = new URL(`${graphBase(c.env)}/${igUserId || c.env.IG_USER_ID || 'me'}/media`);
           graphUrl.searchParams.append('fields', fields);
           graphUrl.searchParams.append('limit', limit.toString());
@@ -1315,7 +1329,7 @@ app.get('/api/social/feed', async (c) => {
               like_count?: number;
               comments_count?: number;
             }> };
-            
+
             if (data.data) {
               for (const item of data.data) {
                 const post = {
@@ -1335,7 +1349,7 @@ app.get('/api/social/feed', async (c) => {
                   hashtags: item.caption ? item.caption.match(/#\w+/g) || [] : [],
                   mentions: item.caption ? item.caption.match(/@\w+/g) || [] : []
                 };
-                
+
                 // Filter by hashtags if specified
                 if (hashtags.length === 0) {
                   posts.push(post);
@@ -1353,12 +1367,12 @@ app.get('/api/social/feed', async (c) => {
         }
       }
     }
-    
+
     // Fetch Facebook posts if requested
     if (platforms.includes('facebook')) {
       const fbPageId = c.env.FB_PAGE_ID;
       const fbToken = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN; // Can use same token
-      
+
       if (fbPageId && fbToken) {
         try {
           const fields = 'id,message,full_picture,permalink_url,created_time,likes.summary(true),comments.summary(true),shares';
@@ -1379,7 +1393,7 @@ app.get('/api/social/feed', async (c) => {
               comments?: { summary: { total_count: number } };
               shares?: { count: number };
             }> };
-            
+
             if (data.data) {
               for (const item of data.data) {
                 const post = {
@@ -1399,7 +1413,7 @@ app.get('/api/social/feed', async (c) => {
                   hashtags: item.message ? item.message.match(/#\w+/g) || [] : [],
                   mentions: item.message ? item.message.match(/@\w+/g) || [] : []
                 };
-                
+
                 // Filter by hashtags if specified
                 if (hashtags.length === 0) {
                   posts.push(post);
@@ -1417,7 +1431,7 @@ app.get('/api/social/feed', async (c) => {
         }
       }
     }
-    
+
   // Add shoppable data if requested (would integrate with Medusa)
   if (shoppable && posts.length > 0) {
       // Try Medusa storefront API first
@@ -1470,13 +1484,13 @@ app.get('/api/social/feed', async (c) => {
         }
       }
   }
-    
+
     // Sort by timestamp (newest first)
     posts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    
+
     // Limit results
     const limitedPosts = posts.slice(0, limit);
-    
+
     return c.json({
       posts: limitedPosts,
       errors: errors.length > 0 ? errors : undefined,
@@ -1495,9 +1509,9 @@ app.get('/api/social/feed', async (c) => {
 app.get('/api/instagram/insights', async (c) => {
   const igToken = c.env.IG_OEMBED_TOKEN;
   if (!igToken) {
-    return c.json({ 
+    return c.json({
       error: 'not_configured',
-      message: 'Instagram Graph API not configured' 
+      message: 'Instagram Graph API not configured'
     }, 501);
   }
 
@@ -1505,7 +1519,7 @@ app.get('/api/instagram/insights', async (c) => {
     const igUserId = c.req.query('user_id') || c.env.IG_USER_ID || 'me';
     const metrics = c.req.query('metrics') || 'impressions,reach,profile_views';
     const period = c.req.query('period') || 'day';
-    
+
     // Check cache
     const cacheKey = `ig_insights:${igUserId}:${metrics}:${period}`;
     const cached = await c.env.SESSIONS.get(cacheKey);
@@ -1536,7 +1550,7 @@ app.get('/api/instagram/insights', async (c) => {
     }
 
     const data = await response.json() as { data: [] };
-    
+
     // Cache for 1 hour
     await c.env.SESSIONS.put(
       cacheKey,

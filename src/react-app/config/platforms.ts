@@ -102,7 +102,8 @@ export const SHARE_PLATFORMS = {
   messenger: {
     id: 'messenger',
     name: 'Messenger',
-    color: '#006AFF',
+    // Meta Messenger primary blue (brand resource)
+    color: '#00B2FF',
     shareUrl: 'https://www.facebook.com/dialog/send',
     params: (url: string) => ({
       app_id: PLATFORM_CONFIG.facebook.appId,

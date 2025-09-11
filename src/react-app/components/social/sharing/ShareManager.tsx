@@ -24,6 +24,7 @@ import {
   nativeShare
 } from './shareUtils';
 import { addUtm } from '@/react-app/utils/utm';
+import AppleMusicBadge from '@/react-app/components/badges/AppleMusicBadge';
 
 export interface DeepLink {
   id: string;
@@ -332,7 +333,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({
           aria-label="Open link in new tab"
         >
           <LuExternalLink size={18} />
-          <span>Open</span>
+          <span>Open Link</span>
         </button>
 
         {showQr && (
@@ -369,22 +370,35 @@ const ShareManager: React.FC<ShareManagerProps> = ({
         <div className="share-deep-links">
           <h4 className="deep-links-heading">Listen & Follow</h4>
           <div className="deep-links-list">
-            {defaultDeepLinks.map(link => (
-              <button
-                key={link.id}
-                className="deep-link-btn"
-                onClick={() => handleDeepLinkClick(link)}
-                aria-label={link.label}
-                style={{
-                  '--platform-color': link.platform
-                    ? PLATFORM_CONFIG[link.platform].color
-                    : undefined
-                } as React.CSSProperties}
-              >
-                {link.icon || <LuSmartphone size={18} />}
-                <span>{link.label}</span>
-              </button>
-            ))}
+            {defaultDeepLinks.map(link => {
+              // Use Apple Music badge for Apple deep link
+              if (link.platform === 'appleMusic') {
+                return (
+                  <AppleMusicBadge
+                    key={link.id}
+                    href={link.url}
+                    className="apple-music-badge--inline"
+                    onClick={() => handleDeepLinkClick(link)}
+                  />
+                );
+              }
+              return (
+                <button
+                  key={link.id}
+                  className="deep-link-btn"
+                  onClick={() => handleDeepLinkClick(link)}
+                  aria-label={link.label}
+                  style={{
+                    '--platform-color': link.platform
+                      ? PLATFORM_CONFIG[link.platform].color
+                      : undefined
+                  } as React.CSSProperties}
+                >
+                  {link.icon || <LuSmartphone size={18} />}
+                  <span>{link.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

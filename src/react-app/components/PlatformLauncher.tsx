@@ -224,6 +224,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               aria-label="Open platform menu"
+              aria-expanded={isOpen}
+              aria-controls="platform-fab-menu"
             >
               <MusicIcon size={24} />
             </motion.button>
@@ -234,6 +236,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
+              id="platform-fab-menu"
+              role="menu"
             >
               <button
                 className="fab-close"
@@ -258,6 +262,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                     style={{
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
+                    aria-label={link.label.replace('Listen on ', '').replace('Follow on ', '')}
+                    role="menuitem"
                   >
                     <PlatformIcon
                       platform={link.platform}
@@ -265,7 +271,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                       className="fab-platform-icon-svg"
                       color="white"
                     />
-                    <span className="fab-platform-label">
+                    {/* Tooltip shown on hover/focus for labels */}
+                    <span className="fab-platform-tooltip">
                       {link.label.replace('Listen on ', '').replace('Follow on ', '')}
                     </span>
                   </motion.button>
@@ -276,9 +283,9 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
         </AnimatePresence>
       </motion.div>
 
-      {/* Backdrop for mobile when FAB is open */}
+      {/* Backdrop when FAB is open (mobile + desktop) */}
       <AnimatePresence>
-        {isOpen && isMobile && (
+        {isOpen && (
           <motion.div
             className="fab-backdrop"
             initial={{ opacity: 0 }}

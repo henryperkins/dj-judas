@@ -8,6 +8,7 @@ interface SpotifyEmbedProps {
   compact?: boolean;
   theme?: 'light' | 'dark';
   onPlay?: () => void;
+  hideHeader?: boolean; // when true, omit the internal header so parent can supply brand CTA
 }
 
 interface SpotifySessionResponse {
@@ -23,7 +24,8 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   uri,
   compact = false,
   theme = 'dark',
-  onPlay
+  onPlay,
+  hideHeader = false
 }) => {
   // Normalize input to URI format
   const spotifyUri = uri || (url ? normalizeToSpotifyUri(url) : '');
@@ -254,6 +256,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
 
   return (
     <div className="spotify-embed-wrapper">
+      {!hideHeader && (
       <div className="embed-header">
         <div className="platform-badge">
           <LuMusic size={16} />
@@ -268,6 +271,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           <span>Open in Spotify</span>
         </button>
       </div>
+      )}
 
       <div 
         className={`spotify-embed-container ${compact ? 'compact' : ''} ${theme}`}

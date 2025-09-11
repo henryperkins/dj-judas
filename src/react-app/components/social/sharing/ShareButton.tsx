@@ -89,7 +89,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       id: 'messenger',
       label: 'Messenger',
       icon: FaFacebookMessenger,
-      color: '#0084FF',
+      // Per Meta brand guidance: use Messenger blue
+      // https://about.meta.com/brand/resources/messenger/ (primary blue)
+      color: '#00B2FF',
       buildUrl: (base) => {
         const shareLink = utm(base, 'messenger');
         const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;

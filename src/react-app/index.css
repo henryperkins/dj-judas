@@ -548,6 +548,66 @@ h3 {
 }
 [data-slot="tabs-content"] { outline: none; }
 
+/* Brand-styled provider tabs (ListenTabs) */
+.listen-tabs { display: grid; gap: 0.5rem; }
+.listen-tabs__header {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: nowrap;
+}
+
+/* Tabs list spans full width on mobile */
+.listen-tabs [data-slot="tabs-list"] {
+  width: auto; height: 44px; padding: 3px; border-radius: 0.75rem; flex: 1 1 auto; min-width: 0;
+}
+
+.brand-tab { font-weight: 700; min-height: 38px; gap: 0.375rem; }
+.listen-tabs [data-slot="tabs-trigger"] { flex: 1 1 0; }
+.brand-tab--spotify[data-state="active"] { background: #1DB954; color: #0a0a0a; }
+.brand-tab--apple[data-state="active"] { background: #FC3C44; color: #ffffff; }
+.brand-tab--spotify:not([data-state="active"]):hover { box-shadow: inset 0 0 0 1px #1DB954; }
+.brand-tab--apple:not([data-state="active"]):hover { box-shadow: inset 0 0 0 1px #FC3C44; }
+
+.listen-tabs__cta { display: flex; gap: 0.5rem; width: auto; flex: 0 0 auto; }
+.brand-btn { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; border-radius: var(--radius); padding: 0.45rem 0.7rem; border: 1px solid transparent; text-decoration: none; white-space: nowrap; font-size: clamp(0.86rem, 1.2vw, 0.95rem); line-height: 1; }
+.brand-btn--spotify { background: #1DB954; color: #0a0a0a; }
+.brand-btn--apple { background: #FC3C44; color: #fff; }
+.brand-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+.listen-tabs__body { margin-top: 0.5rem; }
+.provider-pane { --brand-color: #999; }
+.provider-pane.spotify { --brand-color: #1DB954; }
+.provider-pane.apple { --brand-color: #FC3C44; }
+
+/* Make CTA sit beside tabs on wider screens */
+/* Extra-condensed at very small widths */
+@media (max-width: 360px) {
+  .listen-tabs [data-slot="tabs-list"] { height: 40px; }
+  .brand-tab { min-height: 36px; }
+  .brand-btn { padding: 0.4rem 0.5rem; }
+}
+
+/* Tablet+ refinements: tighter spacing and balanced sizes */
+@media (min-width: 768px) {
+  .listen-tabs__header { gap: 0.75rem; margin-bottom: 0.75rem; }
+  .listen-tabs [data-slot="tabs-list"] { height: 42px; }
+  .listen-tabs [data-slot="tabs-trigger"] {
+    height: 38px; padding: 0.25rem 0.75rem; font-size: 0.925rem;
+  }
+  .brand-btn { padding: 0.5rem 0.85rem; font-size: 0.975rem; }
+  .listen-tabs__body { margin-top: 0.75rem; }
+}
+
+/* Desktop refinements */
+@media (min-width: 1024px) {
+  .listen-tabs [data-slot="tabs-list"] { height: 44px; }
+  .listen-tabs [data-slot="tabs-trigger"] { height: 40px; font-size: 0.95rem; }
+  .brand-btn { padding: 0.55rem 1rem; font-size: 1rem; }
+}
+
+/* Ensure embeds don't overflow on tiny screens */
+.listen-tabs iframe { width: 100% !important; max-width: 100%; border-radius: var(--radius); }
+
+
 /* Responsive button groups */
 .button-group-mobile-stack {
   display: flex;
@@ -1985,32 +2045,26 @@ body.mobile-nav-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 16px;
-  color: hsl(var(--brand-instagram-start));
+  margin-bottom: 8px;
+  color: hsl(var(--foreground));
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
-.instagram-fallback-body {
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 16px;
-}
-
-.instagram-fallback-body p {
-  margin: 0 0 12px 0;
-  font-size: 0.95rem;
-}
+.instagram-fallback-body { color: hsl(var(--muted-foreground)); margin-bottom: 8px; }
+.instagram-fallback-body p { margin: 0 0 10px 0; font-size: 0.9rem; }
 
 .instagram-fallback-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  padding: 8px 14px;
+  background: hsl(var(--secondary));
+  color: hsl(var(--foreground));
   text-decoration: none;
   border-radius: var(--radius);
-  font-weight: 500;
+  border: 1px solid hsl(var(--border));
+  font-weight: 600;
   font-size: 0.9rem;
   transition: all 0.2s ease;
 }
@@ -2028,6 +2082,37 @@ body.mobile-nav-visible {
 .dark .instagram-fallback-container {
   background: hsl(var(--card) / 0.8);
 }
+
+/* Quick Links: 2×N tidy tiles */
+.quick-links-grid { align-items: stretch; }
+.quick-link-tile {
+  min-height: 44px;
+  border: 1px solid hsl(var(--border));
+}
+.dark .quick-link-tile {
+  background: hsl(var(--card));
+}
+
+/* Apple Music badge */
+.apple-music-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #000; /* Apple badge is black */
+  color: #fff;
+  border-radius: 9999px;
+  padding: 8px 12px;
+  text-decoration: none;
+  line-height: 1;
+  height: 36px;
+}
+.apple-music-badge__icon { flex-shrink: 0; }
+.apple-music-badge__text { display: inline-flex; gap: 6px; align-items: baseline; }
+.apple-music-badge__listen { opacity: 0.9; font-size: 12px; }
+.apple-music-badge__brand { font-weight: 700; font-size: 13px; }
+.apple-music-badge:hover { filter: brightness(1.05); transform: translateY(-1px); transition: all .15s ease; }
+.apple-music-badge:active { transform: translateY(0); }
+.apple-music-badge--inline { height: 32px; padding: 6px 10px; }
 
 .embed-metadata {
   margin-top: 16px;
@@ -4570,6 +4655,31 @@ body.mobile-nav-visible .site-footer-minimal {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
+/* Tooltip label for FAB items (shown on hover/focus) */
+.fab-platform-btn .fab-platform-tooltip {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  translate: 4px 0; /* subtle offset */
+  transition: opacity .15s ease, translate .15s ease;
+}
+
+.fab-platform-btn:focus-visible .fab-platform-tooltip,
+.fab-platform-btn:hover .fab-platform-tooltip {
+  opacity: 1;
+  translate: 0 0;
+}
+
 /* Close button in FAB menu */
 .fab-close {
   position: absolute;
@@ -4694,6 +4804,14 @@ body.mobile-nav-visible .site-footer-minimal {
 
 .share-btn:hover { transform: translateY(-1px); filter: brightness(0.95); }
 .share-btn:active { transform: translateY(0); filter: brightness(0.9); }
+
+/* Dark mode contrast: use neutral surface with brand border/icon */
+.dark .share-btn {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid var(--brand);
+}
+.dark .share-btn svg { color: var(--brand); }
 
 .qr-share-card {
   display: grid;

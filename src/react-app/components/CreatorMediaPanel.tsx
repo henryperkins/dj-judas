@@ -4,12 +4,11 @@ import {
   LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuGlobe, LuMic
 } from "react-icons/lu";
 import {
-  LazySpotifyEmbed,
-  LazyAppleMusicEmbed,
   LazyFacebookEmbed,
   LazyInstagramEmbed,
   LazyUniversalEmbed
 } from './social/embeds/LazyEmbeds';
+import ListenTabs from './ListenTabs';
 import { ShareManager } from './social';
 import type { DeepLink } from './social/sharing/ShareManager';
 
@@ -146,23 +145,12 @@ export default function CreatorMediaPanel({
           {/* Body */}
           <div className="mt-6 grid gap-6">
             {tab === "listen" && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SectionCard title="Spotify" hint="Playlists, tracks, albums">
-                  {(spotifyUrl || defaultSpotifyUrl) ? (
-                    <LazySpotifyEmbed uri={spotifyUrl || defaultSpotifyUrl!} />
-                  ) : (
-                    <EmptyState text="Add a Spotify URL to play here." />
-                  )}
-                </SectionCard>
-
-                <SectionCard title="Apple Music" hint="Albums & songs">
-                  {appleMusicUrl ? (
-                    <LazyAppleMusicEmbed url={appleMusicUrl} />
-                  ) : (
-                    <EmptyState text="Add an Apple Music link to play here." />
-                  )}
-                </SectionCard>
-              </div>
+              <SectionCard title="Listen" hint="Choose your streaming platform">
+                <ListenTabs
+                  spotifyUrl={spotifyUrl || defaultSpotifyUrl}
+                  appleMusicUrl={appleMusicUrl}
+                />
+              </SectionCard>
             )}
 
             {tab === "watch" && (
@@ -206,7 +194,7 @@ export default function CreatorMediaPanel({
                 </SectionCard>
 
                 <SectionCard title="Quick Links" hint="Open profiles">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 quick-links-grid">
                     {(facebookPageUrl || defaultFacebookPageUrl) && (
                       <LinkTile href={facebookPageUrl || defaultFacebookPageUrl!} label="Facebook" icon={<LuFacebook size={18} />} />
                     )}
@@ -285,7 +273,12 @@ function EmptyState({ text }: { text: string }) {
 
 function LinkTile({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-md border bg-card px-3 py-2 text-foreground hover:bg-secondary transition">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="quick-link-tile flex items-center justify-center gap-2 rounded-md border bg-card px-3 py-2 text-foreground hover:bg-secondary transition"
+    >
       {icon} <span className="text-sm font-medium">{label}</span>
     </a>
   );

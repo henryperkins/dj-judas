@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AppleMusicBadge from '@/react-app/components/badges/AppleMusicBadge';
 import { LuInstagram, LuExternalLink, LuChevronLeft, LuChevronRight, LuMusic, LuHeart, LuMessageCircle, LuBookmark, LuTrendingUp } from 'react-icons/lu';
 import { metaSDK, processInstagramEmbeds } from '../utils/metaSdk';
 import { socialMetrics, trackSocialClick, trackMusicAction } from '../utils/socialMetrics';
@@ -318,20 +319,20 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
         {isLoaded && embedData && (
           <>
             {embedData.fallback ? (
-              <div className="instagram-fallback-container">
+              <div className="instagram-fallback-container" role="region" aria-label="Instagram preview unavailable">
                 <div className="instagram-fallback-header">
                   <LuInstagram size={20} />
-                  <span>Instagram Post</span>
+                  <span>Instagram</span>
                 </div>
                 <div className="instagram-fallback-body">
-                  <p>This Instagram post cannot be embedded right now.</p>
+                  <p>Preview unavailable</p>
                   <a
                     href={currentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="instagram-fallback-link"
                   >
-                    <LuExternalLink size={16} />
+                    <LuExternalLink size={16} aria-hidden />
                     View on Instagram
                   </a>
                 </div>
@@ -388,12 +389,7 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
               </button>
             )}
             {appleMusicPlaylistUrl && (
-              <button 
-                className="btn btn-apple"
-                onClick={() => handlePlaylistClick('apple')}
-              >
-                Listen on Apple Music
-              </button>
+              <AppleMusicBadge href={appleMusicPlaylistUrl} />
             )}
           </div>
         </div>

@@ -9,6 +9,7 @@ interface AppleMusicEmbedProps {
   theme?: 'light' | 'dark';
   affiliateToken?: string;
   campaignToken?: string;
+  hideHeader?: boolean; // let parent supply its own brand header
 }
 
 const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
@@ -16,7 +17,8 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   height = 360,
   theme = 'dark',
   affiliateToken = '',
-  campaignToken = 'voices-of-judah'
+  campaignToken = 'voices-of-judah',
+  hideHeader = false
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
@@ -142,6 +144,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
   return (
     <div className={`apple-music-embed-container ${theme}`}>
+      {!hideHeader && (
       <div className="embed-header">
         <div className="platform-badge">
           <LuMusic size={16} />
@@ -156,6 +159,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
           Open in Apple Music
         </button>
       </div>
+      )}
 
       <div className="apple-iframe-container">
         {!isLoaded && !showFallback && (

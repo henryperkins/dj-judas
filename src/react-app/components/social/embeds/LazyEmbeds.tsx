@@ -42,18 +42,18 @@ const EmbedSkeleton: React.FC<{ height?: string }> = ({ height = '400px' }) => (
   </div>
 );
 
-export const LazySpotifyEmbed: React.FC<{ uri: string; height?: string }> = ({ uri, height }) => (
+export const LazySpotifyEmbed: React.FC<{ uri: string; height?: string; hideHeader?: boolean }> = ({ uri, height, hideHeader }) => (
   <EmbedLoader platform="spotify">
     <Suspense fallback={<EmbedSkeleton height={height} />}>
-      <SpotifyEmbed url={uri} />
+      <SpotifyEmbed url={uri} hideHeader={hideHeader} />
     </Suspense>
   </EmbedLoader>
 );
 
-export const LazyAppleMusicEmbed: React.FC<{ url: string; height?: string }> = ({ url, height }) => (
+export const LazyAppleMusicEmbed: React.FC<{ url: string; height?: string; hideHeader?: boolean }> = ({ url, height, hideHeader }) => (
   <EmbedLoader platform="apple">
     <Suspense fallback={<EmbedSkeleton height={height} />}>
-      <AppleMusicEmbed url={url} height={height ? parseInt(height) : undefined} />
+      <AppleMusicEmbed url={url} height={height ? parseInt(height) : undefined} hideHeader={hideHeader} />
     </Suspense>
   </EmbedLoader>
 );

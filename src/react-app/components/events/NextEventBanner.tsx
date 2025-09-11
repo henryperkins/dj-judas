@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LuCalendarPlus, LuMapPin } from 'react-icons/lu';
 import { EventItem } from './EventTypes';
 import { isIOS } from '../../utils/platformDetection';
+import { googleCalUrl, firstUpcoming } from '@/react-app/utils/events';
 
 interface EventsApiResponse {
   upcoming: EventItem[];

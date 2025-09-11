@@ -4,13 +4,13 @@ import {
   LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuGlobe, LuMic
 } from "react-icons/lu";
 import {
-  SpotifyEmbed,
-  AppleMusicEmbed,
-  FacebookEmbed,
-  InstagramEmbed,
-  UniversalEmbed,
-  ShareManager
-} from './social';
+  LazySpotifyEmbed,
+  LazyAppleMusicEmbed,
+  LazyFacebookEmbed,
+  LazyInstagramEmbed,
+  LazyUniversalEmbed
+} from './social/embeds/LazyEmbeds';
+import { ShareManager } from './social';
 import type { DeepLink } from './social/sharing/ShareManager';
 
 export type CreatorMediaPanelProps = {
@@ -149,7 +149,7 @@ export default function CreatorMediaPanel({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Spotify" hint="Playlists, tracks, albums">
                   {(spotifyUrl || defaultSpotifyUrl) ? (
-                    <SpotifyEmbed url={spotifyUrl || defaultSpotifyUrl} />
+                    <LazySpotifyEmbed uri={spotifyUrl || defaultSpotifyUrl!} />
                   ) : (
                     <EmptyState text="Add a Spotify URL to play here." />
                   )}
@@ -157,7 +157,7 @@ export default function CreatorMediaPanel({
 
                 <SectionCard title="Apple Music" hint="Albums & songs">
                   {appleMusicUrl ? (
-                    <AppleMusicEmbed url={appleMusicUrl} />
+                    <LazyAppleMusicEmbed url={appleMusicUrl} />
                   ) : (
                     <EmptyState text="Add an Apple Music link to play here." />
                   )}
@@ -169,9 +169,9 @@ export default function CreatorMediaPanel({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Facebook Video / Live" hint="Public videos & live streams">
                   {facebookVideoHref ? (
-                    <FacebookEmbed
-                      videoUrl={facebookVideoHref}
-                      height={400}
+                    <LazyFacebookEmbed
+                      url={facebookVideoHref}
+                      type="video"
                     />
                   ) : (
                     <EmptyState text="Provide a Facebook video/live URL." />
@@ -180,10 +180,9 @@ export default function CreatorMediaPanel({
 
                 <SectionCard title="Facebook Page" hint="Timeline embed">
                   {(facebookPageUrl || defaultFacebookPageUrl) ? (
-                    <FacebookEmbed
-                      pageUrl={facebookPageUrl || defaultFacebookPageUrl!}
-                      tabs="timeline"
-                      height={560}
+                    <LazyFacebookEmbed
+                      url={facebookPageUrl || defaultFacebookPageUrl!}
+                      type="post"
                     />
                   ) : (
                     <EmptyState text="Provide a Facebook Page URL." />
@@ -196,7 +195,7 @@ export default function CreatorMediaPanel({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Instagram" hint="Latest posts and reels">
                   {instagramPermalink ? (
-                    <InstagramEmbed url={instagramPermalink} skeletonHeight={480} />
+                    <LazyInstagramEmbed url={instagramPermalink} />
                   ) : defaultInstagramUrl ? (
                     <div className="grid grid-cols-2 gap-3">
                       <LinkTile href={defaultInstagramUrl} label="View Profile" icon={<LuInstagram size={18} />} />
@@ -225,7 +224,7 @@ export default function CreatorMediaPanel({
 
                 <SectionCard title="Universal Embed" hint="TikTok, YouTube, X, LinkedIn and more">
                   {(socialEmbedUrl || defaultSocialEmbedUrl) ? (
-                    <UniversalEmbed url={(socialEmbedUrl || defaultSocialEmbedUrl)!} />
+                    <LazyUniversalEmbed url={(socialEmbedUrl || defaultSocialEmbedUrl)!} />
                   ) : (
                     <EmptyState text="Provide any supported social post URL (e.g., TikTok/YouTube/Twitter)." />
                   )}

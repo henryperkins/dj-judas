@@ -14,7 +14,7 @@ const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct'));
 const AdminProductsList = lazy(() => import('./pages/AdminProductsList'));
 const AdminEditProduct = lazy(() => import('./pages/AdminEditProduct'));
 import { onNavigate, navigate } from './utils/nav';
-import { initMeta } from './integrations';
+import { SocialProvider } from './providers/SocialProvider';
 import { useMetaPixelPageViews } from './hooks/useMetaPixelPageViews';
 
 function App() {
@@ -40,25 +40,22 @@ function App() {
     return () => document.removeEventListener('click', onClick);
   }, []);
 
-  // Initialize Facebook SDK and Pixel on app startup
-  useEffect(() => {
-    initMeta();
-  }, []);
+  // SDK initialization now handled by SocialProvider
 
   // Fire Meta Pixel PageView on SPA route changes
   useMetaPixelPageViews(path);
 
-  // Facebook SDK is loaded via our internal metaSDK when needed.
-  // Removing react-facebook provider prevents double-initialization.
+  // SDK initialization handled by SocialProvider for all platforms
   return (
-    <div className="min-h-svh admin-compact">
-      <ErrorBoundary>
-        <ThemeToggle />
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        <Suspense fallback={<div className="container section-py"><div className="skeleton-title" /><div className="skeleton-text" /><div className="skeleton-text" /></div>}>
-          {path === '/book' ? <BookingPage />
+    <SocialProvider>
+      <div className="min-h-svh admin-compact">
+        <ErrorBoundary>
+          <ThemeToggle />
+        </ErrorBoundary>
+        
+        <ErrorBoundary>
+          <Suspense fallback={<div className="container section-py"><div className="skeleton-title" /><div className="skeleton-text" /><div className="skeleton-text" /></div>}>
+            {path === '/book' ? <BookingPage />
             : path === '/checkout' ? <CheckoutPage />
             : path === '/success' ? <SuccessPage />
             : path === '/products' ? <ProductsPage />
@@ -71,6 +68,7 @@ function App() {
         </Suspense>
       </ErrorBoundary>
     </div>
+    </SocialProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { SignJWT, importPKCS8 } from 'jose';
+import { socialMetricsApp } from './social-metrics';
 
 // KVNamespace type for Cloudflare Workers
 interface KVNamespace {
@@ -63,6 +64,7 @@ interface FacebookEvent {
 interface Env {
 	SESSIONS: KVNamespace;
 	SPOTIFY_CLIENT_ID: string;
+	SPOTIFY_CLIENT_SECRET?: string;
 	APPLE_TEAM_ID: string;
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
@@ -92,6 +94,9 @@ interface Env {
   }; // Workers AI binding
 }
 const app = new Hono<{ Bindings: Env }>();
+
+// Mount social metrics routes
+app.route('/', socialMetricsApp);
 
 // ---- Facebook/Instagram helpers ----
 const DEFAULT_GRAPH_VERSION = 'v22.0';

@@ -122,6 +122,12 @@ class SocialMetricsTracker {
     });
   }
 
+  // Track SDK loads
+  trackSDKLoad(platform: string): void {
+    console.log(`[SDK Loaded] ${platform}`);
+    this.sendAnalytics('sdk_loaded', { platform });
+  }
+
   trackMusicConversion(
     destination: string,
     action: string,

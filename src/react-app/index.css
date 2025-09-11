@@ -764,6 +764,10 @@ h3 {
 .skeleton-text { height: 1rem; margin-bottom: 0.5rem; }
 .skeleton-title { height: 1.5rem; width: 60%; margin-bottom: 1rem; }
 
+/* Embed Skeleton */
+.embed-skeleton { position: relative; width: 100%; background: hsl(var(--muted)); border-radius: calc(var(--radius) * 0.75); overflow: hidden; }
+.embed-skeleton .skeleton-pulse { position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, hsl(var(--muted) / 0.5) 50%, transparent 100%); animation: shimmer 1.5s infinite; }
+
 /* --- 5.15 Status Messages --- */
 .alert { padding: 1rem 1.25rem; border-radius: var(--radius); margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 0.75rem; border: 1px solid transparent; }
 .alert__icon { flex-shrink: 0; width: 1.25rem; height: 1.25rem; }

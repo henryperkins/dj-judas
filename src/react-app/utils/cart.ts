@@ -1,5 +1,3 @@
-const MEDUSA_URL = import.meta.env.VITE_MEDUSA_URL as string | undefined
-const PUB = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY as string | undefined
 
 const headers: Record<string, string> = (() => {
   const h: Record<string, string> = { 'content-type': 'application/json' }

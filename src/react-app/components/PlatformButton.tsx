@@ -1,10 +1,11 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { PLATFORM_BUTTON_VARIANTS } from '../utils/motionConfig'
-import { PlatformConfig } from '../config/platforms'
+import { getPlatformById, type PlatformId } from '../config/platforms'
+import { PlatformIcon } from './icons/PlatformIcons'
 
 interface PlatformButtonProps {
-  platform: PlatformConfig
+  platformId: PlatformId
   mode?: 'inline' | 'modal' | 'fab'
   size?: 'sm' | 'md' | 'lg'
   showLabel?: boolean
@@ -19,7 +20,7 @@ interface PlatformButtonProps {
  * Replaces duplicated button logic in PlatformLauncher
  */
 export const PlatformButton: React.FC<PlatformButtonProps> = ({
-  platform,
+  platformId,
   mode = 'inline',
   size = 'md',
   showLabel = true,
@@ -29,15 +30,15 @@ export const PlatformButton: React.FC<PlatformButtonProps> = ({
   'aria-label': ariaLabel,
   ...props
 }) => {
-  const IconComponent = platform.icon
-  const displayName = platform.displayName || platform.label
+  const config = getPlatformById(platformId)
+  const displayName = config.name
 
   // Generate accessible label if not provided
   const buttonLabel = ariaLabel || `Open ${displayName}`
 
   // Size classes for BEM consistency
   const sizeClass = `platform-launcher__icon--${size}`
-  
+
   // Mode-specific styling
   const getModeClasses = () => {
     switch (mode) {
@@ -54,7 +55,7 @@ export const PlatformButton: React.FC<PlatformButtonProps> = ({
 
   // Set platform color as CSS custom property
   const buttonStyle = {
-    '--platform-color': platform.color,
+    '--platform-color': config.color,
     ...style
   } as React.CSSProperties
 
@@ -70,22 +71,17 @@ export const PlatformButton: React.FC<PlatformButtonProps> = ({
       whileFocus="focus"
       {...props}
     >
-      <IconComponent 
+      <PlatformIcon
+        platform={platformId}
         className={`platform-launcher__icon ${sizeClass}`}
-        aria-hidden="true"
       />
-      
+
       {showLabel && (
         <span className="platform-launcher__label">
           {displayName}
         </span>
       )}
-      
-      {platform.isExternal && (
-        <span className="platform-launcher__external-indicator" aria-hidden="true">
-          ↗
-        </span>
-      )}
+
     </motion.button>
   )
 }

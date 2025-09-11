@@ -8,19 +8,19 @@ import { Variants } from 'framer-motion'
 /**
  * Button hover and tap variants for platform buttons
  */
-export const PLATFORM_BUTTON_VARIANTS = {
+export const PLATFORM_BUTTON_VARIANTS: Variants = {
   hover: {
     scale: 1.05,
-    transition: { duration: 0.2, ease: 'easeOut' }
+    transition: { duration: 0.2, ease: [0, 0, 0.2, 1] }
   },
   tap: {
     scale: 0.95,
-    transition: { duration: 0.1, ease: 'easeIn' }
+    transition: { duration: 0.1, ease: [0.4, 0, 1, 1] }
   },
   focus: {
     outline: '2px solid hsl(var(--ring))',
     outlineOffset: '2px',
-    transition: { duration: 0.1, ease: 'easeOut' }
+    transition: { duration: 0.1, ease: [0, 0, 0.2, 1] }
   }
 }
 
@@ -40,7 +40,7 @@ export const FAB_MENU_VARIANTS: Variants = {
     transition: {
       delay: index * 0.05,
       duration: 0.2,
-      ease: 'easeOut'
+      ease: [0, 0, 0.2, 1]
     }
   })
 }
@@ -54,7 +54,7 @@ export const MODAL_OVERLAY_VARIANTS: Variants = {
     backdropFilter: 'blur(0px)',
     transition: {
       duration: 0.2,
-      ease: 'easeIn'
+      ease: [0.4, 0, 1, 1]
     }
   },
   visible: {
@@ -62,7 +62,7 @@ export const MODAL_OVERLAY_VARIANTS: Variants = {
     backdropFilter: 'blur(4px)',
     transition: {
       duration: 0.3,
-      ease: 'easeOut'
+      ease: [0, 0, 0.2, 1]
     }
   }
 }
@@ -77,7 +77,7 @@ export const MODAL_CONTENT_VARIANTS: Variants = {
     y: 20,
     transition: {
       duration: 0.2,
-      ease: 'easeIn'
+      ease: [0.4, 0, 1, 1]
     }
   },
   visible: {
@@ -86,7 +86,7 @@ export const MODAL_CONTENT_VARIANTS: Variants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: 'easeOut',
+      ease: [0, 0, 0.2, 1],
       staggerChildren: 0.05
     }
   }
@@ -107,7 +107,7 @@ export const GRID_ITEM_VARIANTS: Variants = {
     scale: 1,
     transition: {
       duration: 0.2,
-      ease: 'easeOut'
+      ease: [0, 0, 0.2, 1]
     }
   }
 }
@@ -134,7 +134,7 @@ export const getMotionVariants = (prefersReducedMotion: boolean): Variants => {
   if (prefersReducedMotion) {
     return REDUCED_MOTION_VARIANTS
   }
-  
+
   return {
     ...PLATFORM_BUTTON_VARIANTS,
     ...FAB_MENU_VARIANTS,

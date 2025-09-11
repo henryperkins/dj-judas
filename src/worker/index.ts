@@ -175,7 +175,7 @@ app.get('/api/metrics', async (c) => {
 			engagement: number;
 			lastUpdated: string;
 		}>,
-		topConversionSource: 'instagram'
+		topConversionSource: 'unknown'
 	};
 
     // Fetch Instagram metrics if token available
@@ -1462,27 +1462,19 @@ app.get('/api/social/feed', async (c) => {
         url: p.handle ? `/products#${p.handle}` : '/products'
       });
 
-      const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
-      for (const post of shoppablePosts) {
+  const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
+  for (const post of shoppablePosts) {
+    if (medusaProducts.length > 0) {
+      // Simple mapping: try to match by hashtag to product title; else take first few
+      const tags = (post.hashtags || []).map((h: string) => h.replace(/^#/, '').toLowerCase());
+      const matched = medusaProducts.filter(p => tags.some((t: string) => p.title.toLowerCase().includes(t)));
+      const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
+      if (chosen.length > 0) {
         post.isShoppable = true;
-        if (medusaProducts.length > 0) {
-          // Simple mapping: try to match by hashtag to product title; else take first few
-          const tags = (post.hashtags || []).map((h: string) => h.replace(/^#/, '').toLowerCase());
-          const matched = medusaProducts.filter(p => tags.some((t: string) => p.title.toLowerCase().includes(t)));
-          const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
-          post.products = chosen.map((p) => toTagged(p));
-        } else {
-          // Fallback demo product
-          post.products = [
-            {
-              id: 'prod_demo_1',
-              title: 'Limited Edition Vinyl',
-              price: 39.99,
-              url: '/products'
-            }
-          ];
-        }
+        post.products = chosen.map((p) => toTagged(p));
       }
+    }
+  }
   }
 
     // Sort by timestamp (newest first)

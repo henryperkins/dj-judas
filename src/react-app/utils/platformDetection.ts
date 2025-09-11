@@ -1,5 +1,6 @@
 export interface PlatformLink {
-  platform: 'spotify' | 'apple-music' | 'facebook' | 'instagram';
+  // Use canonical camelCase platform ids that match PLATFORM_CONFIG keys
+  platform: 'spotify' | 'appleMusic' | 'facebook' | 'instagram';
   deepLink?: string;
   webLink: string;
   label: string;
@@ -35,7 +36,7 @@ export const hasNativeApp = (platform: string): boolean => {
   switch (platform) {
     case 'spotify':
       return true; // Spotify has apps on all mobile platforms
-    case 'apple-music':
+    case 'appleMusic':
       return isIOS(); // Apple Music native app only on iOS
     case 'facebook':
     case 'instagram':
@@ -87,7 +88,7 @@ export const openPlatform = (link: PlatformLink, trackingCallback?: () => void):
 };
 
 // Platform configurations
-import { PLATFORM_CONFIG, getPlatformDeepLink, getPlatformWebLink } from '../config/platforms';
+import { getPlatformDeepLink, getPlatformWebLink } from '../config/platforms';
 
 export const generatePlatformLinks = (): PlatformLink[] => {
   return [
@@ -99,7 +100,7 @@ export const generatePlatformLinks = (): PlatformLink[] => {
       icon: 'spotify'
     },
     {
-      platform: 'apple-music',
+      platform: 'appleMusic',
       deepLink: getPlatformDeepLink('appleMusic'),
       webLink: getPlatformWebLink('appleMusic')!,
       label: 'Listen on Apple Music',
@@ -126,7 +127,9 @@ export const generatePlatformLinks = (): PlatformLink[] => {
 import { trackMusic } from './analytics';
 
 export const trackPlatformClick = (platform: string, context: string = 'launcher'): void => {
-  trackMusic(platform, 'click', {
+  // normalize legacy keys to canonical
+  const normalized = platform === 'apple-music' || platform === 'apple_music' ? 'appleMusic' : platform;
+  trackMusic(normalized, 'click', {
     context,
     is_mobile: isMobileDevice(),
     device_type: isIOS() ? 'ios' : isAndroid() ? 'android' : 'desktop'

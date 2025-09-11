@@ -6,7 +6,10 @@ import { IconType } from 'react-icons';
 // Platform icon mapping
 export const PLATFORM_ICONS: Record<string, IconType> = {
   spotify: FaSpotify,
+  // Legacy and canonical Apple Music keys
   'apple-music': FaApple,
+  appleMusic: FaApple,
+  applemusic: FaApple,
   apple: FaApple,
   facebook: FaFacebookF,
   instagram: FaInstagram,
@@ -53,7 +56,10 @@ export const PlatformIcon: React.FC<PlatformIconProps> = ({
 // Get platform brand colors
 export const PLATFORM_COLORS: Record<string, string> = {
   spotify: '#1DB954',
+  // Legacy and canonical Apple Music keys
   'apple-music': '#FC3C44',
+  appleMusic: '#FC3C44',
+  applemusic: '#FC3C44',
   apple: '#A8DADC',
   facebook: '#1877F2',
   instagram: '#E4405F',

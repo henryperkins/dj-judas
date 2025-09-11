@@ -46,7 +46,7 @@ export default function CreatorMediaPanel({
 }: CreatorMediaPanelProps) {
   const [tab, setTab] = useState<"listen" | "watch" | "social" | "share">("listen");
   const canonical = useMemo(() => shareUrl || (typeof window !== "undefined" ? window.location.href : ""), [shareUrl]);
-  
+
   // Get environment variables for defaults
   const spotifyArtistId = import.meta.env?.VITE_SPOTIFY_ARTIST_ID;
   const instagramHandle = import.meta.env?.VITE_INSTAGRAM_HANDLE;
@@ -61,7 +61,7 @@ export default function CreatorMediaPanel({
   // Prepare deep links for ShareManager
   const deepLinks: DeepLink[] = useMemo(() => {
     const links: DeepLink[] = [];
-    
+
     if (spotifyUrl || defaultSpotifyUrl) {
       links.push({
         id: 'spotify',
@@ -70,16 +70,16 @@ export default function CreatorMediaPanel({
         platform: 'spotify'
       });
     }
-    
+
     if (appleMusicUrl) {
       links.push({
-        id: 'apple-music',
+        id: 'appleMusic',
         label: 'Open in Apple Music',
         url: appleMusicUrl,
         platform: 'appleMusic'
       });
     }
-    
+
     if (facebookVideoHref) {
       links.push({
         id: 'facebook-video',
@@ -88,7 +88,7 @@ export default function CreatorMediaPanel({
         platform: 'facebook'
       });
     }
-    
+
     if (facebookPageUrl || defaultFacebookPageUrl) {
       links.push({
         id: 'facebook-page',
@@ -97,7 +97,7 @@ export default function CreatorMediaPanel({
         platform: 'facebook'
       });
     }
-    
+
     if (instagramPermalink || defaultInstagramUrl) {
       links.push({
         id: 'instagram',
@@ -106,7 +106,7 @@ export default function CreatorMediaPanel({
         platform: 'instagram'
       });
     }
-    
+
     return links;
   }, [spotifyUrl, defaultSpotifyUrl, appleMusicUrl, facebookVideoHref, facebookPageUrl, defaultFacebookPageUrl, instagramPermalink, defaultInstagramUrl])
 

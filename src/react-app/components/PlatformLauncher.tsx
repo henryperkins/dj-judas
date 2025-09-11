@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlatformIcon, PLATFORM_COLORS, ACTION_ICONS } from './icons/PlatformIcons';
 import {
-  generatePlatformLinks,
   openPlatform,
   trackPlatformClick,
   isMobileDevice,
   type PlatformLink
 } from '../utils/platformDetection';
+import { getPlatformLinksAny, PLATFORM_CONFIG } from '../config/platforms';
 
 const { close: CloseIcon, external: ExternalIcon, music: MusicIcon } = ACTION_ICONS;
 
@@ -28,7 +28,25 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [platforms] = useState<PlatformLink[]>(generatePlatformLinks());
+  const [platforms, setPlatforms] = useState<PlatformLink[]>([]);
+
+  useEffect(() => {
+    const ids = ['spotify','appleMusic','facebook','instagram'] as const;
+    const links: PlatformLink[] = ids.map((id) => {
+      const { platformId, deepLink, webLink } = getPlatformLinksAny(id);
+      if (!platformId || !webLink) return null as unknown as PlatformLink;
+      const isListen = platformId === 'spotify' || platformId === 'appleMusic';
+      const label = `${isListen ? 'Listen on' : 'Follow on'} ${PLATFORM_CONFIG[platformId].name}`;
+      return {
+        platform: platformId as PlatformLink['platform'],
+        deepLink,
+        webLink: webLink!,
+        label,
+        icon: platformId
+      };
+    }).filter(Boolean) as PlatformLink[];
+    setPlatforms(links);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {

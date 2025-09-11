@@ -73,11 +73,11 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
       },
       {
         platform: 'Apple Music',
-        icon: 'apple-music',
+        icon: 'appleMusic',
         followers: appleMusicPlays,
         engagement: 38.5,
         growth: 8,
-        color: PLATFORM_COLORS['apple-music'],
+        color: PLATFORM_COLORS.appleMusic,
         url: 'https://music.apple.com/us/artist/dj-lee-voices-of-judah/1540816224',
       },
       {

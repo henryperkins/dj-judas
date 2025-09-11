@@ -1,7 +1,6 @@
 import React, { createContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { metaSDK } from '../components/social/utils/metaSdk';
 import { socialMetrics } from '../components/social/utils/socialMetrics';
-import { isMobileDevice } from '@/react-app/utils/platformDetection';
 
 interface SocialSDKConfig {
   meta?: {
@@ -37,6 +36,8 @@ interface SocialProviderContextType {
   config: SocialSDKConfig;
 }
 
+// TODO: Move SocialProviderContext to separate file to satisfy fast refresh rule.
+// eslint-disable-next-line react-refresh/only-export-components
 export const SocialProviderContext = createContext<SocialProviderContextType | null>(null);
 
 const DEFAULT_CONFIG: SocialSDKConfig = {
@@ -64,8 +65,6 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     apple: false,
     spotify: false
   });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
@@ -169,7 +168,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
                 }
               });
               setIsLoaded(prev => ({ ...prev, apple: true }));
-              socialMetrics.trackSDKLoad('apple');
+              socialMetrics.trackSDKLoad('appleMusic');
             }
             resolve();
           };
@@ -239,19 +238,13 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     }
   }, [loadMetaSDK, loadTwitterSDK, loadTikTokSDK, loadAppleMusicSDK, loadSpotifySDK]);
 
-  const checkMobile = useCallback(() => {
-    const mobile = isMobileDevice();
-    setIsMobile(mobile);
-  }, []);
-
   useEffect(() => {
-    checkMobile();
     if (!document.getElementById('fb-root')) {
       const fbRoot = document.createElement('div');
       fbRoot.id = 'fb-root';
       document.body.appendChild(fbRoot);
     }
-  }, [checkMobile]);
+  }, []);
 
   const contextValue: SocialProviderContextType = {
     isLoaded,

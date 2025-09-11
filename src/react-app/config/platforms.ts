@@ -157,7 +157,7 @@ export function getSharePlatformById(id: keyof typeof SHARE_PLATFORMS) {
 export function buildShareUrl(platformId: keyof typeof SHARE_PLATFORMS, url: string, title?: string): string {
   const platform = SHARE_PLATFORMS[platformId];
   if (!platform) return url;
-  
+
   const params = new URLSearchParams(platform.params(url, title) as Record<string, string>);
   return `${platform.shareUrl}?${params.toString()}`;
 }
@@ -210,6 +210,52 @@ export function getPlatformWebLink(platformId: keyof typeof PLATFORM_CONFIG): st
     default:
       return undefined;
   }
+}
+
+/**
+ * Platform alias normalization
+ * Canonical internal ids are PLATFORM_CONFIG keys (camelCase).
+ * This map accepts legacy/external ids and normalizes them.
+ */
+export const PLATFORM_ALIASES: Record<string, keyof typeof PLATFORM_CONFIG> = {
+  // Apple Music aliases
+  'apple-music': 'appleMusic',
+  'apple_music': 'appleMusic',
+  // Meta aliases
+  'fb': 'facebook',
+  // Instagram shorthand
+  'ig': 'instagram',
+  // X/Twitter
+  'x': 'twitter',
+};
+
+/**
+ * Returns a canonical PlatformId from any alias, or undefined if unknown.
+ */
+export function normalizePlatformId(id: string | undefined | null): keyof typeof PLATFORM_CONFIG | undefined {
+  if (!id) return undefined;
+  // Exact match first
+  if (id in PLATFORM_CONFIG) return id as keyof typeof PLATFORM_CONFIG;
+  // Lowercase alias lookup
+  const lower = id.toLowerCase();
+  return PLATFORM_ALIASES[lower];
+}
+
+/**
+ * Convenience helper: given any platform id or alias, return deep/web links.
+ */
+export function getPlatformLinksAny(id: string): {
+  platformId?: keyof typeof PLATFORM_CONFIG;
+  deepLink?: string;
+  webLink?: string;
+} {
+  const platformId = normalizePlatformId(id);
+  if (!platformId) return {};
+  return {
+    platformId,
+    deepLink: getPlatformDeepLink(platformId),
+    webLink: getPlatformWebLink(platformId),
+  };
 }
 
 // Type exports

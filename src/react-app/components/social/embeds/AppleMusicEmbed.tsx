@@ -44,18 +44,18 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   };
 
   const trackEngagement = (action: string, data: Record<string, unknown>) => {
-    // Use centralized socialMetrics instead of direct gtag
-    socialMetrics.trackSocialInteraction('apple_music', action, data);
+    // Use canonical platform id and concise action verbs
+    socialMetrics.trackSocialInteraction('appleMusic', action, data);
   };
 
   const handleOpenInAppleMusic = () => {
-    trackEngagement('apple_music_open', { url });
+    trackEngagement('open', { url });
     window.open(buildAffiliateLink('open'), '_blank', 'noopener,noreferrer');
   };
 
   const handleAddToLibrary = async () => {
-    trackEngagement('apple_music_add_library', { url });
-    
+    trackEngagement('add_library', { url });
+
     if (!musicKitReady) {
       // Fallback to web if MusicKit not available
       window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
@@ -74,7 +74,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
       // Add to library using MusicKit
       await appleMusicKit.addToLibrary([content]);
-      
+
       // Optional: Show success message
       console.log('Successfully added to Apple Music library');
     } catch (error) {
@@ -88,7 +88,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
 
   const handleSubscribe = () => {
-    trackEngagement('apple_music_subscribe', { url });
+    trackEngagement('subscribe', { url });
     window.open('https://music.apple.com/subscribe', '_blank', 'noopener,noreferrer');
   };
 
@@ -173,7 +173,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
               maxWidth: '100%',
               overflow: 'hidden',
               background: 'transparent',
-              borderRadius: '8px'
+              borderRadius: 'var(--radius)'
             }}
             sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
             src={embedSrc}
@@ -192,7 +192,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
               placeItems: 'center',
               height,
               background: 'hsl(var(--muted) / 0.35)',
-              borderRadius: 8,
+              borderRadius: 'var(--radius)',
             }}
           >
             <div style={{ textAlign: 'center', color: 'hsl(var(--muted-foreground))' }}>

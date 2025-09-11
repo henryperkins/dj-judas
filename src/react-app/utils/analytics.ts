@@ -22,21 +22,21 @@ class Analytics {
   private static instance: Analytics;
   private initialized = false;
   private debug = import.meta.env.DEV;
-  
+
   private constructor() {
     this.initializeProviders();
   }
-  
+
   static getInstance(): Analytics {
     if (!Analytics.instance) {
       Analytics.instance = new Analytics();
     }
     return Analytics.instance;
   }
-  
+
   private initializeProviders(): void {
     if (typeof window === 'undefined') return;
-    
+
     // Wait for providers to be available
     const checkProviders = () => {
       if (window.gtag || window.fbq) {
@@ -44,26 +44,26 @@ class Analytics {
         this.log('Analytics providers initialized');
       }
     };
-    
+
     // Check immediately and again after DOM ready
     checkProviders();
     if (!this.initialized) {
       window.addEventListener('DOMContentLoaded', checkProviders);
     }
   }
-  
+
   private log(...args: unknown[]): void {
     if (this.debug) {
       console.log('[Analytics]', ...args);
     }
   }
-  
+
   /**
    * Track a generic event (Google Analytics + Facebook Pixel)
    */
   track(event: AnalyticsEvent): void {
     const { action, category = 'general', label, value, ...customParams } = event;
-    
+
     // Google Analytics
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', action, {
@@ -74,7 +74,7 @@ class Analytics {
       });
       this.log('GA Event:', action, { category, label, value, ...customParams });
     }
-    
+
     // Facebook Pixel - Convert to appropriate FB event
     if (typeof window !== 'undefined' && window.fbq) {
       // Map common events to Facebook standard events
@@ -87,10 +87,10 @@ class Analytics {
         'lead': 'Lead',
         'complete_registration': 'CompleteRegistration'
       };
-      
+
       const fbMethod = fbEventMap[action] ? 'track' : 'trackCustom';
       const fbEventName = fbEventMap[action] || action;
-      
+
       window.fbq(fbMethod, fbEventName, {
         category,
         label,
@@ -100,7 +100,7 @@ class Analytics {
       this.log('FB Event:', fbMethod, fbEventName, { category, label, value, ...customParams });
     }
   }
-  
+
   /**
    * Track page views
    */
@@ -110,23 +110,23 @@ class Analytics {
       page_title: title || document.title,
       page_location: window.location.href
     };
-    
+
     if (window.gtag) {
       window.gtag('event', 'page_view', pageData);
       this.log('Page View:', pageData);
     }
-    
+
     if (window.fbq) {
       window.fbq('track', 'PageView');
     }
   }
-  
+
   /**
    * Track errors
    */
   trackError(error: ErrorEvent): void {
     const { error: err, errorInfo, fatal = false } = error;
-    
+
     if (window.gtag) {
       window.gtag('event', 'exception', {
         description: err.message,
@@ -135,7 +135,7 @@ class Analytics {
         ...(errorInfo && typeof errorInfo === 'object' ? errorInfo : {})
       });
     }
-    
+
     if (window.fbq) {
       window.fbq('trackCustom', 'Error', {
         message: err.message,
@@ -144,10 +144,10 @@ class Analytics {
         ...(errorInfo && typeof errorInfo === 'object' ? errorInfo : {})
       });
     }
-    
+
     this.log('Error tracked:', err.message, { fatal, errorInfo });
   }
-  
+
   /**
    * Track social interactions
    */
@@ -161,7 +161,7 @@ class Analytics {
       social_target: target
     });
   }
-  
+
   /**
    * Track music/platform interactions
    */
@@ -172,19 +172,19 @@ class Analytics {
       label: platform,
       ...metadata
     });
-    
+
     // Special Facebook Pixel event for music platforms
     if (window.fbq) {
       window.fbq('trackCustom', 'MusicPlatformClick', {
         platform,
         action,
-        value: platform === 'spotify' || platform === 'apple' ? 1.0 : 0.5,
+        value: (platform === 'spotify' || platform === 'apple' || platform === 'appleMusic') ? 1.0 : 0.5,
         currency: 'USD',
         ...metadata
       });
     }
   }
-  
+
   /**
    * Track ecommerce events
    */
@@ -196,7 +196,7 @@ class Analytics {
       'begin_checkout': 'begin_checkout',
       'purchase': 'purchase'
     };
-    
+
     if (ecommerceEvents[action]) {
       // Google Analytics Enhanced Ecommerce
       if (window.gtag) {
@@ -207,7 +207,7 @@ class Analytics {
           ...data
         });
       }
-      
+
       // Facebook Pixel Ecommerce
       if (window.fbq) {
         const fbEvents: Record<string, string> = {
@@ -216,7 +216,7 @@ class Analytics {
           'begin_checkout': 'InitiateCheckout',
           'purchase': 'Purchase'
         };
-        
+
         window.fbq('track', fbEvents[action] || action, {
           currency: data.currency || 'USD',
           value: data.value,
@@ -234,7 +234,7 @@ class Analytics {
       });
     }
   }
-  
+
   /**
    * Track custom events
    */
@@ -242,11 +242,11 @@ class Analytics {
     if (window.gtag) {
       window.gtag('event', eventName, parameters);
     }
-    
+
     if (window.fbq) {
       window.fbq('trackCustom', eventName, parameters);
     }
-    
+
     this.log('Custom Event:', eventName, parameters);
   }
 }

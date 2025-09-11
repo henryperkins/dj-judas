@@ -53,9 +53,9 @@ const DEFAULT_CONFIG: SocialSDKConfig = {
   }
 };
 
-export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKConfig }> = ({ 
-  children, 
-  config = {} 
+export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKConfig }> = ({
+  children,
+  config = {}
 }) => {
   const [isLoaded, setIsLoaded] = useState<SocialSDKState>({
     meta: false,
@@ -71,7 +71,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
 
   const loadMetaSDK = useCallback(async () => {
     if (isLoaded.meta || window.FB) return;
-    
+
     try {
       await metaSDK.loadFacebookSDK();
       await metaSDK.loadInstagramEmbed();
@@ -87,7 +87,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
 
   const loadTwitterSDK = useCallback(() => {
     if (isLoaded.twitter || !mergedConfig.twitter?.enabled) return;
-    
+
     return new Promise<void>((resolve) => {
       if (document.getElementById('twitter-wjs')) {
         setIsLoaded(prev => ({ ...prev, twitter: true }));
@@ -114,7 +114,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
 
   const loadTikTokSDK = useCallback(() => {
     if (isLoaded.tiktok || !mergedConfig.tiktok?.enabled) return;
-    
+
     return new Promise<void>((resolve) => {
       if (document.getElementById('tiktok-embed-js')) {
         setIsLoaded(prev => ({ ...prev, tiktok: true }));
@@ -141,7 +141,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
 
   const loadAppleMusicSDK = useCallback(() => {
     if (isLoaded.apple) return;
-    
+
     return new Promise<void>((resolve) => {
       if (document.getElementById('apple-music-js')) {
         setIsLoaded(prev => ({ ...prev, apple: true }));
@@ -190,7 +190,7 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
 
   const loadSpotifySDK = useCallback(() => {
     if (isLoaded.spotify) return;
-    
+
     return new Promise<void>((resolve) => {
       if (!mergedConfig.spotify?.clientId) {
         console.warn('Spotify client ID not configured');

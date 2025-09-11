@@ -33,7 +33,7 @@ const defaultNavItems: NavItem[] = [
     id: 'listen',
     icon: LuMusic,
     label: 'Listen',
-    action: () => {} // Will be overridden by onPlatformLauncherOpen
+    action: () => { } // Will be overridden by onPlatformLauncherOpen
   },
   {
     id: 'events',

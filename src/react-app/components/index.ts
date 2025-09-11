@@ -12,7 +12,6 @@ export { default as AboutSection } from './sections/AboutSection';
 export { default as ServicesSection } from './sections/ServicesSection';
 
 // Core components still needed
-export { default as MusicHub } from './MusicHub';
 export { SpotifyEmbed, AppleMusicEmbed } from './social';
 export { default as PhotoGallery } from './PhotoGallery';
 export { default as BookingForm } from './BookingForm';

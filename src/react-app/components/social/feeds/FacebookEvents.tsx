@@ -183,7 +183,11 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
           className={`event-card ${event.isCanceled ? 'canceled' : ''}`}
           onClick={() => {
             handleEventInteraction(event, 'view');
-            onEventClick ? onEventClick(event) : setSelectedEvent(event);
+            if (onEventClick) {
+              onEventClick(event);
+            } else {
+              setSelectedEvent(event);
+            }
           }}
         >
           {event.coverPhoto && (
@@ -284,7 +288,11 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
           className={`event-grid-card ${event.isCanceled ? 'canceled' : ''}`}
           onClick={() => {
             handleEventInteraction(event, 'view');
-            onEventClick ? onEventClick(event) : setSelectedEvent(event);
+            if (onEventClick) {
+              onEventClick(event);
+            } else {
+              setSelectedEvent(event);
+            }
           }}
         >
           <div className="event-grid-cover">
@@ -332,7 +340,11 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               className={`timeline-card ${event.isCanceled ? 'canceled' : ''}`}
               onClick={() => {
                 handleEventInteraction(event, 'view');
-                onEventClick ? onEventClick(event) : setSelectedEvent(event);
+                if (onEventClick) {
+              onEventClick(event);
+            } else {
+              setSelectedEvent(event);
+            }
               }}
             >
               <h4>{event.name}</h4>

@@ -1,18 +1,17 @@
 import React, { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
-  LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuCopy, LuCheck, LuLink2, LuGlobe, LuMic, LuQrCode
+  LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuGlobe, LuMic
 } from "react-icons/lu";
-import { FaXTwitter, FaWhatsapp, FaLinkedinIn, FaFacebookMessenger, FaTelegram } from 'react-icons/fa6';
 import {
   SpotifyEmbed,
   AppleMusicEmbed,
   FacebookEmbed,
   InstagramEmbed,
   UniversalEmbed,
-  QrShareCard,
-  shareWithTracking
+  ShareManager
 } from './social';
+import type { DeepLink } from './social/sharing/ShareManager';
 
 export type CreatorMediaPanelProps = {
   artist?: string;
@@ -46,16 +45,12 @@ export default function CreatorMediaPanel({
   shareUrl,
 }: CreatorMediaPanelProps) {
   const [tab, setTab] = useState<"listen" | "watch" | "social" | "share">("listen");
-  const [copied, setCopied] = useState(false);
   const canonical = useMemo(() => shareUrl || (typeof window !== "undefined" ? window.location.href : ""), [shareUrl]);
-  const [useUtm, setUseUtm] = useState(true);
-
+  
   // Get environment variables for defaults
   const spotifyArtistId = import.meta.env?.VITE_SPOTIFY_ARTIST_ID;
   const instagramHandle = import.meta.env?.VITE_INSTAGRAM_HANDLE;
   const facebookPage = import.meta.env?.VITE_FACEBOOK_PAGE;
-  const facebookAppId = import.meta.env?.VITE_FACEBOOK_APP_ID as string | undefined;
-  const soundcloudUrl = import.meta.env?.VITE_SOUNDCLOUD_URL;
   const defaultSocialEmbedUrl = import.meta.env?.VITE_SOCIAL_EMBED_URL as string | undefined;
 
   // Build default URLs from environment variables
@@ -63,111 +58,58 @@ export default function CreatorMediaPanel({
   const defaultFacebookPageUrl = facebookPage ? `https://www.facebook.com/${facebookPage}` : undefined;
   const defaultInstagramUrl = instagramHandle ? `https://www.instagram.com/${instagramHandle}` : undefined;
 
-  async function copyShare() {
-    try {
-      await navigator.clipboard.writeText(canonical);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // no-op
+  // Prepare deep links for ShareManager
+  const deepLinks: DeepLink[] = useMemo(() => {
+    const links: DeepLink[] = [];
+    
+    if (spotifyUrl || defaultSpotifyUrl) {
+      links.push({
+        id: 'spotify',
+        label: 'Open in Spotify',
+        url: normalizeSpotifyOpen(spotifyUrl || defaultSpotifyUrl!),
+        platform: 'spotify'
+      });
     }
-  }
-
-  async function nativeShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: artist, text: tagline, url: canonical });
-      } catch { /* user canceled */ }
-    } else {
-      copyShare();
+    
+    if (appleMusicUrl) {
+      links.push({
+        id: 'apple-music',
+        label: 'Open in Apple Music',
+        url: appleMusicUrl,
+        platform: 'appleMusic'
+      });
     }
-  }
-
-  // Build share URLs with optional UTM tagging
-  function buildShareUrl(base: string, source: string) {
-    try {
-      const url = new URL(base);
-      if (useUtm) {
-        url.searchParams.set('utm_source', source);
-        url.searchParams.set('utm_medium', 'share');
-        url.searchParams.set('utm_campaign', 'creator_media_panel');
-      }
-      return url.toString();
-    } catch {
-      return base;
+    
+    if (facebookVideoHref) {
+      links.push({
+        id: 'facebook-video',
+        label: 'Open Facebook Video',
+        url: facebookVideoHref,
+        platform: 'facebook'
+      });
     }
-  }
-
-  const messengerHref = () => {
-    try {
-      const base = buildShareUrl(canonical, 'messenger');
-      // Prefer desktop web dialog when App ID is configured
-      if (facebookAppId && typeof window !== 'undefined') {
-        const params = new URLSearchParams({
-          app_id: facebookAppId,
-          link: base,
-          redirect_uri: window.location.origin
-        });
-        return `https://www.facebook.com/dialog/send?${params.toString()}`;
-      }
-      // Fallback to deep link (mobile only)
-      return `fb-messenger://share?link=${encodeURIComponent(base)}`;
-    } catch {
-      return `fb-messenger://share?link=${encodeURIComponent(canonical)}`;
+    
+    if (facebookPageUrl || defaultFacebookPageUrl) {
+      links.push({
+        id: 'facebook-page',
+        label: 'Open Facebook Page',
+        url: facebookPageUrl || defaultFacebookPageUrl!,
+        platform: 'facebook'
+      });
     }
-  };
+    
+    if (instagramPermalink || defaultInstagramUrl) {
+      links.push({
+        id: 'instagram',
+        label: 'Open Instagram',
+        url: instagramPermalink || defaultInstagramUrl!,
+        platform: 'instagram'
+      });
+    }
+    
+    return links;
+  }, [spotifyUrl, defaultSpotifyUrl, appleMusicUrl, facebookVideoHref, facebookPageUrl, defaultFacebookPageUrl, instagramPermalink, defaultInstagramUrl])
 
-  const shareTargets = [
-    {
-      id: 'facebook',
-      label: 'Facebook',
-      icon: LuFacebook,
-      color: '#1877F2',
-      href: () => '#',
-    },
-    {
-      id: 'x',
-      label: 'X',
-      icon: FaXTwitter,
-      color: '#000000',
-      href: () => `https://twitter.com/intent/tweet?url=${encodeURIComponent(buildShareUrl(canonical, 'x'))}&text=${encodeURIComponent(`${artist} – ${tagline}`)}`,
-    },
-    {
-      id: 'whatsapp',
-      label: 'WhatsApp',
-      icon: FaWhatsapp,
-      color: '#25D366',
-      href: () => `https://wa.me/?text=${encodeURIComponent(`${artist} – ${tagline}\n${buildShareUrl(canonical, 'whatsapp')}`)}`,
-    },
-    {
-      id: 'messenger',
-      label: 'Messenger',
-      icon: FaFacebookMessenger,
-      color: '#0084FF',
-      href: messengerHref,
-    },
-    {
-      id: 'telegram',
-      label: 'Telegram',
-      icon: FaTelegram,
-      color: '#26A4E3',
-      href: () => `https://t.me/share/url?url=${encodeURIComponent(buildShareUrl(canonical, 'telegram'))}&text=${encodeURIComponent(`${artist} – ${tagline}`)}`,
-    },
-    {
-      id: 'linkedin',
-      label: 'LinkedIn',
-      icon: FaLinkedinIn,
-      color: '#0A66C2',
-      href: () => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(buildShareUrl(canonical, 'linkedin'))}`,
-    },
-    {
-      id: 'email',
-      label: 'Email',
-      icon: LuLink2,
-      color: 'hsl(var(--secondary-foreground))',
-      href: () => `mailto:?subject=${encodeURIComponent(`${artist} – ${tagline}`)}&body=${encodeURIComponent(buildShareUrl(canonical, 'email'))}`,
-    },
-  ] as const;
 
   return (
     <section className="relative">
@@ -242,7 +184,6 @@ export default function CreatorMediaPanel({
                       pageUrl={facebookPageUrl || defaultFacebookPageUrl!}
                       tabs="timeline"
                       height={560}
-                      // Remove appId from here - it should be initialized globally
                     />
                   ) : (
                     <EmptyState text="Provide a Facebook Page URL." />
@@ -253,9 +194,13 @@ export default function CreatorMediaPanel({
 
             {tab === "social" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SectionCard title="Instagram" hint="@iam_djlee">
+                <SectionCard title="Instagram" hint="Latest posts and reels">
                   {instagramPermalink ? (
                     <InstagramEmbed url={instagramPermalink} skeletonHeight={480} />
+                  ) : defaultInstagramUrl ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <LinkTile href={defaultInstagramUrl} label="View Profile" icon={<LuInstagram size={18} />} />
+                    </div>
                   ) : (
                     <EmptyState text="Provide a public Instagram post/reel URL." />
                   )}
@@ -275,9 +220,6 @@ export default function CreatorMediaPanel({
                     {appleMusicUrl && (
                       <LinkTile href={appleMusicUrl} label="Apple Music" icon={<LuGlobe size={18} />} />
                     )}
-                    {soundcloudUrl && (
-                      <LinkTile href={soundcloudUrl} label="SoundCloud" icon={<LuMusic size={18} />} />
-                    )}
                   </div>
                 </SectionCard>
 
@@ -292,79 +234,20 @@ export default function CreatorMediaPanel({
             )}
 
             {tab === "share" && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SectionCard title="Quick Share" hint="One-tap sharing with tracking">
-                  <div className="share-toolbar">
-                    <div className="share-actions">
-                      <button onClick={nativeShare} className="btn btn-primary" aria-label="Native share">
-                        <LuShare2 size={18} /> Share
-                      </button>
-                      <button onClick={copyShare} className="btn btn-secondary" aria-label="Copy link">
-                        {copied ? <LuCheck size={18} /> : <LuCopy size={18} />} {copied ? "Copied" : "Copy"}
-                      </button>
-                      {canonical && (
-                        <a href={canonical} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Open link">
-                          <LuLink2 size={18} /> Open
-                        </a>
-                      )}
-                      <button className="btn btn-ghost" aria-label="Show QR" onClick={() => setTab('share')}>
-                        <LuQrCode size={18} /> QR
-                      </button>
-                    </div>
-                    <label className="utm-toggle">
-                      <input type="checkbox" checked={useUtm} onChange={(e) => setUseUtm(e.target.checked)} />
-                      <span>Add UTM tags</span>
-                    </label>
-                  </div>
-
-                  <div className="share-grid">
-                  {shareTargets.map(({ id, label, icon: Icon, color, href }) => (
-                    <a
-                      key={id}
-                      href={href()}
-                      aria-label={`Share on ${label}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="share-btn"
-                      style={{ ['--brand' as keyof React.CSSProperties]: color } as React.CSSProperties}
-                      onClick={async (e) => {
-                        trackShareClick(id);
-                        if (id === 'facebook') {
-                          e.preventDefault();
-                          await shareWithTracking({
-                            url: buildShareUrl(canonical, 'facebook'),
-                            quote: `${artist} – ${tagline}`,
-                            source: 'creator_media_panel'
-                          });
-                        }
-                      }}
-                    >
-                      <Icon size={18} />
-                      <span>{label}</span>
-                    </a>
-                  ))}
-                  </div>
-
-                  <p className="mt-3 text-xs text-muted-foreground break-all" aria-live="polite">{canonical}</p>
-                </SectionCard>
-
-                <SectionCard title="Share via QR" hint="Great for screens and posters">
-                  <div className="qr-section">
-                    <QrShareCard url={buildShareUrl(canonical, 'qr')} />
-                  </div>
-                </SectionCard>
-
-                <SectionCard title="Deep Links" hint="Send people to a specific service">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {(spotifyUrl || defaultSpotifyUrl) && <DeepLink href={normalizeSpotifyOpen(spotifyUrl || defaultSpotifyUrl!)} label="Open in Spotify" />}
-                    {appleMusicUrl && <DeepLink href={appleMusicUrl} label="Open in Apple Music" />}
-                    {facebookVideoHref && <DeepLink href={facebookVideoHref} label="Open Facebook Video" />}
-                    {(facebookPageUrl || defaultFacebookPageUrl) && <DeepLink href={facebookPageUrl || defaultFacebookPageUrl!} label="Open Facebook Page" />}
-                    {(instagramPermalink || defaultInstagramUrl) && <DeepLink href={instagramPermalink || defaultInstagramUrl!} label="Open Instagram" />}
-                    {soundcloudUrl && <DeepLink href={soundcloudUrl} label="Open SoundCloud" />}
-                  </div>
-                </SectionCard>
-              </div>
+              <ShareManager
+                url={canonical}
+                title={artist}
+                description={`${artist} – ${tagline}`}
+                artist={artist}
+                tagline={tagline}
+                campaign="creator_media_panel"
+                showPlatforms={true}
+                showQr={true}
+                showDeepLinks={deepLinks.length > 0}
+                deepLinks={deepLinks}
+                className="share-manager-panel"
+                layout="auto"
+              />
             )}
           </div>
         </div>
@@ -409,13 +292,6 @@ function LinkTile({ href, label, icon }: { href: string; label: string; icon?: R
   );
 }
 
-function DeepLink({ href, label }: { href: string; label: string }) {
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="rounded-md border bg-card px-3 py-2 text-sm text-foreground hover:bg-secondary transition">
-      {label}
-    </a>
-  );
-}
 
 function normalizeSpotifyOpen(url: string) {
   // Convert embed/URI form to open.spotify.com for "Open in app" behavior
@@ -425,21 +301,4 @@ function normalizeSpotifyOpen(url: string) {
     .replace("spotify:album:", "https://open.spotify.com/album/")
     .replace("spotify:playlist:", "https://open.spotify.com/playlist/")
     .replace("spotify:artist:", "https://open.spotify.com/artist/");
-}
-
-function trackShareClick(channel: string) {
-  try {
-    const win = window as unknown as {
-      gtag?: (...args: unknown[]) => void;
-      fbq?: (...args: unknown[]) => void;
-    };
-    if (typeof window !== 'undefined' && win.gtag) {
-      win.gtag('event', 'share_click', { channel });
-    }
-    if (typeof window !== 'undefined' && win.fbq) {
-      win.fbq('trackCustom', 'ShareClick', { channel });
-    }
-  } catch {
-    // ignore analytics errors
-  }
 }

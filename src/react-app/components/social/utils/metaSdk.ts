@@ -27,7 +27,8 @@ class MetaSDKLoader {
       pixelId: envPixelId || config.pixelId,
       ...config
     };
-    (this as any)._consentRevoke = consentRevoke;
+    // Store consent revoke flag using type assertion to avoid explicit any
+    (this as MetaSDKLoader & { _consentRevoke?: boolean })._consentRevoke = consentRevoke;
   }
 
   static getInstance(config?: MetaSDKConfig): MetaSDKLoader {
@@ -141,7 +142,7 @@ class MetaSDKLoader {
         // Disable autoConfig for this pixel to keep manual control
         try { fbq('set','autoConfig','false','${this.config.pixelId}'); } catch (e) {}
         // Optional: start with consent revoked; grant later via UI
-        ${((this as any)._consentRevoke) ? "try { fbq('consent','revoke'); } catch(e) {}" : ''}
+        ${((this as MetaSDKLoader & { _consentRevoke?: boolean })._consentRevoke) ? "try { fbq('consent','revoke'); } catch(e) {}" : ''}
 
         fbq('init', '${this.config.pixelId}');
         fbq('track', 'PageView');
@@ -158,20 +159,18 @@ class MetaSDKLoader {
   }
 
   private setupConversionTracking(): void {
-  if (!window.fbq) return;
-
-    // Track music platform clicks as valuable actions
-    const trackMusicClick = (platform: string) => {
-  if (!window.fbq) return;
-  window.fbq('trackCustom', 'MusicPlatformClick', {
-        platform,
-        value: platform === 'spotify' || platform === 'apple' ? 1.0 : 0.5,
-        currency: 'USD'
-      });
-    };
-
-    // Make it globally available
-  window.trackMusicClick = trackMusicClick;
+    // Import analytics dynamically to track music clicks
+    import('../../../utils/analytics').then(({ trackMusic }) => {
+      // Make it globally available for legacy code
+      window.trackMusicClick = (platform: string) => {
+        trackMusic(platform, 'click', {
+          value: platform === 'spotify' || platform === 'apple' ? 1.0 : 0.5,
+          currency: 'USD'
+        });
+      };
+    }).catch(err => {
+      console.error('Failed to setup conversion tracking:', err);
+    });
   }
 
   async parseFBML(element?: HTMLElement): Promise<void> {
@@ -192,13 +191,15 @@ class MetaSDKLoader {
 
   // Helper to track video engagement
   trackVideoEngagement(videoId: string, action: 'play' | 'pause' | 'complete', progress?: number): void {
-    if (window.fbq) {
-      window.fbq('trackCustom', 'VideoEngagement', {
+    import('../../../utils/analytics').then(({ trackCustom }) => {
+      trackCustom('VideoEngagement', {
         videoId,
         action,
         progress: progress || 0
       });
-    }
+    }).catch(err => {
+      console.error('Failed to track video engagement:', err);
+    });
 
     socialMetrics.trackSocialInteraction('facebook', `video_${action}`, {
       videoId,
@@ -208,9 +209,11 @@ class MetaSDKLoader {
 
   // Helper to track social proof views
   trackSocialProofView(metrics: Record<string, unknown>): void {
-    if (window.fbq) {
-      window.fbq('trackCustom', 'SocialProofView', metrics);
-    }
+    import('../../../utils/analytics').then(({ trackCustom }) => {
+      trackCustom('SocialProofView', metrics);
+    }).catch(err => {
+      console.error('Failed to track social proof view:', err);
+    });
 
     socialMetrics.trackSocialInteraction('aggregated', 'social_proof_view', metrics);
   }

@@ -16,6 +16,50 @@ interface SpotifySession {
 	userId?: string;
 }
 
+// Type definitions for social posts
+interface SocialPost {
+  id: string;
+  platform: string;
+  type: string;
+  mediaUrl?: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  permalink: string;
+  timestamp: string;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  hashtags?: string[];
+  isShoppable?: boolean;
+  products?: Array<{
+    id: string;
+    title: string;
+    price: number;
+    url: string;
+  }>;
+}
+
+// Type definition for Facebook event
+interface FacebookEvent {
+  id: string;
+  name: string;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  place?: {
+    name: string;
+    location?: unknown;
+  };
+  cover?: {
+    source: string;
+  };
+  is_online?: boolean;
+  ticket_uri?: string;
+  interested_count?: number;
+  attending_count?: number;
+  is_canceled?: boolean;
+}
+
 interface Env {
 	SESSIONS: KVNamespace;
 	SPOTIFY_CLIENT_ID: string;
@@ -62,7 +106,9 @@ async function getAppAccessToken(env: Env): Promise<string | null> {
   try {
     // Try KV cache first
     let cached: string | null = null;
-    try { cached = await env.SESSIONS.get('fb_app_access_token'); } catch {}
+    try { cached = await env.SESSIONS.get('fb_app_access_token'); } catch {
+      // Ignore KV errors in local dev
+    }
     if (cached) return cached;
 
     const u = new URL(`${graphBase(env)}/oauth/access_token`);
@@ -74,7 +120,9 @@ async function getAppAccessToken(env: Env): Promise<string | null> {
     const j = await res.json() as { access_token?: string };
     const token = j.access_token || null;
     if (token) {
-      try { await env.SESSIONS.put('fb_app_access_token', token, { expirationTtl: 86400 }); } catch {}
+      try { await env.SESSIONS.put('fb_app_access_token', token, { expirationTtl: 86400 }); } catch {
+        // Ignore KV write errors
+      }
     }
     return token;
   } catch {
@@ -91,10 +139,12 @@ app.get('/api/metrics', async (c) => {
 	let kvGet: ((key: string) => Promise<string | null>) | null = null;
 	let kvPut: ((key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void>) | null = null;
 	try {
-		const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+		const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
 		kvGet = kv?.get?.bind(kv) ?? null;
 		kvPut = kv?.put?.bind(kv) ?? null;
-	} catch {}
+	} catch {
+		// KV not available in local dev
+	}
 
 	if (kvGet) {
 		try {
@@ -105,7 +155,9 @@ app.get('/api/metrics', async (c) => {
 					'X-Cache': 'HIT'
 				});
 			}
-		} catch {}
+		} catch {
+			// Ignore cache read errors
+		}
 	}
 
 	const metrics = {
@@ -213,7 +265,9 @@ app.get('/api/metrics', async (c) => {
 		if (kvPut) {
 			await kvPut(cacheKey, JSON.stringify(metrics), { expirationTtl: 900 });
 		}
-	} catch {}
+	} catch {
+		// Ignore cache write errors
+	}
 
 	return c.json(metrics, 200, {
 		'Cache-Control': 'public, max-age=900',
@@ -242,7 +296,7 @@ function randomString(length = 64): string {
 
 // Spotify OAuth - Initiate login
 app.get('/api/spotify/login', async (c) => {
-    const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+    const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
     const clientId = c.env.SPOTIFY_CLIENT_ID;
     if (!kv) {
       return c.json({ error: 'kv_not_configured', message: 'SESSIONS KV binding not configured' }, 501);
@@ -278,7 +332,7 @@ app.get('/api/spotify/login', async (c) => {
 
 // Spotify OAuth - Callback exchange
 app.get('/api/spotify/callback', async (c) => {
-  const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+  const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
   if (!kv) {
     return c.json({ error: 'kv_not_configured', message: 'SESSIONS KV binding not configured' }, 501);
   }
@@ -331,7 +385,7 @@ app.get('/api/spotify/callback', async (c) => {
 
 // Session status
 app.get('/api/spotify/session', async (c) => {
-  const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+  const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
   if (!kv) return c.json({ authenticated: false, reason: 'kv_not_configured' });
   const cookie = c.req.header('Cookie') || '';
   const match = cookie.match(/spotify_session=([^;]+)/);
@@ -419,7 +473,7 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 	const match = cookieHeader.match(/spotify_session=([^;]+)/);
 	if (!match) return null;
 
-	const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+	const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
 	if (!kv) return null;
 	const sessionData = await kv.get(`spotify:${match[1]}`);
 	if (!sessionData) return null;
@@ -463,7 +517,7 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 		session.expiresAt = Date.now() + tokenJson.expires_in * 1000;
 		
 		// Update session in KV (if available)
-		const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
+		const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
 		if (kv) {
 			await kv.put(
 				`spotify:${sessionId}`,
@@ -1226,8 +1280,8 @@ app.get('/api/social/feed', async (c) => {
       return c.json({ error: 'not_configured', message: 'Social APIs not configured' }, 501);
     }
 
-    const posts: any[] = [];
-    const errors: any[] = [];
+    const posts: SocialPost[] = [];
+    const errors: Array<{ platform: string; error: string }> = [];
     
     // Fetch Instagram posts if requested
     if (platforms.includes('instagram')) {
@@ -1262,7 +1316,7 @@ app.get('/api/social/feed', async (c) => {
                 const post = {
                   id: `ig_${item.id}`,
                   platform: 'instagram' as const,
-                  type: item.media_type.toLowerCase() as any,
+                  type: item.media_type.toLowerCase() as 'photo' | 'video' | 'carousel' | 'reel',
                   mediaUrl: item.media_url,
                   thumbnailUrl: item.thumbnail_url,
                   caption: item.caption || '',
@@ -1382,25 +1436,22 @@ app.get('/api/social/feed', async (c) => {
         return typeof cents === 'number' ? Math.round(cents) / 100 : 39.99;
       };
 
-      const toTagged = (p: MedusaProduct, i: number) => ({
+      const toTagged = (p: MedusaProduct) => ({
         id: p.id,
         title: p.title,
         price: pickPrice(p),
-        imageUrl: p.thumbnail || '/api/placeholder/150/150',
-        productUrl: p.handle ? `/products#${p.handle}` : '/products',
-        x: (i % 2 === 0) ? 30 : 70,
-        y: (i % 3 === 0) ? 40 : 60
+        url: p.handle ? `/products#${p.handle}` : '/products'
       });
 
       const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
-      for (const [idx, post] of shoppablePosts.entries()) {
+      for (const post of shoppablePosts) {
         post.isShoppable = true;
         if (medusaProducts.length > 0) {
           // Simple mapping: try to match by hashtag to product title; else take first few
           const tags = (post.hashtags || []).map((h: string) => h.replace(/^#/, '').toLowerCase());
           const matched = medusaProducts.filter(p => tags.some((t: string) => p.title.toLowerCase().includes(t)));
           const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
-          post.products = chosen.map((p, i) => toTagged(p, i));
+          post.products = chosen.map((p) => toTagged(p));
         } else {
           // Fallback demo product
           post.products = [
@@ -1408,10 +1459,7 @@ app.get('/api/social/feed', async (c) => {
               id: 'prod_demo_1',
               title: 'Limited Edition Vinyl',
               price: 39.99,
-              imageUrl: '/api/placeholder/150/150',
-              productUrl: '/products',
-              x: (idx % 2 === 0) ? 28 : 72,
-              y: (idx % 3 === 0) ? 38 : 62
+              url: '/products'
             }
           ];
         }
@@ -1513,8 +1561,11 @@ app.get('/api/instagram/me', async (c) => {
     const url = new URL(`${graphBase(c.env)}/me`);
     url.searchParams.set('fields', 'id,username');
     const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
-    const json = await res.json() as any;
-    return c.json(json, res.status as any);
+    const json = await res.json() as Record<string, unknown>;
+    return new Response(JSON.stringify(json), {
+      status: res.status,
+      headers: { 'content-type': 'application/json; charset=utf-8' }
+    });
   } catch (e) {
     return c.json({ error: 'failed_request', message: (e as Error).message }, 500);
   }
@@ -1532,8 +1583,11 @@ app.get('/api/instagram/linked-account', async (c) => {
     const u = new URL(`${graphBase(c.env)}/${pageId}`);
     u.searchParams.set('fields', 'instagram_business_account{id,username}' );
     const res = await fetch(u.toString(), { headers: { Authorization: `Bearer ${token}` } });
-    const json = await res.json() as any;
-    return c.json(json, res.status as any);
+    const json = await res.json() as Record<string, unknown>;
+    return new Response(JSON.stringify(json), {
+      status: res.status,
+      headers: { 'content-type': 'application/json; charset=utf-8' }
+    });
   } catch (e) {
     return c.json({ error: 'failed_request', message: (e as Error).message }, 500);
   }
@@ -1676,7 +1730,9 @@ app.get('/api/facebook/events', async (c) => {
       if (cached) {
         return c.json(JSON.parse(cached), 200, { 'Cache-Control': 'public, max-age=300', 'X-Cache': 'HIT' });
       }
-    } catch {}
+    } catch {
+      // Ignore cache read errors
+    }
 
     // Build Graph API request
     const graphUrl = new URL(`${graphBase(c.env)}/${pageId}/events`);
@@ -1709,20 +1765,20 @@ app.get('/api/facebook/events', async (c) => {
       return c.json({ error: 'facebook_api_error', details: error }, 502);
     }
 
-    const payload = await fbRes.json() as { data?: any[] };
+    const payload = await fbRes.json() as { data?: FacebookEvent[] };
     const events = (payload.data || []).map((ev) => ({
-      id: ev.id as string,
-      name: ev.name as string,
-      description: ev.description as string | undefined,
-      startTime: ev.start_time as string,
-      endTime: (ev.end_time as string | undefined) || undefined,
-      place: ev.place ? { name: ev.place.name as string, location: ev.place.location } : undefined,
-      coverPhoto: ev.cover?.source as string | undefined,
+      id: ev.id,
+      name: ev.name,
+      description: ev.description,
+      startTime: ev.start_time,
+      endTime: ev.end_time,
+      place: ev.place ? { name: ev.place.name, location: ev.place.location } : undefined,
+      coverPhoto: ev.cover?.source,
       eventUrl: `https://facebook.com/events/${ev.id}`,
       isOnline: !!ev.is_online,
-      ticketUri: ev.ticket_uri as string | undefined,
-      interestedCount: ev.interested_count as number | undefined,
-      attendingCount: ev.attending_count as number | undefined,
+      ticketUri: ev.ticket_uri,
+      interestedCount: ev.interested_count,
+      attendingCount: ev.attending_count,
       isCanceled: !!ev.is_canceled,
       category: undefined
     }));
@@ -1730,7 +1786,9 @@ app.get('/api/facebook/events', async (c) => {
     const result = { events };
     try {
       await (c.env.SESSIONS as KVNamespace | undefined)?.put?.(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
-    } catch {}
+    } catch {
+      // Ignore cache write errors
+    }
     return c.json(result, 200, { 'Cache-Control': 'public, max-age=300', 'X-Cache': 'MISS' });
   } catch (err) {
     console.error('facebook_events_handler_error', err);

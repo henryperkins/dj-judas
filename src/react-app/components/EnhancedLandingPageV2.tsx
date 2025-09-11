@@ -1,5 +1,4 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { useScroll } from 'framer-motion';
 
 import HeroSection from './sections/HeroSection';
 import StatsSection from './sections/StatsSection';
@@ -10,7 +9,6 @@ import MobileBottomNav from './MobileBottomNav';
 // Lazy-load heavier sections to reduce main chunk
 const CreatorMediaPanel = lazy(() => import('./CreatorMediaPanel'));
 const FeaturedProducts = lazy(() => import('./FeaturedProducts'));
-const EventGrid = lazy(() => import('./events/EventGrid'));
 const NextEventBanner = lazy(() => import('./events/NextEventBanner'));
 const DynamicSocialFeed = lazy(() => import('./social/feeds/DynamicSocialFeed'));
 const FacebookEvents = lazy(() => import('./social/feeds/FacebookEvents'));
@@ -33,8 +31,6 @@ const LoadingFallback = () => (
 const EnhancedLandingPageV2: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
-  const [, setPlatformLauncherOpen] = useState(false);
-  const { scrollY } = useScroll();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -51,7 +47,7 @@ const EnhancedLandingPageV2: React.FC = () => {
     // Include 'events' so the Events section can be highlighted/navigated to
     // Use 'media' instead of legacy 'music'
     const sections = ['home', 'about', 'media', 'events', 'gallery', 'services', 'booking'];
-    const observers = new Map();
+    const observers = new Map<string, IntersectionObserver>();
 
     sections.forEach(id => {
       const element = document.getElementById(id);
@@ -77,7 +73,11 @@ const EnhancedLandingPageV2: React.FC = () => {
   }, []);
 
   const handlePlatformLauncherOpen = () => {
-    setPlatformLauncherOpen(true);
+    try {
+      window.dispatchEvent(new Event('platform-launcher:open'));
+    } catch {
+      // no-op
+    }
   };
 
   return (
@@ -85,7 +85,7 @@ const EnhancedLandingPageV2: React.FC = () => {
       <a href="#main" className="skip-link">Skip to content</a>
 
       {/* Hero Section */}
-      <HeroSection scrollY={scrollY} />
+      <HeroSection />
 
       <main id="main" tabIndex={-1}>
         {/* Next Event Banner */}
@@ -111,10 +111,6 @@ const EnhancedLandingPageV2: React.FC = () => {
               </Suspense>
             </div>
             
-            {/* Original Event Grid as fallback */}
-            <Suspense fallback={<LoadingFallback />}>
-              <EventGrid />
-            </Suspense>
           </div>
         </section>
 
@@ -126,7 +122,7 @@ const EnhancedLandingPageV2: React.FC = () => {
         {!isMobile && (
           <section className="platform-section">
             <div className="container">
-              <PlatformLauncher mode="inline" simplified={isMobile} />
+              <PlatformLauncher mode="inline" simplified={false} />
             </div>
           </section>
         )}
@@ -176,19 +172,19 @@ const EnhancedLandingPageV2: React.FC = () => {
               </Suspense>
             </div>
             
-            {/* View More Link */}
+            {/* Follow CTA */}
             <div className="social-cta">
               <Button 
                 variant="outline"
                 onClick={() => {
-                  const el = document.getElementById('social');
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
+                  const handle = (import.meta.env?.VITE_INSTAGRAM_HANDLE as string | undefined) || 'iam_djlee';
+                  const url = `https://www.instagram.com/${handle}`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
                 }}
                 className="view-all-social"
+                aria-label="Open Instagram profile in a new tab"
               >
-                View Social Updates
+                Follow on Instagram
               </Button>
             </div>
           </div>
@@ -289,7 +285,6 @@ const EnhancedLandingPageV2: React.FC = () => {
           <PlatformLauncher
             mode="floating"
             simplified={true}
-            onPlatformClick={() => setPlatformLauncherOpen(false)}
           />
           <MobileBottomNav
             activeItem={activeSection}

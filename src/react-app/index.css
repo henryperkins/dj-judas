@@ -4619,3 +4619,185 @@ body.mobile-nav-visible .site-footer-minimal {
 .qr-meta { min-width: 0; }
 .qr-label { font-size: 0.9rem; color: hsl(var(--foreground)); }
 .qr-url { font-size: 0.75rem; color: hsl(var(--muted-foreground)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* =====================================================
+   5.30 ShareManager Component
+   ===================================================== */
+
+.share-manager {
+  padding: 1.5rem;
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+}
+
+.share-manager-auto {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.share-manager-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.share-manager-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.share-heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+/* Primary Actions */
+.share-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.share-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-action-btn:hover {
+  background: hsl(var(--muted) / 0.8);
+  transform: translateY(-1px);
+}
+
+.share-action-btn:active {
+  transform: translateY(0);
+}
+
+.share-action-btn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Platform Buttons Section */
+.share-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.share-platform-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Deep Links Section */
+.share-deep-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.deep-links-heading {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.deep-links-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.deep-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.deep-link-btn:hover {
+  border-color: var(--platform-color, hsl(var(--border)));
+  transform: translateY(-1px);
+}
+
+.deep-link-btn:active {
+  transform: translateY(0);
+}
+
+.deep-link-btn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* QR Code Region */
+.share-qr-region {
+  padding: 1rem;
+  background: hsl(var(--muted) / 0.3);
+  border-radius: var(--radius);
+  animation: fadeIn 0.3s ease;
+}
+
+.share-qr-card {
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .share-manager {
+    padding: 1rem;
+  }
+  
+  .share-primary-actions {
+    width: 100%;
+  }
+  
+  .share-action-btn {
+    flex: 1;
+    min-width: calc(50% - 0.375rem);
+    justify-content: center;
+  }
+  
+  .deep-link-btn {
+    flex: 1;
+    min-width: calc(50% - 0.375rem);
+    justify-content: center;
+  }
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

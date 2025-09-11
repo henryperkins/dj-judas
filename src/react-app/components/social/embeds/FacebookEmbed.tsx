@@ -104,7 +104,8 @@ function useFacebookEmbed(
     return () => {
       stillMounted.current = false;
     };
-  }, deps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...deps, selector]);
 
   return { ref, loaded, error };
 }

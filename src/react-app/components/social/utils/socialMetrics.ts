@@ -11,7 +11,7 @@ interface SocialPlatform {
 interface ConversionPath {
   source: 'facebook' | 'instagram' | 'direct' | 'organic';
   medium: string;
-  destination: 'spotify' | 'apple' | 'youtube' | 'amazon' | 'website';
+  destination: 'spotify' | 'apple' | 'website';
   action: 'stream' | 'follow' | 'save' | 'purchase' | 'share';
 }
 
@@ -110,6 +110,18 @@ class SocialMetricsTracker {
     }
   }
 
+  /**
+   * Back-compat wrapper for generic social event tracking.
+   * Re-implements the legacy `trackEvent` API expected by ShareButton
+   * while routing through `trackSocialInteraction` to keep logic centralized.
+   */
+  trackEvent(data: { action: string; category: string; label: string; platform: string }): void {
+    this.trackSocialInteraction(data.platform, data.action, {
+      category: data.category,
+      label: data.label
+    });
+  }
+
   trackMusicConversion(
     destination: string,
     action: string,
@@ -176,18 +188,15 @@ class SocialMetricsTracker {
   }
 
   private sendAnalytics(event: string, data: Record<string, unknown>): void {
-    // Send to Google Analytics
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', event, {
+    // Import analytics at runtime to avoid circular dependency
+    import('../../../utils/analytics').then(({ trackCustom }) => {
+      trackCustom(event, {
         event_category: 'Social to Music Funnel',
         ...data
       });
-    }
-
-    // Send to Facebook Pixel if available
-    if (typeof window !== 'undefined' && window.fbq) {
-      window.fbq('trackCustom', event, data);
-    }
+    }).catch(err => {
+      console.error('Failed to load analytics:', err);
+    });
 
     // Log for debugging
     console.log(`[Analytics] ${event}:`, data);

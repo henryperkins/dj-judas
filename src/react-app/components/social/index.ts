@@ -13,8 +13,9 @@ export { default as UniversalEmbed } from './embeds/UniversalEmbed';
 
 // Sharing
 export { default as QrShareCard } from './sharing/QrShareCard';
-// export { ShareManager } from './sharing/ShareManager';
-// export { ShareButton } from './sharing/ShareButton';
+export { default as ShareButton } from './sharing/ShareButton';
+export { default as ShareManager } from './sharing/ShareManager';
+export * from './sharing/shareUtils';
 
 // Utils
 export * from './utils/socialMetrics';

@@ -13,7 +13,7 @@ const AdminHome = lazy(() => import('./pages/AdminHome'));
 const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct'));
 const AdminProductsList = lazy(() => import('./pages/AdminProductsList'));
 const AdminEditProduct = lazy(() => import('./pages/AdminEditProduct'));
-import { onNavigate } from './utils/nav';
+import { onNavigate, navigate } from './utils/nav';
 import { initMeta } from './integrations';
 import { useMetaPixelPageViews } from './hooks/useMetaPixelPageViews';
 
@@ -23,6 +23,21 @@ function App() {
   useEffect(() => {
     const off = onNavigate(() => setPath(window.location.pathname));
     return off;
+  }, []);
+
+  // Intercept internal anchor clicks with data-nav for SPA navigation
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      const anchor = target?.closest?.('a[data-nav]') as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute('href') || '';
+      if (!href.startsWith('/')) return;
+      e.preventDefault();
+      navigate(href);
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
   }, []);
 
   // Initialize Facebook SDK and Pixel on app startup

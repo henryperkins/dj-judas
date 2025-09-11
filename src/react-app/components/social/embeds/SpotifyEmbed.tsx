@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { LuExternalLink, LuMusic, LuPlay, LuPause, LuLogIn, LuHeart, LuShare2 } from 'react-icons/lu';
+import { socialMetrics } from '../utils/socialMetrics';
 
 interface SpotifyEmbedProps {
   url?: string; // Full Spotify URL or URI format
@@ -191,10 +192,8 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   }, []);
 
   const trackEngagement = (action: string, data: Record<string, unknown>) => {
-    const win = window as unknown as { gtag?: (...args: unknown[]) => void };
-    if (typeof window !== 'undefined' && win.gtag) {
-      win.gtag('event', action, data);
-    }
+    // Use centralized socialMetrics instead of direct gtag
+    socialMetrics.trackSocialInteraction('spotify', action, data);
   };
 
   const handleSpotifyOpen = () => {

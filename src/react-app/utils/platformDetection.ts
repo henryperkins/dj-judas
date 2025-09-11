@@ -156,21 +156,12 @@ export const generatePlatformLinks = (): PlatformLink[] => {
 };
 
 // Analytics helper
-export const trackPlatformClick = (platform: string, context: string = 'launcher'): void => {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', 'platform_click', {
-      platform,
-      context,
-      is_mobile: isMobileDevice(),
-      device_type: isIOS() ? 'ios' : isAndroid() ? 'android' : 'desktop'
-    });
-  }
+import { trackMusic } from './analytics';
 
-  // Also track with Meta Pixel if available
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('track', 'ViewContent', {
-      content_name: `Platform: ${platform}`,
-      content_category: context
-    });
-  }
+export const trackPlatformClick = (platform: string, context: string = 'launcher'): void => {
+  trackMusic(platform, 'click', {
+    context,
+    is_mobile: isMobileDevice(),
+    device_type: isIOS() ? 'ios' : isAndroid() ? 'android' : 'desktop'
+  });
 };

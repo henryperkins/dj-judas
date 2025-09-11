@@ -1,4 +1,4 @@
-// Track data used by MusicHub. Replace placeholder IDs/URLs with real links.
+// Track data used by music components. Replace placeholder IDs/URLs with real links.
 export interface TrackItem {
   id: string;
   title: string;

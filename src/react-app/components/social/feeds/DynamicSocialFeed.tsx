@@ -122,7 +122,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     return Array.from({ length: 6 }, (_, i) => ({
       id: `demo-${i}`,
       platform: i % 2 === 0 ? 'instagram' : 'facebook',
-      type: ['photo', 'video', 'carousel', 'reel'][i % 4] as any,
+      type: ['photo', 'video', 'carousel', 'reel'][i % 4] as 'photo' | 'video' | 'carousel' | 'reel',
       mediaUrl: `/api/placeholder/400/${300 + (i * 50)}`,
       thumbnailUrl: `/api/placeholder/200/200`,
       caption: `Amazing performance last night! 🎵 #DJLee #VoicesOfJudah #LiveMusic ${i % 2 === 0 ? '#NewAlbum' : '#Tour2025'}`,

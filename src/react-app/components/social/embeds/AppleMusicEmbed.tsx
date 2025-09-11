@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuMusic, LuExternalLink, LuPlus, LuPlay, LuLogIn } from 'react-icons/lu';
 import { appleMusicKit } from '@/react-app/utils/appleMusicKit';
+import { socialMetrics } from '../utils/socialMetrics';
 
 interface AppleMusicEmbedProps {
   url: string; // Full Apple Music URL
@@ -43,10 +44,8 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   };
 
   const trackEngagement = (action: string, data: Record<string, unknown>) => {
-    const win = window as unknown as { gtag?: (...args: unknown[]) => void };
-    if (typeof window !== 'undefined' && win.gtag) {
-      win.gtag('event', action, data);
-    }
+    // Use centralized socialMetrics instead of direct gtag
+    socialMetrics.trackSocialInteraction('apple_music', action, data);
   };
 
   const handleOpenInAppleMusic = () => {

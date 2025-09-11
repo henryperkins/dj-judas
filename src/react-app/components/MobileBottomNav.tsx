@@ -44,7 +44,7 @@ const defaultNavItems: NavItem[] = [
     id: 'social',
     icon: LuUsers,
     label: 'Social',
-    action: () => navigate('/social')
+    href: '#social'
   },
   {
     id: 'shop',

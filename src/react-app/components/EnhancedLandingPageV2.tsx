@@ -180,10 +180,15 @@ const EnhancedLandingPageV2: React.FC = () => {
             <div className="social-cta">
               <Button 
                 variant="outline"
-                onClick={() => navigate('/social')}
+                onClick={() => {
+                  const el = document.getElementById('social');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
                 className="view-all-social"
               >
-                View All Social Updates →
+                View Social Updates
               </Button>
             </div>
           </div>

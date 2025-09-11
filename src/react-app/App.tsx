@@ -8,7 +8,6 @@ const BookingPage = lazy(() => import('./pages/BookingPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const SuccessPage = lazy(() => import('./pages/SuccessPage'));
 const ProductsPage = lazy(() => import('./pages/ProductsPage'));
-const SocialHub = lazy(() => import('./pages/SocialHub'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminHome = lazy(() => import('./pages/AdminHome'));
 const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct'));
@@ -48,7 +47,6 @@ function App() {
             : path === '/checkout' ? <CheckoutPage />
             : path === '/success' ? <SuccessPage />
             : path === '/products' ? <ProductsPage />
-            : path === '/social' ? <SocialHub />
             : path === '/admin/login' ? <AdminLogin />
             : path === '/admin' ? <AdminHome />
             : path === '/admin/products' ? <AdminProductsList />

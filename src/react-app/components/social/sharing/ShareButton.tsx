@@ -55,7 +55,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       color: '#1877F2',
       buildUrl: (base) =>
         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-          buildShareUrl(base, 'facebook')
+          utm(base, 'facebook')
         )}`,
       onClick: async (base) => {
         await shareWithTracking({
@@ -72,7 +72,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       color: '#000000',
       buildUrl: (base) =>
         `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-          buildShareUrl(base, 'x')
+          utm(base, 'x')
         )}&text=${encodeURIComponent(shareText)}`
     },
     {
@@ -82,7 +82,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       color: '#25D366',
       buildUrl: (base) =>
         `https://wa.me/?text=${encodeURIComponent(
-          `${shareText}\n${buildShareUrl(base, 'whatsapp')}`
+          `${shareText}\n${utm(base, 'whatsapp')}`
         )}`
     },
     {

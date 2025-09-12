@@ -1,7 +1,20 @@
 // Enhanced Durable Objects for DJ Judas Worker
 // This file contains the Durable Object classes for rate limiting and session management
 
-import { DurableObject, DurableObjectState } from "@cloudflare/workers-types";
+// Minimal local types to avoid requiring external type packages during build
+type DurableObjectState = {
+  storage: any;
+  acceptWebSocket: (ws: any) => void;
+  blockConcurrencyWhile: (fn: () => Promise<void>) => void;
+};
+
+interface DurableObject {
+  fetch(request: Request): Promise<Response>;
+}
+
+// Declared globals in Workers runtime (use any for TS compile)
+declare const WebSocketPair: any;
+type AnalyticsEngineDataset = any;
 
 /**
  * RateLimiter Durable Object
@@ -10,7 +23,7 @@ import { DurableObject, DurableObjectState } from "@cloudflare/workers-types";
 export class RateLimiter implements DurableObject {
   private state: DurableObjectState;
   
-  constructor(state: DurableObjectState, env: any) {
+  constructor(state: DurableObjectState, _env: any) {
     this.state = state;
   }
   
@@ -28,17 +41,16 @@ export class RateLimiter implements DurableObject {
   }
   
   private async checkLimit(request: Request): Promise<Response> {
-    const { ip, limit = 10, window = 60 } = await request.json<{
-      ip: string;
-      limit?: number;
-      window?: number;
-    }>();
+    const body = await request.json() as { ip: string; limit?: number; window?: number };
+    const ip = body.ip;
+    const limit = body.limit ?? 10;
+    const window = body.window ?? 60;
     
     const now = Date.now();
     const windowStart = now - (window * 1000);
     
     // Clean old entries
-    const requests = await this.state.storage.list<number>({
+    const requests = await this.state.storage.list({
       prefix: `req:${ip}:`,
       start: `req:${ip}:0`,
       end: `req:${ip}:${windowStart}`
@@ -49,7 +61,7 @@ export class RateLimiter implements DurableObject {
     }
     
     // Count recent requests
-    const recentRequests = await this.state.storage.list<number>({
+    const recentRequests = await this.state.storage.list({
       prefix: `req:${ip}:`,
       start: `req:${ip}:${windowStart}`,
       end: `req:${ip}:${now}`
@@ -81,9 +93,9 @@ export class RateLimiter implements DurableObject {
   }
   
   private async resetLimit(request: Request): Promise<Response> {
-    const { ip } = await request.json<{ ip: string }>();
+    const { ip } = await request.json() as { ip: string };
     
-    const requests = await this.state.storage.list<number>({
+    const requests = await this.state.storage.list({
       prefix: `req:${ip}:`
     });
     
@@ -106,14 +118,14 @@ export class UserSession implements DurableObject {
   private sessions: Map<string, any> = new Map();
   private websockets: Set<WebSocket> = new Set();
   
-  constructor(state: DurableObjectState, env: any) {
+  constructor(state: DurableObjectState, _env: any) {
     this.state = state;
     
     // Restore sessions from storage
     this.state.blockConcurrencyWhile(async () => {
-      const stored = await this.state.storage.get<Map<string, any>>('sessions');
+      const stored = await this.state.storage.get('sessions');
       if (stored) {
-        this.sessions = new Map(stored);
+        this.sessions = new Map(stored as any);
       }
     });
   }
@@ -138,7 +150,7 @@ export class UserSession implements DurableObject {
   }
   
   private async getSession(request: Request): Promise<Response> {
-    const { sessionId } = await request.json<{ sessionId: string }>();
+    const { sessionId } = await request.json() as { sessionId: string };
     const session = this.sessions.get(sessionId);
     
     if (!session) {
@@ -165,11 +177,7 @@ export class UserSession implements DurableObject {
   }
   
   private async setSession(request: Request): Promise<Response> {
-    const { sessionId, data, ttl = 3600 } = await request.json<{
-      sessionId: string;
-      data: any;
-      ttl?: number;
-    }>();
+    const { sessionId, data, ttl = 3600 } = await request.json() as { sessionId: string; data: any; ttl?: number };
     
     const session = {
       ...data,
@@ -190,7 +198,7 @@ export class UserSession implements DurableObject {
   }
   
   private async deleteSession(request: Request): Promise<Response> {
-    const { sessionId } = await request.json<{ sessionId: string }>();
+    const { sessionId } = await request.json() as { sessionId: string };
     
     const deleted = this.sessions.delete(sessionId);
     if (deleted) {
@@ -204,10 +212,7 @@ export class UserSession implements DurableObject {
   }
   
   private async refreshSession(request: Request): Promise<Response> {
-    const { sessionId, ttl = 3600 } = await request.json<{
-      sessionId: string;
-      ttl?: number;
-    }>();
+    const { sessionId, ttl = 3600 } = await request.json() as { sessionId: string; ttl?: number };
     
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -235,25 +240,24 @@ export class UserSession implements DurableObject {
     }
     
     const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
+    const [client, server] = Object.values(pair) as any[];
     
-    this.state.acceptWebSocket(server);
+    this.state.acceptWebSocket(server as any);
     this.websockets.add(server);
     
-    server.addEventListener('close', () => {
+    (server as any).addEventListener('close', () => {
       this.websockets.delete(server);
     });
     
-    server.addEventListener('message', async (event) => {
+    (server as any).addEventListener('message', async (_event: any) => {
       try {
-        const message = JSON.parse(event.data as string);
-        // Handle WebSocket messages here
+        // noop
       } catch (error) {
-        server.send(JSON.stringify({ error: 'Invalid message format' }));
+        (server as any).send(JSON.stringify({ error: 'Invalid message format' }));
       }
     });
     
-    return new Response(null, { status: 101, webSocket: client });
+    return new Response(null, { status: 101, webSocket: client } as any);
   }
   
   private broadcastUpdate(type: string, data: any): void {
@@ -299,14 +303,14 @@ export class UserSession implements DurableObject {
  * Cache manager utility using Cache API
  */
 export class CacheManager {
-  private readonly cacheApi = caches.default;
+  private readonly cacheApi = (caches as any).default as Cache;
   
   async get<T>(key: string): Promise<T | null> {
     const cacheKey = new Request(`https://cache.internal/${key}`);
     const cached = await this.cacheApi.match(cacheKey);
     
     if (cached) {
-      const data = await cached.json<T>();
+      const data = await cached.json() as T;
       return data;
     }
     
@@ -395,7 +399,7 @@ export class SecurityUtils {
       { name: 'AES-GCM', length: 256 },
       true,
       ['encrypt', 'decrypt']
-    );
+    ) as unknown as CryptoKey;
   }
 }
 

@@ -1,6 +1,8 @@
 import { Hono } from "hono";
-import { SignJWT, importPKCS8 } from 'jose';
 import { socialMetricsApp } from './social-metrics';
+import { CacheManager } from './cache-manager';
+import { coalesceRequest } from './kv-utils';
+import { BookingSchema } from './validation';
 
 // KVNamespace type for Cloudflare Workers
 interface KVNamespace {
@@ -93,11 +95,33 @@ interface Env {
   AI?: {
     run: (model: string, options: { prompt: string; image?: Uint8Array[] }) => Promise<{ output?: string; response?: string; text?: string }>;
   }; // Workers AI binding
+  // Durable Object namespace bindings (optional; configured in wrangler.toml when enabled)
+  RATE_LIMITER?: any;
+  USER_SESSIONS?: any;
+  DB?: any;
+  ANALYTICS?: any;
+  R2_PUBLIC_BASE?: string; // e.g., https://r2.thevoicesofjudah.com
 }
 const app = new Hono<{ Bindings: Env }>();
 
 // Mount social metrics routes
 app.route('/', socialMetricsApp);
+
+// Analytics timing middleware (best-effort)
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  await next();
+  try {
+    const ae: any = (c.env as any).ANALYTICS;
+    if (ae && typeof ae.writeDataPoint === 'function') {
+      ae.writeDataPoint({
+        indexes: [c.req.path, c.req.method],
+        doubles: [Date.now() - start, (c.res as any)?.status || 0],
+        blobs: [c.req.header('CF-Connecting-IP') || '', c.req.header('User-Agent') || '']
+      });
+    }
+  } catch { /* ignore */ }
+});
 
 // ---- Facebook/Instagram helpers ----
 const DEFAULT_GRAPH_VERSION = 'v22.0';
@@ -140,43 +164,30 @@ app.get("/api/", (c) => c.json({ name: "Cloudflare" }));
 
 // Real aggregated social metrics endpoint with caching
 app.get('/api/metrics', async (c) => {
-	// Check cache first (guard if KV not bound in local dev build)
-	const cacheKey = 'social_metrics:aggregate';
-	let kvGet: ((key: string) => Promise<string | null>) | null = null;
-	let kvPut: ((key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void>) | null = null;
-	try {
-		const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
-		kvGet = kv?.get?.bind(kv) ?? null;
-		kvPut = kv?.put?.bind(kv) ?? null;
-	} catch {
-		// KV not available in local dev
-	}
+  const cache = new CacheManager((c.env as any).SESSIONS);
+  const cacheKey = 'social_metrics:aggregate:v3';
 
-	if (kvGet) {
-		try {
-			const cached = await kvGet(cacheKey);
-			if (cached) {
-				return c.json(JSON.parse(cached), 200, {
-					'Cache-Control': 'public, max-age=900',
-					'X-Cache': 'HIT'
-				});
-			}
-		} catch {
-			// Ignore cache read errors
-		}
-	}
+  // L1/L2 cache
+  const hit = await cache.get<any>(`/${cacheKey}`).catch(() => null);
+  if (hit) {
+    return c.json(hit, 200, {
+      'Cache-Control': 'public, max-age=900',
+      'X-Cache': 'HIT'
+    });
+  }
 
-	const metrics = {
-		totalReach: 0,
-		platforms: [] as Array<{
-			id: string;
-			name: string;
-			followers: number;
-			engagement: number;
-			lastUpdated: string;
-		}>,
-		topConversionSource: 'unknown'
-	};
+  const metrics = await coalesceRequest(cacheKey, async () => {
+    const m = {
+      totalReach: 0,
+      platforms: [] as Array<{
+        id: string;
+        name: string;
+        followers: number;
+        engagement: number;
+        lastUpdated: string;
+      }>,
+      topConversionSource: 'unknown'
+    };
 
     // Fetch Instagram metrics if token available
     if (c.env.IG_OEMBED_TOKEN || (c.env.FB_APP_ID && c.env.FB_APP_SECRET)) {
@@ -271,27 +282,18 @@ app.get('/api/metrics', async (c) => {
 		console.error('Failed to fetch Facebook metrics:', e);
 	}
 
-	// Determine top conversion source based on engagement
-	if (metrics.platforms.length > 0) {
-		const topPlatform = metrics.platforms.reduce((prev, current) =>
-			prev.engagement > current.engagement ? prev : current
-		);
-		metrics.topConversionSource = topPlatform.id;
-	}
+    if (m.platforms.length > 0) {
+      const top = m.platforms.reduce((prev, curr) => (prev.engagement > curr.engagement ? prev : curr));
+      m.topConversionSource = top.id;
+    }
+    await cache.set(`/${cacheKey}`, m, 900);
+    return m;
+  });
 
-	// Cache for 15 minutes if KV available
-	try {
-		if (kvPut) {
-			await kvPut(cacheKey, JSON.stringify(metrics), { expirationTtl: 900 });
-		}
-	} catch {
-		// Ignore cache write errors
-	}
-
-	return c.json(metrics, 200, {
-		'Cache-Control': 'public, max-age=900',
-		'X-Cache': 'MISS'
-	});
+  return c.json(metrics, 200, {
+    'Cache-Control': 'public, max-age=900',
+    'X-Cache': 'MISS'
+  });
 });
 
 // Utility functions
@@ -398,6 +400,20 @@ app.get('/api/spotify/callback', async (c) => {
 			{ expirationTtl: 60 * 60 * 24 * 30 }
 		);
 
+		// Also persist in Durable Object (if bound)
+		try {
+			const ns: any = (c.env as any).USER_SESSIONS;
+			if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+				const id = ns.idFromName(sessionId);
+				const stub = ns.get(id);
+				await stub.fetch('https://user-session/set', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ sessionId, data: session, ttl: 60 * 60 * 24 * 30 })
+				});
+			}
+		} catch { /* ignore */ }
+
 		c.header('Set-Cookie', `spotify_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
 		return c.json({ success: true });
 });
@@ -464,6 +480,8 @@ app.get('/api/apple/developer-token', async (c) => {
   }
 
   try {
+    // Lazy import to reduce bundle size and cold starts on non-Apple routes
+    const { SignJWT, importPKCS8 } = await import('jose');
     const privateKeyPem = privateKey.replace(/\\n/g, '\n');
     const alg = 'ES256';
     const iat = now;
@@ -491,6 +509,20 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 	if (!cookieHeader) return null;
 	const match = cookieHeader.match(/spotify_session=([^;]+)/);
 	if (!match) return null;
+
+	// Prefer Durable Object
+	try {
+		const ns: any = (c.env as any).USER_SESSIONS;
+		if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+			const id = ns.idFromName(match[1]);
+			const stub = ns.get(id);
+			const res = await stub.fetch('https://user-session/get', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: match[1] }) });
+			if (res.ok) {
+				const session = await res.json() as SpotifySession;
+				if (session?.accessToken) return session;
+			}
+		}
+	} catch { /* ignore */ }
 
 	const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
 	if (!kv) return null;
@@ -582,6 +614,9 @@ app.post('/api/spotify/follow', async (c) => {
 
 export default app;
 
+// Re-export Durable Object classes so wrangler can bind them by class_name
+export { RateLimiter, UserSession } from './durable-objects';
+
 // --- Medusa Admin proxy (login + create products) ---
 function getAdminTokenFromCookie(cookieHeader: string | null): string | null {
   if (!cookieHeader) return null;
@@ -621,6 +656,19 @@ app.post('/api/admin/login', async (c) => {
     const isHttps = new URL(c.req.url).protocol === 'https:';
     const secure = isHttps ? ' Secure;' : ' ';
     c.header('Set-Cookie', `medusa_admin_jwt=${encodeURIComponent(token)}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${60 * 60 * 6}`);
+    // Track session in DO (best-effort), keyed by token
+    try {
+      const ns: any = (c.env as any).USER_SESSIONS;
+      if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+        const key = `admin:${token.slice(0, 16)}`; // avoid full token in key
+        const id = ns.idFromName(key);
+        const stub = ns.get(id);
+        await stub.fetch('https://user-session/set', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId: key, data: { active: true }, ttl: 60 * 60 * 6 })
+        });
+      }
+    } catch { /* ignore */ }
     return c.json({ ok: true });
   } catch {
     return c.json({ error: 'bad_request' }, 400);
@@ -639,6 +687,21 @@ app.get('/api/admin/session', async (c) => {
   if (!MEDUSA) return c.json({ authenticated: false, reason: 'not_configured' }, 200);
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!token) return c.json({ authenticated: false }, 200);
+  // Prefer DO session check first
+  try {
+    const ns: any = (c.env as any).USER_SESSIONS;
+    if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+      const key = `admin:${token.slice(0, 16)}`;
+      const id = ns.idFromName(key);
+      const stub = ns.get(id);
+      const res = await stub.fetch('https://user-session/get', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: key })
+      });
+      if (res.ok) {
+        return c.json({ authenticated: true });
+      }
+    }
+  } catch { /* ignore */ }
   // Try a lightweight call to verify token
   try {
     const res = await fetch(`${MEDUSA}/admin/products?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -745,6 +808,64 @@ app.delete('/api/admin/variants/:id', async (c) => {
   return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
 });
 
+// --- Admin: Upload product image to R2 and attach to Medusa product ---
+app.post('/api/admin/products/:id/images/upload', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+
+  try {
+    const { url, path } = await c.req.json<{ url: string; path?: string }>();
+    if (!url) return c.json({ error: 'missing_url' }, 400);
+
+    // Upload to R2 (prefer MEDIA_BUCKET + custom domain)
+    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+    const userAssets: any = (c.env as any).USER_ASSETS;
+    const bucket: any = mediaBucket || userAssets;
+    if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
+
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+    const key = `${(path || 'products').replace(/\/$/, '')}/${crypto.randomUUID()}`;
+    const body = await upstream.arrayBuffer();
+    await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
+
+    const id = c.req.param('id');
+
+    // Fetch current product to merge images
+    const pRes = await fetch(`${MEDUSA}/admin/products/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    let currentImages: string[] = [];
+    if (pRes.ok) {
+      const pj: any = await pRes.json();
+      const product = pj?.product || pj; // v1 sometimes returns { product }
+      const imgs = product?.images || [];
+      // Normalize to array of URLs
+      currentImages = (imgs as any[]).map((x: any) => (typeof x === 'string' ? x : (x?.url || x?.src || x?.original_url))).filter(Boolean);
+    }
+    // Append new image if not present
+    const next = publicUrl ? Array.from(new Set([...currentImages, publicUrl])) : currentImages;
+
+    // Patch product with merged images if we have a URL
+    let patchStatus = 0;
+    if (publicUrl) {
+      const patch = await fetch(`${MEDUSA}/admin/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ images: next })
+      });
+      patchStatus = patch.status;
+    }
+
+    return c.json({ ok: true, publicUrl, images: next, patched: patchStatus > 0 ? patchStatus : undefined });
+  } catch (e) {
+    return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
+  }
+});
+
 // --- Cloudflare Images: Direct Upload (admin only) ---
 app.post('/api/images/direct-upload', async (c) => {
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
@@ -758,6 +879,82 @@ app.post('/api/images/direct-upload', async (c) => {
   });
   const text = await res.text();
   return new Response(text, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+});
+
+// --- R2: Basic upload (admin only) and read proxy ---
+app.post('/api/r2/upload', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+  const userAssets: any = (c.env as any).USER_ASSETS;
+  const bucket: any = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'not_configured' }, 501);
+  try {
+    const { url, path } = await c.req.json<{ url: string; path?: string }>();
+    if (!url) return c.json({ error: 'missing_url' }, 400);
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+    const key = `${(path || 'uploads').replace(/\/$/, '')}/${crypto.randomUUID()}`;
+    const body = await upstream.arrayBuffer();
+    const res = await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
+    return c.json({ key, etag: res?.etag || null, size: body.byteLength, contentType: ct, publicUrl });
+  } catch {
+    return c.json({ error: 'bad_request' }, 400);
+  }
+});
+
+app.get('/api/r2/*', async (c) => {
+  const key = c.req.path.replace(/^\/api\/r2\//, '');
+  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+  const userAssets: any = (c.env as any).USER_ASSETS;
+  const bucket: any = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.get !== 'function') return c.json({ error: 'not_configured' }, 501);
+  // If a public base is configured (or we know MEDIA_BUCKET custom domain), redirect to CDN
+  const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+  if (base) {
+    return Response.redirect(`${base.replace(/\/$/,'')}/${key}`, 302);
+  }
+  const obj = await bucket.get(key);
+  if (!obj) return c.json({ error: 'not_found' }, 404);
+  const ct = obj.httpMetadata?.contentType || 'application/octet-stream';
+  return new Response(obj.body, { headers: { 'content-type': ct, 'cache-control': 'public, max-age=31536000' } });
+});
+
+// --- Admin: Event flyer upload to R2 and D1 update ---
+app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const db: any = (c.env as any).DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+  const userAssets: any = (c.env as any).USER_ASSETS;
+  const bucket: any = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
+  try {
+    const { url } = await c.req.json<{ url: string }>();
+    if (!url) return c.json({ error: 'missing_url' }, 400);
+    const slug = c.req.param('slug');
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+    const key = `events/${slug}/${crypto.randomUUID()}`;
+    const body = await upstream.arrayBuffer();
+    await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
+
+    if (publicUrl) {
+      await db.prepare(`UPDATE events SET flyer_url = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE slug = ?`).bind(publicUrl, slug).run();
+    }
+    // Return updated event if available
+    const { results } = await db.prepare(`SELECT * FROM events WHERE slug = ?`).bind(slug).all();
+    return c.json({ ok: true, publicUrl, event: results?.[0] || null });
+  } catch (e) {
+    return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
+  }
 });
 
 // Delete an image by id
@@ -856,61 +1053,58 @@ const rateMap = new Map<string, { count: number; reset: number }>();
 app.post('/api/booking', async (c) => {
   try {
     const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
-    const now = Date.now();
-    const bucket = rateMap.get(ip);
-    if (!bucket || bucket.reset < now) {
-      rateMap.set(ip, { count: 1, reset: now + 60_000 });
-    } else if (bucket.count > 10) {
-      return c.json({ error: 'rate_limited', message: 'Too many requests. Please try again in a minute.' }, 429);
-    } else {
+    // Prefer DO-based rate limiter if bound; fallback to in-memory
+    const allowed = await (async () => {
+      try {
+        const ns: any = (c.env as any).RATE_LIMITER;
+        if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+          const id = ns.idFromName('global');
+          const stub = ns.get(id);
+          const res = await stub.fetch('https://rate/check', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ ip, limit: 10, window: 60 })
+          });
+          if (res.status === 429) return false;
+          const j = await res.json().catch(() => ({ allowed: true }));
+          return !!j.allowed;
+        }
+      } catch {}
+      const now = Date.now();
+      const bucket = rateMap.get(ip);
+      if (!bucket || bucket.reset < now) {
+        rateMap.set(ip, { count: 1, reset: now + 60_000 });
+        return true;
+      }
+      if (bucket.count > 10) return false;
       bucket.count += 1;
+      return true;
+    })();
+
+    if (!allowed) {
+      return c.json({ error: 'rate_limited', message: 'Too many requests. Please try again in a minute.' }, 429);
     }
 
-    const body = await c.req.json<{
-      name: string;
-      email: string;
-      phone: string;
-      eventType: string;
-      eventDate: string;
-      eventTime: string;
-      location: string;
-      message?: string;
-      website?: string; // honeypot
-    }>();
+    const body = await c.req.json();
+    const parsed = BookingSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'validation_failed', issues: parsed.error.issues }, 400);
+    }
+    const input = parsed.data;
 
     // Honeypot: if present, reject silently
-    if (body.website && String(body.website).trim() !== '') {
+    if (input.website && String(input.website).trim() !== '') {
       return c.json({ ok: true, ignored: true });
     }
 
-    const required = ['name','email','phone','eventType','eventDate','eventTime','location'] as const;
-    for (const k of required) {
-      if (!body[k] || String(body[k]).trim() === '') {
-        return c.json({ error: `missing_${k}` }, 400);
-      }
-    }
-
-    // Normalize and validate fields
-    const email = String(body.email).trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      return c.json({ error: 'invalid_email' }, 400);
-    }
-
-    // Phone: strip non-digits except leading + and basic length check
-    const phoneRaw = String(body.phone).trim();
+    // Normalize values for downstream use
+    const email = String(input.email).trim().toLowerCase();
+    const phoneRaw = String(input.phone).trim();
     const phone = phoneRaw.replace(/(?!^\+)\D+/g, '');
-    if (phone.replace(/\D/g, '').length < 7 || phone.replace(/\D/g, '').length > 15) {
-      return c.json({ error: 'invalid_phone' }, 400);
-    }
-
-    const eventTypes = new Set(['worship','concert','wedding','funeral','conference','community','other']);
-    if (!eventTypes.has(String(body.eventType))) {
-      return c.json({ error: 'invalid_event_type' }, 400);
-    }
 
     // Date/time sanity: require future time in UTC comparison
-    const isoDate = String(body.eventDate);
-    const isoTime = String(body.eventTime);
+    const isoDate = String(input.eventDate);
+    const isoTime = String(input.eventTime);
     const eventDateTime = new Date(`${isoDate}T${isoTime}`);
     if (Number.isNaN(eventDateTime.getTime())) {
       return c.json({ error: 'invalid_datetime' }, 400);
@@ -920,15 +1114,15 @@ app.post('/api/booking', async (c) => {
     }
 
     // Bounds
-    const name = String(body.name).trim().slice(0, 100);
-    const location = String(body.location).trim().slice(0, 200);
-    const message = (body.message ? String(body.message) : '').trim().slice(0, 2000);
+    const name = String(input.name).trim().slice(0, 100);
+    const location = String(input.location).trim().slice(0, 200);
+    const message = (input.message ? String(input.message) : '').trim().slice(0, 2000);
 
     const summary = [
       `Name: ${name}`,
       `Email: ${email}`,
       `Phone: ${phone}`,
-      `Event Type: ${body.eventType}`,
+      `Event Type: ${input.eventType}`,
       `Date: ${isoDate} ${isoTime}`,
       `Location: ${location}`,
       '',
@@ -978,7 +1172,7 @@ This is an automated confirmation email. Please do not reply directly to this me
         body: JSON.stringify({
           from: fromResend,
           to: [toResend],
-          subject: `Booking Request: ${body.eventType} on ${isoDate}`,
+          subject: `Booking Request: ${input.eventType} on ${isoDate}`,
           text: summary
         })
       });
@@ -993,13 +1187,13 @@ This is an automated confirmation email. Please do not reply directly to this me
           },
           body: JSON.stringify({
             from: fromResend,
-            to: [email],
-            subject: `Booking Confirmation - DJ Lee & Voices of Judah`,
-            text: customerConfirmation
-          })
-        });
-        return c.json({ ok: true, provider: 'resend' });
-      }
+          to: [email],
+          subject: `Booking Confirmation - DJ Lee & Voices of Judah`,
+          text: customerConfirmation
+        })
+      });
+      return c.json({ ok: true, provider: 'resend' });
+    }
       // fall through to SendGrid if available
     }
 
@@ -1018,7 +1212,7 @@ This is an automated confirmation email. Please do not reply directly to this me
         body: JSON.stringify({
           personalizations: [{ to: [{ email: to }] }],
           from: { email: from, name: 'DJ Lee Website' },
-          subject: `Booking Request: ${body.eventType} on ${isoDate}`,
+          subject: `Booking Request: ${input.eventType} on ${isoDate}`,
           content: [{ type: 'text/plain', value: summary }]
         })
       });
@@ -1068,14 +1262,13 @@ app.get('/api/instagram/oembed', async (c) => {
       return c.json({ error: 'URL parameter is required' }, 400);
     }
 
-    // Create cache key from parameters
+    // Multi-tier cache key
     const cacheKey = `ig:${url}:${maxwidth || ''}:${omitscript || ''}:${hidecaption || ''}`;
-
-    // Check KV cache first
-    const cached = await c.env.SESSIONS.get(cacheKey);
-    if (cached) {
-      const data = JSON.parse(cached) as OEmbedJSON;
-      return c.json(data, 200, {
+    const cache = new CacheManager((c.env as any).SESSIONS);
+    const edgeKey = `/oembed:${cacheKey}`;
+    const l1 = await cache.get<any>(edgeKey).catch(() => null);
+    if (l1) {
+      return c.json(l1, 200, {
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'public, max-age=3600',
         'X-Cache': 'HIT'
@@ -1099,12 +1292,8 @@ app.get('/api/instagram/oembed', async (c) => {
         if (graphResponse.ok) {
           const data = await graphResponse.json() as OEmbedJSON;
 
-          // Cache in KV for 1 hour
-          await c.env.SESSIONS.put(
-            cacheKey,
-            JSON.stringify(data),
-            { expirationTtl: 3600 }
-          );
+          // Cache for 1 hour in both tiers
+          await cache.set(edgeKey, data, 3600);
 
           return c.json(data, 200, {
             'Access-Control-Allow-Origin': '*',
@@ -1179,12 +1368,8 @@ app.get('/api/instagram/oembed', async (c) => {
 
     const data = await response.json() as OEmbedJSON;
 
-    // Cache successful response in KV for 1 hour
-    await c.env.SESSIONS.put(
-      cacheKey,
-      JSON.stringify(data),
-      { expirationTtl: 3600 }
-    );
+    // Cache successful response in both tiers for 1 hour
+    await cache.set(edgeKey, data, 3600);
 
     return c.json(data, 200, {
       'Access-Control-Allow-Origin': '*',
@@ -1232,11 +1417,12 @@ app.get('/api/instagram/media', async (c) => {
     const limit = c.req.query('limit') || '12';
     const fields = c.req.query('fields') || 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username';
 
-    // Check cache first
-    const cacheKey = `ig_media:${igUserId}:${limit}:${fields}`;
-    const cached = await c.env.SESSIONS.get(cacheKey);
+    // L1 + L2 cache
+    const cache = new CacheManager((c.env as any).SESSIONS);
+    const cacheKey = `/ig_media:${igUserId}:${limit}:${fields}`;
+    const cached = await cache.get<any>(cacheKey).catch(() => null);
     if (cached) {
-      return c.json(JSON.parse(cached), 200, {
+      return c.json(cached, 200, {
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'public, max-age=900',
         'X-Cache': 'HIT'
@@ -1259,13 +1445,7 @@ app.get('/api/instagram/media', async (c) => {
     }
 
     const data = await response.json() as { data: [] };
-
-    // Cache for 15 minutes
-    await c.env.SESSIONS.put(
-      cacheKey,
-      JSON.stringify(data),
-      { expirationTtl: 900 }
-    );
+    await cache.set(cacheKey, data, 900);
 
     return c.json(data, 200, {
       'Access-Control-Allow-Origin': '*',
@@ -1651,13 +1831,78 @@ type EventItem = {
 };
 
 let eventsCache: { data: EventItem[]; exp: number } | null = null;
+// Minimal built-in fallback so the site has an event banner when D1 is empty
+const STATIC_EVENTS_FALLBACK: EventItem[] = [
+  {
+    id: 'reunion-12-chicago-2026',
+    slug: 'reunion-12-chicago-2026',
+    title: '12th Anniversary Reunion Concert',
+    description: 'A special night with DJ Lee & The Voices of Judah celebrating 12 years of ministry.',
+    flyerUrl: '/content/flyers/reunion-12-chicago-2026.jpg',
+    startDateTime: '2026-01-10T18:00:00-06:00',
+    endDateTime: '2026-01-10T21:00:00-06:00',
+    venueName: 'TBD',
+    address: '',
+    city: 'Chicago',
+    region: 'IL',
+    country: 'US',
+    latitude: null,
+    longitude: null,
+    ticketUrl: '',
+    rsvpUrl: '',
+    priceText: '',
+    tags: ['concert'],
+    status: 'published'
+  }
+];
+async function loadEventsFromD1(c: { env: Env }): Promise<EventItem[] | null> {
+  try {
+    const db: any = (c.env as any).DB;
+    if (!db || typeof db.prepare !== 'function') return null;
+    const sql = `SELECT id, slug, title, description, flyer_url as flyerUrl,
+      start_time as startDateTime, end_time as endDateTime, venue_name as venueName,
+      address, city, region, country, latitude, longitude, ticket_url as ticketUrl,
+      rsvp_url as rsvpUrl, price_text as priceText, tags, status
+      FROM events WHERE status = 'published' ORDER BY datetime(start_time) ASC`;
+    const { results } = await db.prepare(sql).all();
+    if (!results || results.length === 0) return [];
+    return results.map((r: any) => ({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      description: r.description || undefined,
+      flyerUrl: r.flyerUrl || undefined,
+      startDateTime: r.startDateTime,
+      endDateTime: r.endDateTime || undefined,
+      venueName: r.venueName || undefined,
+      address: r.address || undefined,
+      city: r.city || undefined,
+      region: r.region || undefined,
+      country: r.country || undefined,
+      latitude: typeof r.latitude === 'number' ? r.latitude : null,
+      longitude: typeof r.longitude === 'number' ? r.longitude : null,
+      ticketUrl: r.ticketUrl || undefined,
+      rsvpUrl: r.rsvpUrl || undefined,
+      priceText: r.priceText || undefined,
+      tags: r.tags ? JSON.parse(r.tags) : [],
+      status: r.status || 'published'
+    })) as EventItem[];
+  } catch {
+    return null;
+  }
+}
+
 async function loadEvents(c: { env: Env; req: { url: string } }): Promise<EventItem[]> {
   const now = Date.now();
-  if (eventsCache && eventsCache.exp > now) return eventsCache.data;
-  const url = new URL('/content/events.json', c.req.url).toString();
-  const res = await fetch(url, {});
-  if (!res.ok) return [];
-  const json = await res.json() as EventItem[];
+  if (eventsCache && eventsCache.exp > now && (eventsCache.data?.length ?? 0) > 0) return eventsCache.data;
+  // Prefer D1 if available
+  const fromD1 = await loadEventsFromD1(c).catch(() => null);
+  if (fromD1 && fromD1.length > 0) {
+    eventsCache = { data: fromD1, exp: now + 5 * 60 * 1000 };
+    return fromD1;
+  }
+  // Fallback to baked-in static events (cannot fetch assets from within Worker reliably)
+  const json = STATIC_EVENTS_FALLBACK;
   const sorted = [...json].sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
   eventsCache = { data: sorted, exp: now + 5 * 60 * 1000 };
   return sorted;
@@ -1670,6 +1915,122 @@ app.get('/api/events', async (c) => {
   const upcoming = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() >= now);
   const past = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() < now).reverse();
   return c.json({ upcoming, past, total: published.length });
+});
+
+// Temporary debug endpoint to verify static events accessibility from within Worker
+app.get('/api/debug/events-source', async (c) => {
+  try {
+    const url = new URL('/content/events.json', c.req.url).toString();
+    const res = await fetch(url);
+    const body = await res.text();
+    return c.json({ ok: res.ok, status: res.status, length: body.length, sample: body.slice(0, 120), url });
+  } catch (e) {
+    return c.json({ ok: false, error: (e as Error).message });
+  }
+});
+
+// --- Admin: Import events into D1 (from body or external URL) ---
+app.post('/api/admin/events/import', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  try {
+    const db: any = (c.env as any).DB;
+    if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+    const userAssets: any = (c.env as any).USER_ASSETS;
+    const bucket: any = mediaBucket || userAssets;
+
+    const body = await c.req.json<{ url?: string; events?: EventItem[]; replace?: boolean; uploadFlyersToR2?: boolean }>();
+    let list: EventItem[] | null = null;
+
+    if (Array.isArray(body?.events) && body.events.length > 0) {
+      list = body.events as EventItem[];
+    } else if (body?.url) {
+      // Only allow external URLs (not the same worker host), since internal asset fetch won't work
+      try {
+        const u = new URL(body.url);
+        const self = new URL(c.req.url);
+        if (u.host === self.host) {
+          return c.json({ error: 'invalid_source', message: 'Use an external URL or provide events array directly.' }, 400);
+        }
+        const res = await fetch(u.toString(), { headers: { 'accept': 'application/json' } });
+        if (!res.ok) return c.json({ error: 'source_fetch_failed', status: res.status }, 400);
+        list = await res.json() as EventItem[];
+      } catch (e) {
+        return c.json({ error: 'bad_source', message: (e as Error).message }, 400);
+      }
+    } else {
+      list = STATIC_EVENTS_FALLBACK;
+    }
+
+    if (!Array.isArray(list) || list.length === 0) return c.json({ imported: 0, message: 'no events found' });
+
+    // Optionally clear table first
+    if (body?.replace) {
+      await db.prepare('DELETE FROM events').run();
+    }
+
+    let uploaded = 0;
+    let upserts = 0;
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const wantR2 = !!body?.uploadFlyersToR2 && bucket && typeof bucket.put === 'function' && base;
+
+    for (const ev of list) {
+      let flyerUrl = ev.flyerUrl || (ev as any).flyer_url || '';
+      // Upload flyer to R2 if requested and flyerUrl is http(s) or relative
+      if (wantR2 && flyerUrl) {
+        try {
+          const absolute = /^https?:\/\//i.test(flyerUrl) ? flyerUrl : new URL(flyerUrl, c.req.url).toString();
+          const r = await fetch(absolute);
+          if (r.ok) {
+            const ct = r.headers.get('content-type') || 'image/jpeg';
+            const key = `events/${(ev.slug || ev.id).replace(/[^a-z0-9_-]/gi,'-')}/${crypto.randomUUID()}`;
+            const buf = await r.arrayBuffer();
+            await bucket.put(key, buf, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+            flyerUrl = `${String(base).replace(/\/$/, '')}/${key}`;
+            uploaded++;
+          }
+        } catch { /* ignore upload errors; keep original flyerUrl */ }
+      }
+
+      const id = ev.id || crypto.randomUUID();
+      const slug = (ev.slug || id).toLowerCase();
+      const start = ev.startDateTime;
+      const end = ev.endDateTime || null;
+      const insert = await db.prepare(`INSERT OR REPLACE INTO events (
+        id, slug, title, description, flyer_url, start_time, end_time,
+        venue_name, address, city, region, country, latitude, longitude,
+        ticket_url, rsvp_url, price_text, tags, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now'))`).bind(
+        id,
+        slug,
+        ev.title,
+        ev.description || null,
+        flyerUrl || null,
+        start,
+        end,
+        ev.venueName || null,
+        ev.address || null,
+        ev.city || null,
+        ev.region || 'IL',
+        ev.country || 'US',
+        typeof ev.latitude === 'number' ? ev.latitude : null,
+        typeof ev.longitude === 'number' ? ev.longitude : null,
+        ev.ticketUrl || null,
+        ev.rsvpUrl || null,
+        ev.priceText || null,
+        JSON.stringify(ev.tags || []),
+        ev.status || 'published'
+      ).run();
+      if ((insert as any)?.success !== false) upserts++;
+    }
+
+    // Invalidate cache
+    eventsCache = null;
+    return c.json({ imported: list.length, upserts, uploadedToR2: uploaded, usedR2: Boolean(wantR2) });
+  } catch (e) {
+    return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
+  }
 });
 
 function toICSDate(dt: string): string {

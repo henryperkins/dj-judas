@@ -66,15 +66,22 @@ mode = "smart"
 # binding = "EMAIL_QUEUE"
 # queue = "email-queue"
 
-# Durable Objects for real-time features and session management
-# [[durable_objects.bindings]]
-# name = "USER_SESSIONS"
-# class_name = "UserSession"
-# script_name = "dj-judas"
-# 
-# [[migrations]]
-# tag = "v1"
-# new_classes = ["UserSession"]
+## Durable Objects for rate limiting and session management
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[durable_objects.bindings]]
+name = "USER_SESSIONS"
+class_name = "UserSession"
+
+[[migrations]]
+tag = "do-v1"
+new_classes = ["RateLimiter", "UserSession"]
+
+# Analytics Engine for custom metrics
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
 
 # Analytics Engine for custom analytics
 # [[analytics_engine_datasets]]

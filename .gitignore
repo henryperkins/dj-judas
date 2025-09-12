@@ -77,10 +77,12 @@ jspm_packages/
 tmp/
 temp/
 .aider*
-.env
-.env
-.env
 
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
 
 #Ignore insiders AI rules
 .github/instructions/codacy.instructions.md

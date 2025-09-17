@@ -258,8 +258,8 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
         {(activeTab === 'timeline' || activeTab === 'events') && (
           <div className="facebook-embed-container">
             {!loaded && (
-              <div className="embed-loading">
-                <div className="spinner"></div>
+              <div className="embed-loading" role="status" aria-live="polite">
+                <div className="loading-spinner loading-spinner--large" aria-hidden="true" />
                 <p>Loading Facebook {activeTab}...</p>
               </div>
             )}
@@ -370,8 +370,8 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
       
       <div className="facebook-embed-container">
         {!loaded && (
-          <div className="embed-loading">
-            <div className="spinner"></div>
+          <div className="embed-loading" role="status" aria-live="polite">
+            <div className="loading-spinner loading-spinner--large" aria-hidden="true" />
             <p>Loading Facebook {embedType}...</p>
           </div>
         )}

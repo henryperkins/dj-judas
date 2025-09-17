@@ -287,7 +287,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fab-backdrop"
+            className="platform-launcher__fab-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

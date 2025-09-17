@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LuCalendar, LuClock, LuMapPin, LuUser, LuMail, LuPhone, LuMessageSquare, LuCheck } from 'react-icons/lu';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -79,9 +79,22 @@ const BookingForm: React.FC<BookingFormProps> = ({ tone = 'formal' }) => {
     } catch { /* ignore */ }
   }, [formData]);
 
-  const isSmallScreen = useMemo(() => {
+  const [isSmallScreen, setIsSmallScreen] = useState(() => {
     if (typeof window === 'undefined') return true;
     return window.matchMedia('(max-width: 479px)').matches;
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 479px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsSmallScreen(e.matches);
+
+    // Set initial value
+    setIsSmallScreen(mediaQuery.matches);
+
+    // Add listener
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   const handleChange = (

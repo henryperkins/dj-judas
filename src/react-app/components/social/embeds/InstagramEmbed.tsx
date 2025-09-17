@@ -310,8 +310,8 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
 
       <div className={`instagram-embed-container${hasCarousel ? ' has-carousel' : ''}`} ref={containerRef}>
         {!isLoaded && (
-          <div className="embed-loading" style={{ height: skeletonHeight }}>
-            <div className="spinner"></div>
+          <div className="embed-loading" style={{ height: skeletonHeight }} role="status" aria-live="polite">
+            <div className="loading-spinner loading-spinner--large" aria-hidden="true" />
             <p>Loading Instagram post...</p>
           </div>
         )}

@@ -66,6 +66,19 @@ export default function NextEventBanner() {
     <section className="next-event-banner" aria-label="Next event">
       <div className="container">
         <div className="next-event-card">
+          {(event.flyerUrl || (event.slug ? `/content/flyers/${event.slug}.jpg` : '')) && (
+            <div className="next-event-flyer" style={{ marginBottom: 12 }}>
+              <img
+                src={event.flyerUrl || `/content/flyers/${event.slug}.jpg`}
+                alt={`${event.title} flyer`}
+                style={{ display: 'block', width: 'auto', maxWidth: 'min(100%, 1024px)', height: 'auto', borderRadius: 8, margin: '0 auto' }}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
+            </div>
+          )}
+
           <div className="next-event-when">
             <div className="next-event-date">{fmtShort(event.startDateTime)}</div>
             <div className="next-event-time">{formatPrimaryTime(event.startDateTime)}</div>

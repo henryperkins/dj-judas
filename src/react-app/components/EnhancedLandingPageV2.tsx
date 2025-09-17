@@ -22,9 +22,9 @@ const PhotoGallery = lazy(() => import('./PhotoGallery'));
 // Social section removed
 
 const LoadingFallback = () => (
-  <div className="loading-section">
-    <div className="spinner"></div>
-    <p>Loading...</p>
+  <div className="embed-skeleton" role="status" aria-live="polite">
+    <div className="skeleton-pulse" />
+    <span className="sr-only">Loading…</span>
   </div>
 );
 
@@ -85,7 +85,9 @@ const EnhancedLandingPageV2: React.FC = () => {
       <a href="#main" className="skip-link">Skip to content</a>
 
       {/* Hero Section */}
-      <HeroSection />
+      <section id="home" aria-labelledby="hero-heading">
+        <HeroSection />
+      </section>
 
       <main id="main" tabIndex={-1}>
         {/* Next Event Banner */}

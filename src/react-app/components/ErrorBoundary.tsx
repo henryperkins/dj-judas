@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <h3>Something went wrong</h3>
             <p>We're sorry, but something unexpected happened. Please refresh the page and try again.</p>
             <button 
-              className="btn btn--primary"
+              className="btn btn-primary"
               onClick={() => window.location.reload()}
             >
               Refresh Page

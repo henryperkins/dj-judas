@@ -278,8 +278,8 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
       >
         <div ref={embedRef} className="spotify-iframe-container">
           {!isLoaded && (
-            <div className="embed-loading" style={{ height: embedHeight }}>
-              <div className="spinner"></div>
+            <div className="embed-loading" style={{ height: embedHeight }} role="status" aria-live="polite">
+              <div className="loading-spinner loading-spinner--large" aria-hidden="true" />
               <p>Loading Spotify player...</p>
             </div>
           )}

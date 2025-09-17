@@ -9,13 +9,6 @@
       "env": {
         "DEFAULT_MINIMUM_TOKENS": ""
       }
-    },
-    "cloudflare": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://bindings.mcp.cloudflare.com/sse"
-      ]
     }
   }
 }

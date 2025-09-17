@@ -163,8 +163,8 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
       <div className="apple-iframe-container">
         {!isLoaded && !showFallback && (
-          <div className="embed-loading">
-            <div className="spinner"></div>
+          <div className="embed-loading" role="status" aria-live="polite">
+            <div className="loading-spinner loading-spinner--large" aria-hidden="true" />
             <p>Loading Apple Music player...</p>
           </div>
         )}
@@ -189,23 +189,16 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
         {showFallback && (
           <div
+            className="embed-fallback"
             role="region"
             aria-label="Apple Music fallback"
-            style={{
-              display: 'grid',
-              placeItems: 'center',
-              height,
-              background: 'hsl(var(--muted) / 0.35)',
-              borderRadius: 'var(--radius)',
-            }}
+            style={{ minHeight: height }}
           >
-            <div style={{ textAlign: 'center', color: 'hsl(var(--muted-foreground))' }}>
-              <LuMusic size={36} />
-              <p style={{ marginTop: 8 }}>Preview unavailable here.</p>
-              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={handleOpenInAppleMusic}>
-                <LuExternalLink size={16} /> Open in Apple Music
-              </button>
-            </div>
+            <LuMusic size={36} aria-hidden="true" />
+            <p>Preview unavailable here.</p>
+            <button className="btn btn-primary" onClick={handleOpenInAppleMusic}>
+              <LuExternalLink size={16} /> Open in Apple Music
+            </button>
           </div>
         )}
       </div>

@@ -1,18 +1,17 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { useScroll } from 'framer-motion';
 
 import HeroSection from './sections/HeroSection';
 import StatsSection from './sections/StatsSection';
 import AboutSection from './sections/AboutSection';
 import ServicesSection from './sections/ServicesSection';
 import PlatformLauncher from './PlatformLauncher';
-import CreatorMediaPanel from './CreatorMediaPanel';
-import FeaturedProducts from './FeaturedProducts';
 import MobileBottomNav from './MobileBottomNav';
-import EventGrid from './events/EventGrid';
-import NextEventBanner from './events/NextEventBanner';
-import DynamicSocialFeed from './social/DynamicSocialFeed';
-import FacebookEvents from './social/FacebookEvents';
+// Lazy-load heavier sections to reduce main chunk
+const CreatorMediaPanel = lazy(() => import('./CreatorMediaPanel'));
+const FeaturedProducts = lazy(() => import('./FeaturedProducts'));
+const NextEventBanner = lazy(() => import('./events/NextEventBanner'));
+const DynamicSocialFeed = lazy(() => import('./social/feeds/DynamicSocialFeed'));
+const FacebookEvents = lazy(() => import('./social/feeds/FacebookEvents'));
 import { isMobileDevice } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
 import logoImage from '../assets/images/logo.jpeg';
@@ -32,8 +31,6 @@ const LoadingFallback = () => (
 const EnhancedLandingPageV2: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
-  const [, setPlatformLauncherOpen] = useState(false);
-  const { scrollY } = useScroll();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -50,7 +47,7 @@ const EnhancedLandingPageV2: React.FC = () => {
     // Include 'events' so the Events section can be highlighted/navigated to
     // Use 'media' instead of legacy 'music'
     const sections = ['home', 'about', 'media', 'events', 'gallery', 'services', 'booking'];
-    const observers = new Map();
+    const observers = new Map<string, IntersectionObserver>();
 
     sections.forEach(id => {
       const element = document.getElementById(id);
@@ -76,7 +73,11 @@ const EnhancedLandingPageV2: React.FC = () => {
   }, []);
 
   const handlePlatformLauncherOpen = () => {
-    setPlatformLauncherOpen(true);
+    try {
+      window.dispatchEvent(new Event('platform-launcher:open'));
+    } catch {
+      // no-op
+    }
   };
 
   return (
@@ -84,11 +85,13 @@ const EnhancedLandingPageV2: React.FC = () => {
       <a href="#main" className="skip-link">Skip to content</a>
 
       {/* Hero Section */}
-      <HeroSection scrollY={scrollY} />
+      <HeroSection />
 
       <main id="main" tabIndex={-1}>
         {/* Next Event Banner */}
-        <NextEventBanner />
+        <Suspense fallback={<LoadingFallback />}>
+          <NextEventBanner />
+        </Suspense>
 
         {/* Events Section first for quick access */}
         <section id="events" className="events-section">
@@ -97,17 +100,17 @@ const EnhancedLandingPageV2: React.FC = () => {
             
             {/* Facebook Events Integration */}
             <div className="facebook-events-wrapper">
-              <FacebookEvents 
-                layout="grid"
-                limit={3}
-                showPastEvents={false}
-                autoRefresh={true}
-                refreshInterval={1800}
-              />
+              <Suspense fallback={<LoadingFallback />}>
+                <FacebookEvents 
+                  layout="grid"
+                  limit={3}
+                  showPastEvents={false}
+                  autoRefresh={true}
+                  refreshInterval={1800}
+                />
+              </Suspense>
             </div>
             
-            {/* Original Event Grid as fallback */}
-            <EventGrid />
           </div>
         </section>
 
@@ -119,7 +122,7 @@ const EnhancedLandingPageV2: React.FC = () => {
         {!isMobile && (
           <section className="platform-section">
             <div className="container">
-              <PlatformLauncher mode="inline" simplified={isMobile} />
+              <PlatformLauncher mode="inline" simplified={false} />
             </div>
           </section>
         )}
@@ -130,7 +133,8 @@ const EnhancedLandingPageV2: React.FC = () => {
         {/* Creator Media Panel - Modern unified interface */}
         <section id="media" className="media-section">
           <div className="container">
-            <CreatorMediaPanel
+            <Suspense fallback={<LoadingFallback />}>
+              <CreatorMediaPanel
               artist="DJ Lee & The Voices of Judah"
               tagline="Gospel Ministry from Gary, Indiana • Established 2008"
               // Actual music content
@@ -142,7 +146,8 @@ const EnhancedLandingPageV2: React.FC = () => {
               facebookVideoHref="https://www.facebook.com/facebookapp/videos/10153231379946729/"
               instagramPermalink="https://www.instagram.com/iam_djlee/"
               // Additional content can be added here as needed
-            />
+              />
+            </Suspense>
           </div>
         </section>
 
@@ -155,24 +160,31 @@ const EnhancedLandingPageV2: React.FC = () => {
             
             {/* Shoppable Instagram Feed */}
             <div className="social-feed-wrapper">
-              <DynamicSocialFeed 
-                platforms={['instagram']}
-                layout="grid"
-                limit={6}
-                enableShoppable={true}
-                autoRefresh={true}
-                refreshInterval={300}
-              />
+              <Suspense fallback={<LoadingFallback />}>
+                <DynamicSocialFeed 
+                  platforms={['instagram']}
+                  layout="grid"
+                  limit={6}
+                  enableShoppable={true}
+                  autoRefresh={true}
+                  refreshInterval={300}
+                />
+              </Suspense>
             </div>
             
-            {/* View More Link */}
+            {/* Follow CTA */}
             <div className="social-cta">
               <Button 
                 variant="outline"
-                onClick={() => navigate('/social')}
+                onClick={() => {
+                  const handle = (import.meta.env?.VITE_INSTAGRAM_HANDLE as string | undefined) || 'iam_djlee';
+                  const url = `https://www.instagram.com/${handle}`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
                 className="view-all-social"
+                aria-label="Open Instagram profile in a new tab"
               >
-                View All Social Updates →
+                Follow on Instagram
               </Button>
             </div>
           </div>
@@ -192,7 +204,9 @@ const EnhancedLandingPageV2: React.FC = () => {
         <ServicesSection />
 
         {/* Featured Products (Medusa) */}
-        <FeaturedProducts />
+        <Suspense fallback={<LoadingFallback />}>
+          <FeaturedProducts />
+        </Suspense>
 
         {/* Booking CTA - Minimal mobile-first design */}
         <section id="booking" className="booking-section-minimal">
@@ -234,6 +248,25 @@ const EnhancedLandingPageV2: React.FC = () => {
               <a href="#media" className="footer-link">Media</a>
               <a href="#services" className="footer-link">Services</a>
               <a href="/book" data-nav className="footer-link">Book</a>
+              {(() => {
+                const medusaAdminUrl = (import.meta.env?.VITE_MEDUSA_ADMIN_URL as string | undefined) || undefined;
+                const medusaUrl = (import.meta.env?.VITE_MEDUSA_URL as string | undefined) || undefined;
+                const computed = medusaAdminUrl || (medusaUrl ? `${medusaUrl.replace(/\/$/, '')}/app` : '/admin');
+                const isExternal = /^https?:\/\//i.test(computed);
+                return isExternal ? (
+                  <a
+                    href={computed}
+                    className="footer-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open Medusa Admin in a new tab"
+                  >
+                    Admin
+                  </a>
+                ) : (
+                  <a href={computed} data-nav className="footer-link">Admin</a>
+                );
+              })()}
             </nav>
           </div>
 
@@ -252,7 +285,6 @@ const EnhancedLandingPageV2: React.FC = () => {
           <PlatformLauncher
             mode="floating"
             simplified={true}
-            onPlatformClick={() => setPlatformLauncherOpen(false)}
           />
           <MobileBottomNav
             activeItem={activeSection}

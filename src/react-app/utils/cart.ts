@@ -1,11 +1,11 @@
-const MEDUSA_URL = import.meta.env.VITE_MEDUSA_URL as string | undefined
-const PUB = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY as string | undefined
 
-const headers: Record<string, string> = (() => {
-  const h: Record<string, string> = { 'content-type': 'application/json' }
-  if (PUB) h['x-publishable-api-key'] = PUB
-  return h
-})()
+/**
+ * Legacy cart helpers have been deprecated in favor of cart-sdk.ts.
+ * This stub simply re-exports the new implementation for any lingering imports.
+ */
+export * from './cart-sdk';
+
+/* legacy code removed below for reference
 
 export function getCartId(): string | null {
   return localStorage.getItem('medusa_cart_id')
@@ -135,3 +135,4 @@ export async function createPaymentSessions(cartId: string): Promise<boolean> {
   })
   return res.ok
 }
+/* end legacy code */

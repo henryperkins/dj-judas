@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlatformIcon, PLATFORM_COLORS, ACTION_ICONS } from './icons/PlatformIcons';
 import {
-  generatePlatformLinks,
   openPlatform,
   trackPlatformClick,
   isMobileDevice,
   type PlatformLink
 } from '../utils/platformDetection';
+import { getPlatformLinksAny, PLATFORM_CONFIG } from '../config/platforms';
 
 const { close: CloseIcon, external: ExternalIcon, music: MusicIcon } = ACTION_ICONS;
 
@@ -28,7 +28,25 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [platforms] = useState<PlatformLink[]>(generatePlatformLinks());
+  const [platforms, setPlatforms] = useState<PlatformLink[]>([]);
+
+  useEffect(() => {
+    const ids = ['spotify','appleMusic','facebook','instagram'] as const;
+    const links: PlatformLink[] = ids.map((id) => {
+      const { platformId, deepLink, webLink } = getPlatformLinksAny(id);
+      if (!platformId || !webLink) return null as unknown as PlatformLink;
+      const isListen = platformId === 'spotify' || platformId === 'appleMusic';
+      const label = `${isListen ? 'Listen on' : 'Follow on'} ${PLATFORM_CONFIG[platformId].name}`;
+      return {
+        platform: platformId as PlatformLink['platform'],
+        deepLink,
+        webLink: webLink!,
+        label,
+        icon: platformId
+      };
+    }).filter(Boolean) as PlatformLink[];
+    setPlatforms(links);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -104,19 +122,22 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               onClick={() => handlePlatformClick(link)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-                    style={{
-                      '--platform-color': getPlatformColor(link.platform)
-                    } as React.CSSProperties}
+              aria-label={`Open ${link.label}`}
+              style={{
+                '--platform-color': getPlatformColor(link.platform)
+              } as React.CSSProperties}
             >
               <PlatformIcon
                 platform={link.platform}
                 size={20}
                 className="platform-icon-svg"
               />
+              {/* Always provide a discernible name for a11y */}
+              <span className="sr-only">{link.label}</span>
               {showLabels && (
                 <>
                   <span className="platform-name">{link.label}</span>
-                  <ExternalIcon className="platform-external-icon" size={14} />
+                  <ExternalIcon className="platform-external-icon" size={14} aria-hidden />
                 </>
               )}
             </motion.button>
@@ -203,6 +224,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               aria-label="Open platform menu"
+              aria-expanded={isOpen}
+              aria-controls="platform-fab-menu"
             >
               <MusicIcon size={24} />
             </motion.button>
@@ -213,6 +236,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
+              id="platform-fab-menu"
+              role="menu"
             >
               <button
                 className="fab-close"
@@ -237,6 +262,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                     style={{
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
+                    aria-label={link.label.replace('Listen on ', '').replace('Follow on ', '')}
+                    role="menuitem"
                   >
                     <PlatformIcon
                       platform={link.platform}
@@ -244,7 +271,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                       className="fab-platform-icon-svg"
                       color="white"
                     />
-                    <span className="fab-platform-label">
+                    {/* Tooltip shown on hover/focus for labels */}
+                    <span className="fab-platform-tooltip">
                       {link.label.replace('Listen on ', '').replace('Follow on ', '')}
                     </span>
                   </motion.button>
@@ -255,9 +283,9 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
         </AnimatePresence>
       </motion.div>
 
-      {/* Backdrop for mobile when FAB is open */}
+      {/* Backdrop when FAB is open (mobile + desktop) */}
       <AnimatePresence>
-        {isOpen && isMobile && (
+        {isOpen && (
           <motion.div
             className="fab-backdrop"
             initial={{ opacity: 0 }}

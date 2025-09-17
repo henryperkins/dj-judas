@@ -2,6 +2,7 @@ import { EventItem } from './EventTypes';
 import { LuMapPin, LuCalendarPlus, LuExternalLink, LuShare2, LuCopy } from 'react-icons/lu';
 import { useMemo, useState } from 'react';
 import { isIOS } from '../../utils/platformDetection';
+import { googleCalUrl } from '@/react-app/utils/events';
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
@@ -21,16 +22,6 @@ function monthDayBadge(iso: string) {
   };
 }
 
-function googleCalUrl(ev: EventItem) {
-  const start = new Date(ev.startDateTime);
-  const end = new Date(ev.endDateTime || ev.startDateTime);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const utc = (d: Date) => `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
-  const dates = `${utc(start)}/${utc(end)}`;
-  const details = encodeURIComponent(ev.description || '');
-  const location = encodeURIComponent([ev.venueName, ev.address, ev.city, ev.region].filter(Boolean).join(', '));
-  return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${dates}&details=${details}&location=${location}&sf=true&output=xml`;
-}
 
 function eventOffsetMinutes(iso: string): number | null {
   const m = iso.match(/[+-]\d{2}:\d{2}$/);

@@ -15,11 +15,27 @@ export function getStoredTheme(): ThemeMode | null {
   }
 }
 
+/**
+ * Sync the browser UI color (mobile address bar) with current theme.
+ * Uses brand-aligned colors approximating tokens:
+ * - Light: #9d174d (≈ --accent light)
+ * - Dark:  #d7427d (≈ --accent dark)
+ */
+function updateThemeMeta(useDark: boolean) {
+  if (typeof document === 'undefined') return;
+  const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+  if (meta) {
+    meta.setAttribute('content', useDark ? '#d7427d' : '#9d174d');
+  }
+}
+
 export function applyTheme(mode: ThemeMode) {
   const root = document.documentElement;
   const useDark = mode === 'dark' || (mode === 'system' && systemPrefersDark());
   root.classList.toggle('dark', useDark);
   root.style.colorScheme = useDark ? 'dark' : 'light';
+  // Keep meta theme-color in sync to avoid jarring UI in mobile browsers
+  updateThemeMeta(useDark);
 }
 
 export function setTheme(mode: ThemeMode) {
@@ -49,4 +65,3 @@ export function useTheme() {
     isDark: document.documentElement.classList.contains('dark'),
   };
 }
-

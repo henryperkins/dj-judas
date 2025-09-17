@@ -45,3 +45,6 @@ CF_IMAGES_VARIANT_LARGE=large
 
 # AI (Optional - for product suggestions)
 OPENAI_API_KEY=sk-your_openai_key
+
+# R2 custom domain base (for public URLs from MEDIA_BUCKET)
+R2_PUBLIC_BASE=https://r2.thevoicesofjudah.com

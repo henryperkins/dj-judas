@@ -1,5 +1,8 @@
 import { Hono } from "hono";
-import { SignJWT, importPKCS8 } from 'jose';
+import { socialMetricsApp } from './social-metrics';
+import { CacheManager } from './cache-manager';
+import { coalesceRequest } from './kv-utils';
+import { BookingSchema } from './validation';
 
 // KVNamespace type for Cloudflare Workers
 interface KVNamespace {
@@ -16,15 +19,65 @@ interface SpotifySession {
 	userId?: string;
 }
 
+// Type definitions for social posts
+interface SocialPost {
+  id: string;
+  platform: string;
+  type: string;
+  mediaUrl?: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  permalink: string;
+  timestamp: string;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  hashtags?: string[];
+  isShoppable?: boolean;
+  products?: Array<{
+    id: string;
+    title: string;
+    price: number;
+    url: string;
+  }>;
+}
+
+// Type definition for Facebook event
+interface FacebookEvent {
+  id: string;
+  name: string;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  place?: {
+    name: string;
+    location?: unknown;
+  };
+  cover?: {
+    source: string;
+  };
+  is_online?: boolean;
+  ticket_uri?: string;
+  interested_count?: number;
+  attending_count?: number;
+  is_canceled?: boolean;
+}
+
 interface Env {
 	SESSIONS: KVNamespace;
 	SPOTIFY_CLIENT_ID: string;
+	SPOTIFY_CLIENT_SECRET?: string;
+	SPOTIFY_ARTIST_ID?: string;
 	APPLE_TEAM_ID: string;
 	APPLE_KEY_ID: string;
 	APPLE_PRIVATE_KEY: string; // PKCS8 format without surrounding quotes
   IG_OEMBED_TOKEN?: string; // Facebook App access token for Instagram oEmbed
+  IG_USER_ID?: string; // Instagram Business User ID for Graph API calls
   FB_PAGE_ID?: string; // Facebook Page ID for Graph API
   FB_PAGE_TOKEN?: string; // Facebook Page access token
+  FB_APP_ID?: string; // For App Access Token (oEmbed Read)
+  FB_APP_SECRET?: string; // For App Access Token (oEmbed Read)
+  GRAPH_API_VERSION?: string; // e.g., 'v21.0'
   RESEND_API_KEY?: string;
   RESEND_FROM?: string; // e.g., 'Ministry <no-reply@yourdomain>'
   RESEND_TO?: string;   // destination inbox
@@ -42,59 +95,114 @@ interface Env {
   AI?: {
     run: (model: string, options: { prompt: string; image?: Uint8Array[] }) => Promise<{ output?: string; response?: string; text?: string }>;
   }; // Workers AI binding
+  // Durable Object namespace bindings (optional; configured in wrangler.toml when enabled)
+  RATE_LIMITER?: any;
+  USER_SESSIONS?: any;
+  DB?: any;
+  ANALYTICS?: any;
+  R2_PUBLIC_BASE?: string; // e.g., https://r2.thevoicesofjudah.com
 }
 const app = new Hono<{ Bindings: Env }>();
+
+// Mount social metrics routes
+app.route('/', socialMetricsApp);
+
+// Analytics timing middleware (best-effort)
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  await next();
+  try {
+    const ae: any = (c.env as any).ANALYTICS;
+    if (ae && typeof ae.writeDataPoint === 'function') {
+      ae.writeDataPoint({
+        indexes: [c.req.path, c.req.method],
+        doubles: [Date.now() - start, (c.res as any)?.status || 0],
+        blobs: [c.req.header('CF-Connecting-IP') || '', c.req.header('User-Agent') || '']
+      });
+    }
+  } catch { /* ignore */ }
+});
+
+// ---- Facebook/Instagram helpers ----
+const DEFAULT_GRAPH_VERSION = 'v22.0';
+function graphBase(env: Env) {
+  return `https://graph.facebook.com/${env.GRAPH_API_VERSION || DEFAULT_GRAPH_VERSION}`;
+}
+
+async function getAppAccessToken(env: Env): Promise<string | null> {
+  const appId = env.FB_APP_ID;
+  const appSecret = env.FB_APP_SECRET;
+  if (!appId || !appSecret) return null;
+  try {
+    // Try KV cache first
+    let cached: string | null = null;
+    try { cached = await env.SESSIONS.get('fb_app_access_token'); } catch {
+      // Ignore KV errors in local dev
+    }
+    if (cached) return cached;
+
+    const u = new URL(`${graphBase(env)}/oauth/access_token`);
+    u.searchParams.set('client_id', appId);
+    u.searchParams.set('client_secret', appSecret);
+    u.searchParams.set('grant_type', 'client_credentials');
+    const res = await fetch(u.toString(), { headers: { 'accept': 'application/json' } });
+    if (!res.ok) return null;
+    const j = await res.json() as { access_token?: string };
+    const token = j.access_token || null;
+    if (token) {
+      try { await env.SESSIONS.put('fb_app_access_token', token, { expirationTtl: 86400 }); } catch {
+        // Ignore KV write errors
+      }
+    }
+    return token;
+  } catch {
+    return null;
+  }
+}
 
 app.get("/api/", (c) => c.json({ name: "Cloudflare" }));
 
 // Real aggregated social metrics endpoint with caching
 app.get('/api/metrics', async (c) => {
-	// Check cache first (guard if KV not bound in local dev build)
-	const cacheKey = 'social_metrics:aggregate';
-	let kvGet: ((key: string) => Promise<string | null>) | null = null;
-	let kvPut: ((key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void>) | null = null;
-	try {
-		const kv = (c.env as any)?.SESSIONS as KVNamespace | undefined;
-		kvGet = kv?.get?.bind(kv) ?? null;
-		kvPut = kv?.put?.bind(kv) ?? null;
-	} catch {}
+  const cache = new CacheManager((c.env as any).SESSIONS);
+  const cacheKey = 'social_metrics:aggregate:v3';
 
-	if (kvGet) {
-		try {
-			const cached = await kvGet(cacheKey);
-			if (cached) {
-				return c.json(JSON.parse(cached), 200, {
-					'Cache-Control': 'public, max-age=900',
-					'X-Cache': 'HIT'
-				});
-			}
-		} catch {}
-	}
+  // L1/L2 cache
+  const hit = await cache.get<any>(`/${cacheKey}`).catch(() => null);
+  if (hit) {
+    return c.json(hit, 200, {
+      'Cache-Control': 'public, max-age=900',
+      'X-Cache': 'HIT'
+    });
+  }
 
-	const metrics = {
-		totalReach: 0,
-		platforms: [] as Array<{
-			id: string;
-			name: string;
-			followers: number;
-			engagement: number;
-			lastUpdated: string;
-		}>,
-		topConversionSource: 'instagram'
-	};
+  const metrics = await coalesceRequest(cacheKey, async () => {
+    const m = {
+      totalReach: 0,
+      platforms: [] as Array<{
+        id: string;
+        name: string;
+        followers: number;
+        engagement: number;
+        lastUpdated: string;
+      }>,
+      topConversionSource: 'unknown'
+    };
 
-	// Fetch Instagram metrics if token available
-	if (c.env.IG_OEMBED_TOKEN) {
-		try {
-			// This would typically use Instagram Business Account ID
-			// For now, we'll use a placeholder approach
-			const igResponse = await fetch(
-				`https://graph.facebook.com/v18.0/17841400000000000?fields=followers_count,media_count,name&access_token=${c.env.IG_OEMBED_TOKEN}`
-			).catch(() => null);
-			
+    // Fetch Instagram metrics if token available
+    if (c.env.IG_OEMBED_TOKEN || (c.env.FB_APP_ID && c.env.FB_APP_SECRET)) {
+      try {
+        // This would typically use Instagram Business Account ID
+        // For now, we'll use a placeholder approach
+        const igUserId = c.env.IG_USER_ID || '17841400000000000';
+        const url = new URL(`${graphBase(c.env)}/${igUserId}`);
+        url.searchParams.set('fields', 'followers_count,media_count,name');
+        const bearer = (await getAppAccessToken(c.env)) || c.env.IG_OEMBED_TOKEN as string;
+        const igResponse = await fetch(url.toString(), bearer ? { headers: { Authorization: `Bearer ${bearer}` } } : undefined).catch(() => null);
+
 			if (igResponse && igResponse.ok) {
 				const igData = await igResponse.json() as { followers_count?: number; media_count?: number };
-				const followers = igData.followers_count || 2300;
+				const followers = typeof igData.followers_count === 'number' ? igData.followers_count : 0;
 				metrics.platforms.push({
 					id: 'instagram',
 					name: 'Instagram',
@@ -106,80 +214,86 @@ app.get('/api/metrics', async (c) => {
 			}
 		} catch (error) {
 			console.error('Failed to fetch Instagram metrics:', error);
-			// Use fallback values
-			metrics.platforms.push({
-				id: 'instagram',
-				name: 'Instagram',
-				followers: 2300,
-				engagement: 12.3,
-				lastUpdated: new Date().toISOString()
-			});
-			metrics.totalReach += 2300;
 		}
 	} else {
-		// Fallback Instagram metrics
-		metrics.platforms.push({
-			id: 'instagram',
-			name: 'Instagram',
-			followers: 2300,
-			engagement: 12.3,
-			lastUpdated: new Date().toISOString()
-		});
-		metrics.totalReach += 2300;
+		// Instagram metrics not configured; skipping.
 	}
 
 	// Fetch Spotify metrics
 	try {
-		// Artist ID for future API calls: 5WICYLl8MXvOY2x3mkoSqK (DJ Lee & Voices of Judah)
-		// Try to get metrics using client credentials flow (if implemented)
-		// For now, use static values
-		metrics.platforms.push({
-			id: 'spotify',
-			name: 'Spotify',
-			followers: 850,
-			engagement: 45.2,
-			lastUpdated: new Date().toISOString()
-		});
-		metrics.totalReach += 850;
+		const clientId = c.env.SPOTIFY_CLIENT_ID;
+		const clientSecret = c.env.SPOTIFY_CLIENT_SECRET;
+		const artistId = c.env.SPOTIFY_ARTIST_ID || '5WICYLl8MXvOY2x3mkoSqK';
+		if (clientId && clientSecret && artistId) {
+			const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
+				},
+				body: new URLSearchParams({ grant_type: 'client_credentials' })
+			});
+			if (tokenRes.ok) {
+				const tokenJson = await tokenRes.json() as { access_token: string };
+				const artRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+					headers: { Authorization: `Bearer ${tokenJson.access_token}` }
+				});
+				if (artRes.ok) {
+					const art = await artRes.json() as { followers?: { total?: number }; popularity?: number };
+					const followers = art.followers?.total ?? 0;
+					const engagement = typeof art.popularity === 'number' ? art.popularity : 0;
+					metrics.platforms.push({
+						id: 'spotify',
+						name: 'Spotify',
+						followers,
+						engagement,
+						lastUpdated: new Date().toISOString()
+					});
+					metrics.totalReach += followers;
+				}
+			}
+		}
 	} catch (error) {
 		console.error('Failed to fetch Spotify metrics:', error);
-		metrics.platforms.push({
-			id: 'spotify',
-			name: 'Spotify',
-			followers: 850,
-			engagement: 45.2,
-			lastUpdated: new Date().toISOString()
-		});
-		metrics.totalReach += 850;
 	}
 
-	// Facebook metrics (would use Graph API with page access token)
-	metrics.platforms.push({
-		id: 'facebook',
-		name: 'Facebook',
-		followers: 1600,
-		engagement: 8.5,
-		lastUpdated: new Date().toISOString()
-	});
-	metrics.totalReach += 1600;
-
-	// Determine top conversion source based on engagement
-	const topPlatform = metrics.platforms.reduce((prev, current) => 
-		prev.engagement > current.engagement ? prev : current
-	);
-	metrics.topConversionSource = topPlatform.id;
-
-	// Cache for 15 minutes if KV available
+	// Facebook metrics via Graph API if configured
 	try {
-		if (kvPut) {
-			await kvPut(cacheKey, JSON.stringify(metrics), { expirationTtl: 900 });
+		const fbPageId = c.env.FB_PAGE_ID;
+		const fbToken = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN;
+		if (fbPageId && fbToken) {
+			const pageUrl = new URL(`${graphBase(c.env)}/${fbPageId}`);
+			pageUrl.searchParams.set('fields', 'fan_count,name');
+			const pageRes = await fetch(pageUrl.toString(), { headers: { Authorization: `Bearer ${fbToken}` } });
+			if (pageRes.ok) {
+				const page = await pageRes.json() as { fan_count?: number; name?: string };
+				const followers = page.fan_count ?? 0;
+				metrics.platforms.push({
+					id: 'facebook',
+					name: 'Facebook',
+					followers,
+					engagement: 0,
+					lastUpdated: new Date().toISOString()
+				});
+				metrics.totalReach += followers;
+			}
 		}
-	} catch {}
+	} catch (e) {
+		console.error('Failed to fetch Facebook metrics:', e);
+	}
 
-	return c.json(metrics, 200, {
-		'Cache-Control': 'public, max-age=900',
-		'X-Cache': 'MISS'
-	});
+    if (m.platforms.length > 0) {
+      const top = m.platforms.reduce((prev, curr) => (prev.engagement > curr.engagement ? prev : curr));
+      m.topConversionSource = top.id;
+    }
+    await cache.set(`/${cacheKey}`, m, 900);
+    return m;
+  });
+
+  return c.json(metrics, 200, {
+    'Cache-Control': 'public, max-age=900',
+    'X-Cache': 'MISS'
+  });
 });
 
 // Utility functions
@@ -203,45 +317,57 @@ function randomString(length = 64): string {
 
 // Spotify OAuth - Initiate login
 app.get('/api/spotify/login', async (c) => {
-		const clientId = c.env.SPOTIFY_CLIENT_ID;
-	const redirectUri = c.req.url.replace(/\/api\/spotify\/login.*/, '/api/spotify/callback');
-	const state = randomString(12);
-	const codeVerifier = randomString(64);
-	const challenge = base64UrlEncode(await sha256(codeVerifier));
+    const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
+    const clientId = c.env.SPOTIFY_CLIENT_ID;
+    if (!kv) {
+      return c.json({ error: 'kv_not_configured', message: 'SESSIONS KV binding not configured' }, 501);
+    }
+    if (!clientId || /your_spotify_client_id/i.test(clientId)) {
+      return c.json({ error: 'spotify_not_configured', message: 'SPOTIFY_CLIENT_ID is missing' }, 501);
+    }
 
-	// Store PKCE verifier in KV with 10-minute TTL for OAuth flow
-	await c.env.SESSIONS.put(
-		`pkce:${state}`,
-		JSON.stringify({ codeVerifier }),
-		{ expirationTtl: 600 }
-	);
+    const redirectUri = c.req.url.replace(/\/api\/spotify\/login.*/, '/api/spotify/callback');
+    const state = randomString(12);
+    const codeVerifier = randomString(64);
+    const challenge = base64UrlEncode(await sha256(codeVerifier));
 
-	const params = new URLSearchParams({
-		response_type: 'code',
-		client_id: clientId,
-		redirect_uri: redirectUri,
-		code_challenge_method: 'S256',
-		code_challenge: challenge,
-		state,
-		scope: 'user-library-modify user-follow-modify user-follow-read'
-	});
+    // Store PKCE verifier in KV with 10-minute TTL for OAuth flow
+    await kv.put(
+      `pkce:${state}`,
+      JSON.stringify({ codeVerifier }),
+      { expirationTtl: 600 }
+    );
 
-	return c.json({ authorizeUrl: `https://accounts.spotify.com/authorize?${params.toString()}` });
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      code_challenge_method: 'S256',
+      code_challenge: challenge,
+      state,
+      scope: 'user-library-modify user-follow-modify user-follow-read'
+    });
+
+    return c.json({ authorizeUrl: `https://accounts.spotify.com/authorize?${params.toString()}` });
 });
 
 // Spotify OAuth - Callback exchange
 app.get('/api/spotify/callback', async (c) => {
-	const url = new URL(c.req.url);
-	const code = url.searchParams.get('code');
-	const state = url.searchParams.get('state');
-	if (!code || !state) return c.json({ error: 'missing_code_or_state' }, 400);
-	// Retrieve PKCE verifier from KV
-	const pkceData = await c.env.SESSIONS.get(`pkce:${state}`);
-	if (!pkceData) return c.json({ error: 'invalid_state' }, 400);
-	const { codeVerifier } = JSON.parse(pkceData) as { codeVerifier: string };
-	
-	// Clean up PKCE data
-	await c.env.SESSIONS.delete(`pkce:${state}`);
+  const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
+  if (!kv) {
+    return c.json({ error: 'kv_not_configured', message: 'SESSIONS KV binding not configured' }, 501);
+  }
+  const url = new URL(c.req.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  if (!code || !state) return c.json({ error: 'missing_code_or_state' }, 400);
+  // Retrieve PKCE verifier from KV
+  const pkceData = await kv.get(`pkce:${state}`);
+  if (!pkceData) return c.json({ error: 'invalid_state' }, 400);
+  const { codeVerifier } = JSON.parse(pkceData) as { codeVerifier: string };
+
+  // Clean up PKCE data
+  await kv.delete(`pkce:${state}`);
 
 	const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
 		method: 'POST',
@@ -258,7 +384,7 @@ app.get('/api/spotify/callback', async (c) => {
 		return c.json({ error: 'token_exchange_failed', status: tokenRes.status }, 500);
 	}
 		const tokenJson = await tokenRes.json() as { access_token: string; refresh_token?: string; expires_in: number };
-		
+
 		// Generate unique session ID
 		const sessionId = randomString(32);
 		const session: SpotifySession = {
@@ -266,30 +392,46 @@ app.get('/api/spotify/callback', async (c) => {
 			refreshToken: tokenJson.refresh_token,
 			expiresAt: Date.now() + tokenJson.expires_in * 1000
 		};
-		
+
 		// Store session in KV with 30-day TTL
-		await c.env.SESSIONS.put(
+		await kv.put(
 			`spotify:${sessionId}`,
 			JSON.stringify(session),
 			{ expirationTtl: 60 * 60 * 24 * 30 }
 		);
-		
+
+		// Also persist in Durable Object (if bound)
+		try {
+			const ns: any = (c.env as any).USER_SESSIONS;
+			if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+				const id = ns.idFromName(sessionId);
+				const stub = ns.get(id);
+				await stub.fetch('https://user-session/set', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ sessionId, data: session, ttl: 60 * 60 * 24 * 30 })
+				});
+			}
+		} catch { /* ignore */ }
+
 		c.header('Set-Cookie', `spotify_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
 		return c.json({ success: true });
 });
 
 // Session status
 app.get('/api/spotify/session', async (c) => {
-	const cookie = c.req.header('Cookie') || '';
-	const match = cookie.match(/spotify_session=([^;]+)/);
-	if (!match) return c.json({ authenticated: false });
-	
-	const sessionData = await c.env.SESSIONS.get(`spotify:${match[1]}`);
-	if (!sessionData) return c.json({ authenticated: false });
-	
-	const session = JSON.parse(sessionData) as SpotifySession;
-	if (!session.accessToken) return c.json({ authenticated: false });
-	
+  const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
+  if (!kv) return c.json({ authenticated: false, reason: 'kv_not_configured' });
+  const cookie = c.req.header('Cookie') || '';
+  const match = cookie.match(/spotify_session=([^;]+)/);
+  if (!match) return c.json({ authenticated: false });
+
+  const sessionData = await kv.get(`spotify:${match[1]}`);
+  if (!sessionData) return c.json({ authenticated: false });
+
+  const session = JSON.parse(sessionData) as SpotifySession;
+  if (!session.accessToken) return c.json({ authenticated: false });
+
 	// Check if token expired and needs refresh
 	if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
 		if (session.refreshToken) {
@@ -301,7 +443,7 @@ app.get('/api/spotify/session', async (c) => {
 		}
 		return c.json({ authenticated: false, reason: 'token_expired' });
 	}
-	
+
 	return c.json({ authenticated: true, expiresAt: session.expiresAt });
 });
 
@@ -338,6 +480,8 @@ app.get('/api/apple/developer-token', async (c) => {
   }
 
   try {
+    // Lazy import to reduce bundle size and cold starts on non-Apple routes
+    const { SignJWT, importPKCS8 } = await import('jose');
     const privateKeyPem = privateKey.replace(/\\n/g, '\n');
     const alg = 'ES256';
     const iat = now;
@@ -365,13 +509,29 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 	if (!cookieHeader) return null;
 	const match = cookieHeader.match(/spotify_session=([^;]+)/);
 	if (!match) return null;
-	
-	const sessionData = await c.env.SESSIONS.get(`spotify:${match[1]}`);
+
+	// Prefer Durable Object
+	try {
+		const ns: any = (c.env as any).USER_SESSIONS;
+		if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+			const id = ns.idFromName(match[1]);
+			const stub = ns.get(id);
+			const res = await stub.fetch('https://user-session/get', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: match[1] }) });
+			if (res.ok) {
+				const session = await res.json() as SpotifySession;
+				if (session?.accessToken) return session;
+			}
+		}
+	} catch { /* ignore */ }
+
+	const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
+	if (!kv) return null;
+	const sessionData = await kv.get(`spotify:${match[1]}`);
 	if (!sessionData) return null;
-	
+
 	const session = JSON.parse(sessionData) as SpotifySession;
 	if (!session.accessToken) return null;
-	
+
 	// Check if token needs refresh
 	if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
 		if (session.refreshToken) {
@@ -379,14 +539,14 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 		}
 		return null;
 	}
-	
+
 	return session;
 }
 
 // Refresh Spotify access token
 async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: SpotifySession): Promise<SpotifySession | null> {
 	if (!session.refreshToken || !c.env.SPOTIFY_CLIENT_ID) return null;
-	
+
 	try {
 		const res = await fetch('https://accounts.spotify.com/api/token', {
 			method: 'POST',
@@ -397,23 +557,26 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 				client_id: c.env.SPOTIFY_CLIENT_ID
 			})
 		});
-		
+
 		if (!res.ok) return null;
-		
+
 		const tokenJson = await res.json() as { access_token: string; refresh_token?: string; expires_in: number };
 		session.accessToken = tokenJson.access_token;
 		if (tokenJson.refresh_token) {
 			session.refreshToken = tokenJson.refresh_token;
 		}
 		session.expiresAt = Date.now() + tokenJson.expires_in * 1000;
-		
-		// Update session in KV
-		await c.env.SESSIONS.put(
-			`spotify:${sessionId}`,
-			JSON.stringify(session),
-			{ expirationTtl: 60 * 60 * 24 * 30 }
-		);
-		
+
+		// Update session in KV (if available)
+		const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
+		if (kv) {
+			await kv.put(
+				`spotify:${sessionId}`,
+				JSON.stringify(session),
+				{ expirationTtl: 60 * 60 * 24 * 30 }
+			);
+		}
+
 		return session;
 	} catch {
 		return null;
@@ -450,6 +613,9 @@ app.post('/api/spotify/follow', async (c) => {
 });
 
 export default app;
+
+// Re-export Durable Object classes so wrangler can bind them by class_name
+export { RateLimiter, UserSession } from './durable-objects';
 
 // --- Medusa Admin proxy (login + create products) ---
 function getAdminTokenFromCookie(cookieHeader: string | null): string | null {
@@ -490,6 +656,19 @@ app.post('/api/admin/login', async (c) => {
     const isHttps = new URL(c.req.url).protocol === 'https:';
     const secure = isHttps ? ' Secure;' : ' ';
     c.header('Set-Cookie', `medusa_admin_jwt=${encodeURIComponent(token)}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${60 * 60 * 6}`);
+    // Track session in DO (best-effort), keyed by token
+    try {
+      const ns: any = (c.env as any).USER_SESSIONS;
+      if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+        const key = `admin:${token.slice(0, 16)}`; // avoid full token in key
+        const id = ns.idFromName(key);
+        const stub = ns.get(id);
+        await stub.fetch('https://user-session/set', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId: key, data: { active: true }, ttl: 60 * 60 * 6 })
+        });
+      }
+    } catch { /* ignore */ }
     return c.json({ ok: true });
   } catch {
     return c.json({ error: 'bad_request' }, 400);
@@ -508,6 +687,21 @@ app.get('/api/admin/session', async (c) => {
   if (!MEDUSA) return c.json({ authenticated: false, reason: 'not_configured' }, 200);
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!token) return c.json({ authenticated: false }, 200);
+  // Prefer DO session check first
+  try {
+    const ns: any = (c.env as any).USER_SESSIONS;
+    if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+      const key = `admin:${token.slice(0, 16)}`;
+      const id = ns.idFromName(key);
+      const stub = ns.get(id);
+      const res = await stub.fetch('https://user-session/get', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: key })
+      });
+      if (res.ok) {
+        return c.json({ authenticated: true });
+      }
+    }
+  } catch { /* ignore */ }
   // Try a lightweight call to verify token
   try {
     const res = await fetch(`${MEDUSA}/admin/products?limit=1`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -614,6 +808,64 @@ app.delete('/api/admin/variants/:id', async (c) => {
   return new Response(text, { status: upstream.status, headers: { 'content-type': upstream.headers.get('content-type') || 'application/json' } });
 });
 
+// --- Admin: Upload product image to R2 and attach to Medusa product ---
+app.post('/api/admin/products/:id/images/upload', async (c) => {
+  const MEDUSA = getMedusaUrl(c);
+  if (!MEDUSA) return c.json({ error: 'not_configured' }, 501);
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+
+  try {
+    const { url, path } = await c.req.json<{ url: string; path?: string }>();
+    if (!url) return c.json({ error: 'missing_url' }, 400);
+
+    // Upload to R2 (prefer MEDIA_BUCKET + custom domain)
+    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+    const userAssets: any = (c.env as any).USER_ASSETS;
+    const bucket: any = mediaBucket || userAssets;
+    if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
+
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+    const key = `${(path || 'products').replace(/\/$/, '')}/${crypto.randomUUID()}`;
+    const body = await upstream.arrayBuffer();
+    await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
+
+    const id = c.req.param('id');
+
+    // Fetch current product to merge images
+    const pRes = await fetch(`${MEDUSA}/admin/products/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    let currentImages: string[] = [];
+    if (pRes.ok) {
+      const pj: any = await pRes.json();
+      const product = pj?.product || pj; // v1 sometimes returns { product }
+      const imgs = product?.images || [];
+      // Normalize to array of URLs
+      currentImages = (imgs as any[]).map((x: any) => (typeof x === 'string' ? x : (x?.url || x?.src || x?.original_url))).filter(Boolean);
+    }
+    // Append new image if not present
+    const next = publicUrl ? Array.from(new Set([...currentImages, publicUrl])) : currentImages;
+
+    // Patch product with merged images if we have a URL
+    let patchStatus = 0;
+    if (publicUrl) {
+      const patch = await fetch(`${MEDUSA}/admin/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ images: next })
+      });
+      patchStatus = patch.status;
+    }
+
+    return c.json({ ok: true, publicUrl, images: next, patched: patchStatus > 0 ? patchStatus : undefined });
+  } catch (e) {
+    return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
+  }
+});
+
 // --- Cloudflare Images: Direct Upload (admin only) ---
 app.post('/api/images/direct-upload', async (c) => {
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
@@ -627,6 +879,82 @@ app.post('/api/images/direct-upload', async (c) => {
   });
   const text = await res.text();
   return new Response(text, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+});
+
+// --- R2: Basic upload (admin only) and read proxy ---
+app.post('/api/r2/upload', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+  const userAssets: any = (c.env as any).USER_ASSETS;
+  const bucket: any = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'not_configured' }, 501);
+  try {
+    const { url, path } = await c.req.json<{ url: string; path?: string }>();
+    if (!url) return c.json({ error: 'missing_url' }, 400);
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+    const key = `${(path || 'uploads').replace(/\/$/, '')}/${crypto.randomUUID()}`;
+    const body = await upstream.arrayBuffer();
+    const res = await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
+    return c.json({ key, etag: res?.etag || null, size: body.byteLength, contentType: ct, publicUrl });
+  } catch {
+    return c.json({ error: 'bad_request' }, 400);
+  }
+});
+
+app.get('/api/r2/*', async (c) => {
+  const key = c.req.path.replace(/^\/api\/r2\//, '');
+  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+  const userAssets: any = (c.env as any).USER_ASSETS;
+  const bucket: any = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.get !== 'function') return c.json({ error: 'not_configured' }, 501);
+  // If a public base is configured (or we know MEDIA_BUCKET custom domain), redirect to CDN
+  const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+  if (base) {
+    return Response.redirect(`${base.replace(/\/$/,'')}/${key}`, 302);
+  }
+  const obj = await bucket.get(key);
+  if (!obj) return c.json({ error: 'not_found' }, 404);
+  const ct = obj.httpMetadata?.contentType || 'application/octet-stream';
+  return new Response(obj.body, { headers: { 'content-type': ct, 'cache-control': 'public, max-age=31536000' } });
+});
+
+// --- Admin: Event flyer upload to R2 and D1 update ---
+app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  const db: any = (c.env as any).DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+  const userAssets: any = (c.env as any).USER_ASSETS;
+  const bucket: any = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
+  try {
+    const { url } = await c.req.json<{ url: string }>();
+    if (!url) return c.json({ error: 'missing_url' }, 400);
+    const slug = c.req.param('slug');
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+    const key = `events/${slug}/${crypto.randomUUID()}`;
+    const body = await upstream.arrayBuffer();
+    await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
+
+    if (publicUrl) {
+      await db.prepare(`UPDATE events SET flyer_url = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE slug = ?`).bind(publicUrl, slug).run();
+    }
+    // Return updated event if available
+    const { results } = await db.prepare(`SELECT * FROM events WHERE slug = ?`).bind(slug).all();
+    return c.json({ ok: true, publicUrl, event: results?.[0] || null });
+  } catch (e) {
+    return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
+  }
 });
 
 // Delete an image by id
@@ -725,61 +1053,58 @@ const rateMap = new Map<string, { count: number; reset: number }>();
 app.post('/api/booking', async (c) => {
   try {
     const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
-    const now = Date.now();
-    const bucket = rateMap.get(ip);
-    if (!bucket || bucket.reset < now) {
-      rateMap.set(ip, { count: 1, reset: now + 60_000 });
-    } else if (bucket.count > 10) {
-      return c.json({ error: 'rate_limited', message: 'Too many requests. Please try again in a minute.' }, 429);
-    } else {
+    // Prefer DO-based rate limiter if bound; fallback to in-memory
+    const allowed = await (async () => {
+      try {
+        const ns: any = (c.env as any).RATE_LIMITER;
+        if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
+          const id = ns.idFromName('global');
+          const stub = ns.get(id);
+          const res = await stub.fetch('https://rate/check', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ ip, limit: 10, window: 60 })
+          });
+          if (res.status === 429) return false;
+          const j = await res.json().catch(() => ({ allowed: true }));
+          return !!j.allowed;
+        }
+      } catch {}
+      const now = Date.now();
+      const bucket = rateMap.get(ip);
+      if (!bucket || bucket.reset < now) {
+        rateMap.set(ip, { count: 1, reset: now + 60_000 });
+        return true;
+      }
+      if (bucket.count > 10) return false;
       bucket.count += 1;
+      return true;
+    })();
+
+    if (!allowed) {
+      return c.json({ error: 'rate_limited', message: 'Too many requests. Please try again in a minute.' }, 429);
     }
 
-    const body = await c.req.json<{
-      name: string;
-      email: string;
-      phone: string;
-      eventType: string;
-      eventDate: string;
-      eventTime: string;
-      location: string;
-      message?: string;
-      website?: string; // honeypot
-    }>();
+    const body = await c.req.json();
+    const parsed = BookingSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'validation_failed', issues: parsed.error.issues }, 400);
+    }
+    const input = parsed.data;
 
     // Honeypot: if present, reject silently
-    if (body.website && String(body.website).trim() !== '') {
+    if (input.website && String(input.website).trim() !== '') {
       return c.json({ ok: true, ignored: true });
     }
 
-    const required = ['name','email','phone','eventType','eventDate','eventTime','location'] as const;
-    for (const k of required) {
-      if (!body[k] || String(body[k]).trim() === '') {
-        return c.json({ error: `missing_${k}` }, 400);
-      }
-    }
-
-    // Normalize and validate fields
-    const email = String(body.email).trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      return c.json({ error: 'invalid_email' }, 400);
-    }
-
-    // Phone: strip non-digits except leading + and basic length check
-    const phoneRaw = String(body.phone).trim();
+    // Normalize values for downstream use
+    const email = String(input.email).trim().toLowerCase();
+    const phoneRaw = String(input.phone).trim();
     const phone = phoneRaw.replace(/(?!^\+)\D+/g, '');
-    if (phone.replace(/\D/g, '').length < 7 || phone.replace(/\D/g, '').length > 15) {
-      return c.json({ error: 'invalid_phone' }, 400);
-    }
-
-    const eventTypes = new Set(['worship','concert','wedding','funeral','conference','community','other']);
-    if (!eventTypes.has(String(body.eventType))) {
-      return c.json({ error: 'invalid_event_type' }, 400);
-    }
 
     // Date/time sanity: require future time in UTC comparison
-    const isoDate = String(body.eventDate);
-    const isoTime = String(body.eventTime);
+    const isoDate = String(input.eventDate);
+    const isoTime = String(input.eventTime);
     const eventDateTime = new Date(`${isoDate}T${isoTime}`);
     if (Number.isNaN(eventDateTime.getTime())) {
       return c.json({ error: 'invalid_datetime' }, 400);
@@ -789,15 +1114,15 @@ app.post('/api/booking', async (c) => {
     }
 
     // Bounds
-    const name = String(body.name).trim().slice(0, 100);
-    const location = String(body.location).trim().slice(0, 200);
-    const message = (body.message ? String(body.message) : '').trim().slice(0, 2000);
+    const name = String(input.name).trim().slice(0, 100);
+    const location = String(input.location).trim().slice(0, 200);
+    const message = (input.message ? String(input.message) : '').trim().slice(0, 2000);
 
     const summary = [
       `Name: ${name}`,
       `Email: ${email}`,
       `Phone: ${phone}`,
-      `Event Type: ${body.eventType}`,
+      `Event Type: ${input.eventType}`,
       `Date: ${isoDate} ${isoTime}`,
       `Location: ${location}`,
       '',
@@ -847,11 +1172,11 @@ This is an automated confirmation email. Please do not reply directly to this me
         body: JSON.stringify({
           from: fromResend,
           to: [toResend],
-          subject: `Booking Request: ${body.eventType} on ${isoDate}`,
+          subject: `Booking Request: ${input.eventType} on ${isoDate}`,
           text: summary
         })
       });
-      
+
       // Send confirmation to customer
       if (adminRes.ok) {
         await fetch('https://api.resend.com/emails', {
@@ -862,13 +1187,13 @@ This is an automated confirmation email. Please do not reply directly to this me
           },
           body: JSON.stringify({
             from: fromResend,
-            to: [email],
-            subject: `Booking Confirmation - DJ Lee & Voices of Judah`,
-            text: customerConfirmation
-          })
-        });
-        return c.json({ ok: true, provider: 'resend' });
-      }
+          to: [email],
+          subject: `Booking Confirmation - DJ Lee & Voices of Judah`,
+          text: customerConfirmation
+        })
+      });
+      return c.json({ ok: true, provider: 'resend' });
+    }
       // fall through to SendGrid if available
     }
 
@@ -876,7 +1201,7 @@ This is an automated confirmation email. Please do not reply directly to this me
     if (c.env.SENDGRID_API_KEY) {
       const to = c.env.SENDGRID_TO || 'V.O.J@icloud.com';
       const from = c.env.SENDGRID_FROM || 'no-reply@djlee.local';
-      
+
       // Send to admin
       const adminRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -887,15 +1212,15 @@ This is an automated confirmation email. Please do not reply directly to this me
         body: JSON.stringify({
           personalizations: [{ to: [{ email: to }] }],
           from: { email: from, name: 'DJ Lee Website' },
-          subject: `Booking Request: ${body.eventType} on ${isoDate}`,
+          subject: `Booking Request: ${input.eventType} on ${isoDate}`,
           content: [{ type: 'text/plain', value: summary }]
         })
       });
-      
+
       if (!adminRes.ok) {
         return c.json({ error: 'email_send_failed', provider: 'sendgrid', status: adminRes.status }, 500);
       }
-      
+
       // Send confirmation to customer
       await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -910,7 +1235,7 @@ This is an automated confirmation email. Please do not reply directly to this me
           content: [{ type: 'text/plain', value: customerConfirmation }]
         })
       });
-      
+
       return c.json({ ok: true, provider: 'sendgrid' });
     }
 
@@ -937,14 +1262,13 @@ app.get('/api/instagram/oembed', async (c) => {
       return c.json({ error: 'URL parameter is required' }, 400);
     }
 
-    // Create cache key from parameters
+    // Multi-tier cache key
     const cacheKey = `ig:${url}:${maxwidth || ''}:${omitscript || ''}:${hidecaption || ''}`;
-    
-    // Check KV cache first
-    const cached = await c.env.SESSIONS.get(cacheKey);
-    if (cached) {
-      const data = JSON.parse(cached) as OEmbedJSON;
-      return c.json(data, 200, {
+    const cache = new CacheManager((c.env as any).SESSIONS);
+    const edgeKey = `/oembed:${cacheKey}`;
+    const l1 = await cache.get<any>(edgeKey).catch(() => null);
+    if (l1) {
+      return c.json(l1, 200, {
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'public, max-age=3600',
         'X-Cache': 'HIT'
@@ -952,27 +1276,25 @@ app.get('/api/instagram/oembed', async (c) => {
     }
 
     // First, try with Instagram's Graph API if token is available
-    const igToken = c.env.IG_OEMBED_TOKEN;
+    // Prefer App Access Token if app is configured (requires "oEmbed Read" approval)
+    const appToken = await getAppAccessToken(c.env);
+    const igToken = appToken || c.env.IG_OEMBED_TOKEN;
     if (igToken) {
       try {
-        const graphUrl = new URL('https://graph.facebook.com/v18.0/instagram_oembed');
+        const graphUrl = new URL(`${graphBase(c.env)}/instagram_oembed`);
         graphUrl.searchParams.append('url', url);
-        graphUrl.searchParams.append('access_token', igToken);
         if (maxwidth) graphUrl.searchParams.append('maxwidth', maxwidth);
         if (omitscript) graphUrl.searchParams.append('omitscript', omitscript);
         if (hidecaption) graphUrl.searchParams.append('hidecaption', hidecaption);
-        
-        const graphResponse = await fetch(graphUrl.toString());
+        const graphResponse = await fetch(graphUrl.toString(), {
+          headers: { Authorization: `Bearer ${igToken}` }
+        });
         if (graphResponse.ok) {
           const data = await graphResponse.json() as OEmbedJSON;
-          
-          // Cache in KV for 1 hour
-          await c.env.SESSIONS.put(
-            cacheKey,
-            JSON.stringify(data),
-            { expirationTtl: 3600 }
-          );
-          
+
+          // Cache for 1 hour in both tiers
+          await cache.set(edgeKey, data, 3600);
+
           return c.json(data, 200, {
             'Access-Control-Allow-Origin': '*',
             'Cache-Control': 'public, max-age=3600',
@@ -1005,7 +1327,7 @@ app.get('/api/instagram/oembed', async (c) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Instagram oEmbed API error:', response.status, errorText);
-      
+
       // If Instagram API fails, return a structured fallback response
       if (response.status === 404 || response.status === 400) {
         return c.json({
@@ -1013,13 +1335,13 @@ app.get('/api/instagram/oembed', async (c) => {
           message: 'The Instagram post could not be found. It may be private or deleted.'
         }, 404);
       }
-      
+
       // For rate limiting or server errors, provide a fallback embed structure
       if (response.status >= 500 || response.status === 429) {
         // Extract username from URL if possible
         const match = url.match(/instagram\.com\/([^/]+)/);
         const username = match ? match[1] : 'iam_djlee';
-        
+
         // Return a minimal fallback structure that the frontend can handle
         return c.json({
           fallback: true,
@@ -1035,7 +1357,7 @@ app.get('/api/instagram/oembed', async (c) => {
           'Cache-Control': 'public, max-age=300' // Cache fallback for 5 minutes
         });
       }
-      
+
       const status = response.status as 400 | 401 | 403 | 404 | 500 | 502 | 503;
       return c.json({
         error: 'Failed to fetch Instagram embed',
@@ -1045,14 +1367,10 @@ app.get('/api/instagram/oembed', async (c) => {
     }
 
     const data = await response.json() as OEmbedJSON;
-    
-    // Cache successful response in KV for 1 hour
-    await c.env.SESSIONS.put(
-      cacheKey,
-      JSON.stringify(data),
-      { expirationTtl: 3600 }
-    );
-    
+
+    // Cache successful response in both tiers for 1 hour
+    await cache.set(edgeKey, data, 3600);
+
     return c.json(data, 200, {
       'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'public, max-age=3600',
@@ -1061,12 +1379,12 @@ app.get('/api/instagram/oembed', async (c) => {
 
   } catch (error) {
     console.error('Instagram oEmbed handler error:', error);
-    
+
     // Last resort fallback
     const url = c.req.query('url') || '';
     const match = url.match(/instagram\.com\/([^/]+)/);
     const username = match ? match[1] : 'iam_djlee';
-    
+
     return c.json({
       fallback: true,
       html: `<div class="instagram-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">View on Instagram @${username}</a></div>`,
@@ -1087,23 +1405,24 @@ app.get('/api/instagram/oembed', async (c) => {
 app.get('/api/instagram/media', async (c) => {
   const igToken = c.env.IG_OEMBED_TOKEN;
   if (!igToken) {
-    return c.json({ 
+    return c.json({
       error: 'not_configured',
-      message: 'Instagram Graph API not configured' 
+      message: 'Instagram Graph API not configured'
     }, 501);
   }
 
   try {
     // Instagram Business Account ID (this should be fetched from token or configured)
-    const igUserId = c.req.query('user_id') || 'me';
+    const igUserId = c.req.query('user_id') || c.env.IG_USER_ID || 'me';
     const limit = c.req.query('limit') || '12';
     const fields = c.req.query('fields') || 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username';
-    
-    // Check cache first
-    const cacheKey = `ig_media:${igUserId}:${limit}:${fields}`;
-    const cached = await c.env.SESSIONS.get(cacheKey);
+
+    // L1 + L2 cache
+    const cache = new CacheManager((c.env as any).SESSIONS);
+    const cacheKey = `/ig_media:${igUserId}:${limit}:${fields}`;
+    const cached = await cache.get<any>(cacheKey).catch(() => null);
     if (cached) {
-      return c.json(JSON.parse(cached), 200, {
+      return c.json(cached, 200, {
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'public, max-age=900',
         'X-Cache': 'HIT'
@@ -1111,12 +1430,10 @@ app.get('/api/instagram/media', async (c) => {
     }
 
     // Fetch from Instagram Graph API
-    const graphUrl = new URL(`https://graph.facebook.com/v18.0/${igUserId}/media`);
+    const graphUrl = new URL(`${graphBase(c.env)}/${igUserId}/media`);
     graphUrl.searchParams.append('fields', fields);
     graphUrl.searchParams.append('limit', limit);
-    graphUrl.searchParams.append('access_token', igToken);
-
-    const response = await fetch(graphUrl.toString());
+    const response = await fetch(graphUrl.toString(), { headers: { Authorization: `Bearer ${igToken}` } });
     if (!response.ok) {
       const error = await response.json() as { error: { message: string } };
       console.error('Instagram Graph API error:', error);
@@ -1128,13 +1445,7 @@ app.get('/api/instagram/media', async (c) => {
     }
 
     const data = await response.json() as { data: [] };
-    
-    // Cache for 15 minutes
-    await c.env.SESSIONS.put(
-      cacheKey,
-      JSON.stringify(data),
-      { expirationTtl: 900 }
-    );
+    await cache.set(cacheKey, data, 900);
 
     return c.json(data, 200, {
       'Access-Control-Allow-Origin': '*',
@@ -1157,10 +1468,20 @@ app.get('/api/social/feed', async (c) => {
     const hashtags: string[] = c.req.query('hashtags')?.split(',').filter(Boolean) || [];
     const limit = parseInt(c.req.query('limit') || '12');
     const shoppable = c.req.query('shoppable') === 'true';
-    
-    const posts: any[] = [];
-    const errors: any[] = [];
-    
+
+    // Configuration guard: return 501 if none of the requested platforms are configured
+    const wantsIg = platforms.includes('instagram');
+    const wantsFb = platforms.includes('facebook');
+    const igConfigured = !!c.env.IG_OEMBED_TOKEN;
+    const fbConfigured = !!(c.env.FB_PAGE_ID && (c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN));
+    const anyRequestedConfigured = (wantsIg && igConfigured) || (wantsFb && fbConfigured);
+    if (!anyRequestedConfigured) {
+      return c.json({ error: 'not_configured', message: 'Social APIs not configured' }, 501);
+    }
+
+    const posts: SocialPost[] = [];
+    const errors: Array<{ platform: string; error: string }> = [];
+
     // Fetch Instagram posts if requested
     if (platforms.includes('instagram')) {
       const igToken = c.env.IG_OEMBED_TOKEN;
@@ -1169,13 +1490,13 @@ app.get('/api/social/feed', async (c) => {
           // Get Instagram Business Account ID
           const igUserId = c.req.query('ig_user_id') || '17841400000000000'; // Placeholder
           const fields = 'id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count';
-          
-          const graphUrl = new URL(`https://graph.facebook.com/v18.0/${igUserId}/media`);
+
+          const graphUrl = new URL(`${graphBase(c.env)}/${igUserId || c.env.IG_USER_ID || 'me'}/media`);
           graphUrl.searchParams.append('fields', fields);
           graphUrl.searchParams.append('limit', limit.toString());
-          graphUrl.searchParams.append('access_token', igToken);
-          
-          const response = await fetch(graphUrl.toString());
+          const response = await fetch(graphUrl.toString(), {
+            headers: { Authorization: `Bearer ${igToken}` }
+          });
           if (response.ok) {
             const data = await response.json() as { data?: Array<{
               id: string;
@@ -1188,13 +1509,13 @@ app.get('/api/social/feed', async (c) => {
               like_count?: number;
               comments_count?: number;
             }> };
-            
+
             if (data.data) {
               for (const item of data.data) {
                 const post = {
                   id: `ig_${item.id}`,
                   platform: 'instagram' as const,
-                  type: item.media_type.toLowerCase() as any,
+                  type: item.media_type.toLowerCase() as 'photo' | 'video' | 'carousel' | 'reel',
                   mediaUrl: item.media_url,
                   thumbnailUrl: item.thumbnail_url,
                   caption: item.caption || '',
@@ -1208,7 +1529,7 @@ app.get('/api/social/feed', async (c) => {
                   hashtags: item.caption ? item.caption.match(/#\w+/g) || [] : [],
                   mentions: item.caption ? item.caption.match(/@\w+/g) || [] : []
                 };
-                
+
                 // Filter by hashtags if specified
                 if (hashtags.length === 0) {
                   posts.push(post);
@@ -1226,21 +1547,21 @@ app.get('/api/social/feed', async (c) => {
         }
       }
     }
-    
+
     // Fetch Facebook posts if requested
     if (platforms.includes('facebook')) {
       const fbPageId = c.env.FB_PAGE_ID;
       const fbToken = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN; // Can use same token
-      
+
       if (fbPageId && fbToken) {
         try {
           const fields = 'id,message,full_picture,permalink_url,created_time,likes.summary(true),comments.summary(true),shares';
-          const graphUrl = new URL(`https://graph.facebook.com/v18.0/${fbPageId}/posts`);
+          const graphUrl = new URL(`${graphBase(c.env)}/${fbPageId}/posts`);
           graphUrl.searchParams.append('fields', fields);
           graphUrl.searchParams.append('limit', limit.toString());
-          graphUrl.searchParams.append('access_token', fbToken);
-          
-          const response = await fetch(graphUrl.toString());
+          const response = await fetch(graphUrl.toString(), {
+            headers: { Authorization: `Bearer ${fbToken}` }
+          });
           if (response.ok) {
             const data = await response.json() as { data?: Array<{
               id: string;
@@ -1252,7 +1573,7 @@ app.get('/api/social/feed', async (c) => {
               comments?: { summary: { total_count: number } };
               shares?: { count: number };
             }> };
-            
+
             if (data.data) {
               for (const item of data.data) {
                 const post = {
@@ -1272,7 +1593,7 @@ app.get('/api/social/feed', async (c) => {
                   hashtags: item.message ? item.message.match(/#\w+/g) || [] : [],
                   mentions: item.message ? item.message.match(/@\w+/g) || [] : []
                 };
-                
+
                 // Filter by hashtags if specified
                 if (hashtags.length === 0) {
                   posts.push(post);
@@ -1290,7 +1611,7 @@ app.get('/api/social/feed', async (c) => {
         }
       }
     }
-    
+
   // Add shoppable data if requested (would integrate with Medusa)
   if (shoppable && posts.length > 0) {
       // Try Medusa storefront API first
@@ -1314,48 +1635,34 @@ app.get('/api/social/feed', async (c) => {
         return typeof cents === 'number' ? Math.round(cents) / 100 : 39.99;
       };
 
-      const toTagged = (p: MedusaProduct, i: number) => ({
+      const toTagged = (p: MedusaProduct) => ({
         id: p.id,
         title: p.title,
         price: pickPrice(p),
-        imageUrl: p.thumbnail || '/api/placeholder/150/150',
-        productUrl: p.handle ? `/products#${p.handle}` : '/products',
-        x: (i % 2 === 0) ? 30 : 70,
-        y: (i % 3 === 0) ? 40 : 60
+        url: p.handle ? `/products#${p.handle}` : '/products'
       });
 
-      const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
-      for (const [idx, post] of shoppablePosts.entries()) {
+  const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
+  for (const post of shoppablePosts) {
+    if (medusaProducts.length > 0) {
+      // Simple mapping: try to match by hashtag to product title; else take first few
+      const tags = (post.hashtags || []).map((h: string) => h.replace(/^#/, '').toLowerCase());
+      const matched = medusaProducts.filter(p => tags.some((t: string) => p.title.toLowerCase().includes(t)));
+      const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
+      if (chosen.length > 0) {
         post.isShoppable = true;
-        if (medusaProducts.length > 0) {
-          // Simple mapping: try to match by hashtag to product title; else take first few
-          const tags = (post.hashtags || []).map((h: string) => h.replace(/^#/, '').toLowerCase());
-          const matched = medusaProducts.filter(p => tags.some((t: string) => p.title.toLowerCase().includes(t)));
-          const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
-          post.products = chosen.map((p, i) => toTagged(p, i));
-        } else {
-          // Fallback demo product
-          post.products = [
-            {
-              id: 'prod_demo_1',
-              title: 'Limited Edition Vinyl',
-              price: 39.99,
-              imageUrl: '/api/placeholder/150/150',
-              productUrl: '/products',
-              x: (idx % 2 === 0) ? 28 : 72,
-              y: (idx % 3 === 0) ? 38 : 62
-            }
-          ];
-        }
+        post.products = chosen.map((p) => toTagged(p));
       }
+    }
   }
-    
+  }
+
     // Sort by timestamp (newest first)
     posts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    
+
     // Limit results
     const limitedPosts = posts.slice(0, limit);
-    
+
     return c.json({
       posts: limitedPosts,
       errors: errors.length > 0 ? errors : undefined,
@@ -1374,17 +1681,17 @@ app.get('/api/social/feed', async (c) => {
 app.get('/api/instagram/insights', async (c) => {
   const igToken = c.env.IG_OEMBED_TOKEN;
   if (!igToken) {
-    return c.json({ 
+    return c.json({
       error: 'not_configured',
-      message: 'Instagram Graph API not configured' 
+      message: 'Instagram Graph API not configured'
     }, 501);
   }
 
   try {
-    const igUserId = c.req.query('user_id') || 'me';
+    const igUserId = c.req.query('user_id') || c.env.IG_USER_ID || 'me';
     const metrics = c.req.query('metrics') || 'impressions,reach,profile_views';
     const period = c.req.query('period') || 'day';
-    
+
     // Check cache
     const cacheKey = `ig_insights:${igUserId}:${metrics}:${period}`;
     const cached = await c.env.SESSIONS.get(cacheKey);
@@ -1396,13 +1703,14 @@ app.get('/api/instagram/insights', async (c) => {
       });
     }
 
-    // Fetch insights from Instagram Graph API
-    const graphUrl = new URL(`https://graph.facebook.com/v18.0/${igUserId}/insights`);
-    graphUrl.searchParams.append('metric', metrics);
-    graphUrl.searchParams.append('period', period);
-    graphUrl.searchParams.append('access_token', igToken);
+  // Fetch insights from Instagram Graph API
+  const graphUrl = new URL(`${graphBase(c.env)}/${igUserId}/insights`);
+  graphUrl.searchParams.append('metric', metrics);
+  graphUrl.searchParams.append('period', period);
 
-    const response = await fetch(graphUrl.toString());
+  const response = await fetch(graphUrl.toString(), {
+    headers: { Authorization: `Bearer ${igToken}` }
+  });
     if (!response.ok) {
       const error = await response.json() as { error: { message: string } };
       console.error('Instagram Insights API error:', error);
@@ -1414,7 +1722,7 @@ app.get('/api/instagram/insights', async (c) => {
     }
 
     const data = await response.json() as { data: [] };
-    
+
     // Cache for 1 hour
     await c.env.SESSIONS.put(
       cacheKey,
@@ -1433,6 +1741,69 @@ app.get('/api/instagram/insights', async (c) => {
       error: 'internal_error',
       message: 'Failed to fetch Instagram insights'
     }, 500);
+  }
+});
+
+// Helper: get IG Business account id/username for the token
+app.get('/api/instagram/me', async (c) => {
+  const token = (await getAppAccessToken(c.env)) || c.env.IG_OEMBED_TOKEN;
+  if (!token) return c.json({ error: 'not_configured', message: 'Missing FB_APP_ID/FB_APP_SECRET or IG_OEMBED_TOKEN' }, 501);
+  try {
+    const url = new URL(`${graphBase(c.env)}/me`);
+    url.searchParams.set('fields', 'id,username');
+    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    const json = await res.json() as Record<string, unknown>;
+    return new Response(JSON.stringify(json), {
+      status: res.status,
+      headers: { 'content-type': 'application/json; charset=utf-8' }
+    });
+  } catch (e) {
+    return c.json({ error: 'failed_request', message: (e as Error).message }, 500);
+  }
+});
+
+// Resolve IG Business Account ID linked to a Facebook Page
+// Requires a Page Access Token with pages_show_list / pages_read_engagement
+app.get('/api/instagram/linked-account', async (c) => {
+  const pageId = c.req.query('page_id') || c.env.FB_PAGE_ID;
+  const token = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN; // page token preferred
+  if (!pageId || !token) {
+    return c.json({ error: 'not_configured', message: 'Missing FB_PAGE_ID or FB_PAGE_TOKEN' }, 501);
+  }
+  try {
+    const u = new URL(`${graphBase(c.env)}/${pageId}`);
+    u.searchParams.set('fields', 'instagram_business_account{id,username}' );
+    const res = await fetch(u.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    const json = await res.json() as Record<string, unknown>;
+    return new Response(JSON.stringify(json), {
+      status: res.status,
+      headers: { 'content-type': 'application/json; charset=utf-8' }
+    });
+  } catch (e) {
+    return c.json({ error: 'failed_request', message: (e as Error).message }, 500);
+  }
+});
+
+// Health check for oEmbed configuration
+// Usage: /api/health/oembed?url=<public_instagram_or_fb_url>
+app.get('/api/health/oembed', async (c) => {
+  const testUrl = c.req.query('url');
+  if (!testUrl) return c.json({ ok: false, error: 'missing_url' }, 400);
+
+  try {
+    const appToken = await getAppAccessToken(c.env);
+    const token = appToken || c.env.IG_OEMBED_TOKEN;
+    if (!token) return c.json({ ok: false, error: 'missing_token', hint: 'Set FB_APP_ID/FB_APP_SECRET or IG_OEMBED_TOKEN' }, 501);
+
+    const u = new URL(`${graphBase(c.env)}/instagram_oembed`);
+    u.searchParams.set('url', testUrl);
+    u.searchParams.set('omitscript', 'true');
+    const res = await fetch(u.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    const body = await res.text();
+    const ok = res.ok;
+    return c.json({ ok, status: res.status, body: ok ? undefined : body.slice(0, 400) });
+  } catch (e) {
+    return c.json({ ok: false, error: 'exception', message: (e as Error).message }, 500);
   }
 });
 
@@ -1460,13 +1831,78 @@ type EventItem = {
 };
 
 let eventsCache: { data: EventItem[]; exp: number } | null = null;
+// Minimal built-in fallback so the site has an event banner when D1 is empty
+const STATIC_EVENTS_FALLBACK: EventItem[] = [
+  {
+    id: 'reunion-12-chicago-2026',
+    slug: 'reunion-12-chicago-2026',
+    title: '12th Anniversary Reunion Concert',
+    description: 'A special night with DJ Lee & The Voices of Judah celebrating 12 years of ministry.',
+    flyerUrl: '/content/flyers/reunion-12-chicago-2026.jpg',
+    startDateTime: '2026-01-10T18:00:00-06:00',
+    endDateTime: '2026-01-10T21:00:00-06:00',
+    venueName: 'TBD',
+    address: '',
+    city: 'Chicago',
+    region: 'IL',
+    country: 'US',
+    latitude: null,
+    longitude: null,
+    ticketUrl: '',
+    rsvpUrl: '',
+    priceText: '',
+    tags: ['concert'],
+    status: 'published'
+  }
+];
+async function loadEventsFromD1(c: { env: Env }): Promise<EventItem[] | null> {
+  try {
+    const db: any = (c.env as any).DB;
+    if (!db || typeof db.prepare !== 'function') return null;
+    const sql = `SELECT id, slug, title, description, flyer_url as flyerUrl,
+      start_time as startDateTime, end_time as endDateTime, venue_name as venueName,
+      address, city, region, country, latitude, longitude, ticket_url as ticketUrl,
+      rsvp_url as rsvpUrl, price_text as priceText, tags, status
+      FROM events WHERE status = 'published' ORDER BY datetime(start_time) ASC`;
+    const { results } = await db.prepare(sql).all();
+    if (!results || results.length === 0) return [];
+    return results.map((r: any) => ({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      description: r.description || undefined,
+      flyerUrl: r.flyerUrl || undefined,
+      startDateTime: r.startDateTime,
+      endDateTime: r.endDateTime || undefined,
+      venueName: r.venueName || undefined,
+      address: r.address || undefined,
+      city: r.city || undefined,
+      region: r.region || undefined,
+      country: r.country || undefined,
+      latitude: typeof r.latitude === 'number' ? r.latitude : null,
+      longitude: typeof r.longitude === 'number' ? r.longitude : null,
+      ticketUrl: r.ticketUrl || undefined,
+      rsvpUrl: r.rsvpUrl || undefined,
+      priceText: r.priceText || undefined,
+      tags: r.tags ? JSON.parse(r.tags) : [],
+      status: r.status || 'published'
+    })) as EventItem[];
+  } catch {
+    return null;
+  }
+}
+
 async function loadEvents(c: { env: Env; req: { url: string } }): Promise<EventItem[]> {
   const now = Date.now();
-  if (eventsCache && eventsCache.exp > now) return eventsCache.data;
-  const url = new URL('/content/events.json', c.req.url).toString();
-  const res = await fetch(url, {});
-  if (!res.ok) return [];
-  const json = await res.json() as EventItem[];
+  if (eventsCache && eventsCache.exp > now && (eventsCache.data?.length ?? 0) > 0) return eventsCache.data;
+  // Prefer D1 if available
+  const fromD1 = await loadEventsFromD1(c).catch(() => null);
+  if (fromD1 && fromD1.length > 0) {
+    eventsCache = { data: fromD1, exp: now + 5 * 60 * 1000 };
+    return fromD1;
+  }
+  // Fallback to baked-in static events (cannot fetch assets from within Worker reliably)
+  const json = STATIC_EVENTS_FALLBACK;
   const sorted = [...json].sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
   eventsCache = { data: sorted, exp: now + 5 * 60 * 1000 };
   return sorted;
@@ -1479,6 +1915,122 @@ app.get('/api/events', async (c) => {
   const upcoming = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() >= now);
   const past = published.filter(e => new Date(e.endDateTime || e.startDateTime).getTime() < now).reverse();
   return c.json({ upcoming, past, total: published.length });
+});
+
+// Temporary debug endpoint to verify static events accessibility from within Worker
+app.get('/api/debug/events-source', async (c) => {
+  try {
+    const url = new URL('/content/events.json', c.req.url).toString();
+    const res = await fetch(url);
+    const body = await res.text();
+    return c.json({ ok: res.ok, status: res.status, length: body.length, sample: body.slice(0, 120), url });
+  } catch (e) {
+    return c.json({ ok: false, error: (e as Error).message });
+  }
+});
+
+// --- Admin: Import events into D1 (from body or external URL) ---
+app.post('/api/admin/events/import', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) return c.json({ error: 'unauthorized' }, 401);
+  try {
+    const db: any = (c.env as any).DB;
+    if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+    const userAssets: any = (c.env as any).USER_ASSETS;
+    const bucket: any = mediaBucket || userAssets;
+
+    const body = await c.req.json<{ url?: string; events?: EventItem[]; replace?: boolean; uploadFlyersToR2?: boolean }>();
+    let list: EventItem[] | null = null;
+
+    if (Array.isArray(body?.events) && body.events.length > 0) {
+      list = body.events as EventItem[];
+    } else if (body?.url) {
+      // Only allow external URLs (not the same worker host), since internal asset fetch won't work
+      try {
+        const u = new URL(body.url);
+        const self = new URL(c.req.url);
+        if (u.host === self.host) {
+          return c.json({ error: 'invalid_source', message: 'Use an external URL or provide events array directly.' }, 400);
+        }
+        const res = await fetch(u.toString(), { headers: { 'accept': 'application/json' } });
+        if (!res.ok) return c.json({ error: 'source_fetch_failed', status: res.status }, 400);
+        list = await res.json() as EventItem[];
+      } catch (e) {
+        return c.json({ error: 'bad_source', message: (e as Error).message }, 400);
+      }
+    } else {
+      list = STATIC_EVENTS_FALLBACK;
+    }
+
+    if (!Array.isArray(list) || list.length === 0) return c.json({ imported: 0, message: 'no events found' });
+
+    // Optionally clear table first
+    if (body?.replace) {
+      await db.prepare('DELETE FROM events').run();
+    }
+
+    let uploaded = 0;
+    let upserts = 0;
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const wantR2 = !!body?.uploadFlyersToR2 && bucket && typeof bucket.put === 'function' && base;
+
+    for (const ev of list) {
+      let flyerUrl = ev.flyerUrl || (ev as any).flyer_url || '';
+      // Upload flyer to R2 if requested and flyerUrl is http(s) or relative
+      if (wantR2 && flyerUrl) {
+        try {
+          const absolute = /^https?:\/\//i.test(flyerUrl) ? flyerUrl : new URL(flyerUrl, c.req.url).toString();
+          const r = await fetch(absolute);
+          if (r.ok) {
+            const ct = r.headers.get('content-type') || 'image/jpeg';
+            const key = `events/${(ev.slug || ev.id).replace(/[^a-z0-9_-]/gi,'-')}/${crypto.randomUUID()}`;
+            const buf = await r.arrayBuffer();
+            await bucket.put(key, buf, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+            flyerUrl = `${String(base).replace(/\/$/, '')}/${key}`;
+            uploaded++;
+          }
+        } catch { /* ignore upload errors; keep original flyerUrl */ }
+      }
+
+      const id = ev.id || crypto.randomUUID();
+      const slug = (ev.slug || id).toLowerCase();
+      const start = ev.startDateTime;
+      const end = ev.endDateTime || null;
+      const insert = await db.prepare(`INSERT OR REPLACE INTO events (
+        id, slug, title, description, flyer_url, start_time, end_time,
+        venue_name, address, city, region, country, latitude, longitude,
+        ticket_url, rsvp_url, price_text, tags, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now'))`).bind(
+        id,
+        slug,
+        ev.title,
+        ev.description || null,
+        flyerUrl || null,
+        start,
+        end,
+        ev.venueName || null,
+        ev.address || null,
+        ev.city || null,
+        ev.region || 'IL',
+        ev.country || 'US',
+        typeof ev.latitude === 'number' ? ev.latitude : null,
+        typeof ev.longitude === 'number' ? ev.longitude : null,
+        ev.ticketUrl || null,
+        ev.rsvpUrl || null,
+        ev.priceText || null,
+        JSON.stringify(ev.tags || []),
+        ev.status || 'published'
+      ).run();
+      if ((insert as any)?.success !== false) upserts++;
+    }
+
+    // Invalidate cache
+    eventsCache = null;
+    return c.json({ imported: list.length, upserts, uploadedToR2: uploaded, usedR2: Boolean(wantR2) });
+  } catch (e) {
+    return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
+  }
 });
 
 function toICSDate(dt: string): string {
@@ -1538,32 +2090,9 @@ app.get('/api/facebook/events', async (c) => {
     const includePast = c.req.query('include_past') === 'true';
     const limit = parseInt(c.req.query('limit') || '10');
 
-    // If not configured, fall back to internal events API
+    // If not configured, instruct client to use demo or local fallback
     if (!pageId || !token) {
-      const url = new URL('/api/events', c.req.url);
-      const res = await fetch(url.toString()).catch(() => null);
-      if (res && res.ok) {
-        const data = await res.json() as { upcoming?: any[]; past?: any[] };
-        const merged = includePast ? [...(data.upcoming || []), ...(data.past || [])] : (data.upcoming || []);
-        const events = merged.slice(0, limit).map((ev) => ({
-          id: ev.id,
-          name: ev.title,
-          description: ev.description,
-          startTime: ev.startDateTime,
-          endTime: ev.endDateTime,
-          place: ev.venueName ? { name: ev.venueName } : undefined,
-          coverPhoto: ev.flyerUrl,
-          eventUrl: ev.rsvpUrl || ev.ticketUrl || new URL('/#events', c.req.url).toString(),
-          isOnline: ev.tags?.includes('online') || false,
-          ticketUri: ev.ticketUrl,
-          interestedCount: undefined,
-          attendingCount: undefined,
-          isCanceled: ev.status === 'archived' || false,
-          category: undefined
-        }));
-        return c.json({ events }, 200, { 'Cache-Control': 'public, max-age=300' });
-      }
-      return c.json({ events: [], note: 'facebook_api_not_configured' }, 200);
+      return c.json({ error: 'not_configured', message: 'Facebook Events API not configured' }, 501);
     }
 
     // Try cache first (if KV bound in this environment)
@@ -1573,10 +2102,12 @@ app.get('/api/facebook/events', async (c) => {
       if (cached) {
         return c.json(JSON.parse(cached), 200, { 'Cache-Control': 'public, max-age=300', 'X-Cache': 'HIT' });
       }
-    } catch {}
+    } catch {
+      // Ignore cache read errors
+    }
 
     // Build Graph API request
-    const graphUrl = new URL(`https://graph.facebook.com/v18.0/${pageId}/events`);
+    const graphUrl = new URL(`${graphBase(c.env)}/${pageId}/events`);
     graphUrl.searchParams.set('time_filter', includePast ? 'all' : 'upcoming');
     graphUrl.searchParams.set('limit', String(Math.min(Math.max(limit, 1), 50)));
     graphUrl.searchParams.set(
@@ -1597,29 +2128,29 @@ app.get('/api/facebook/events', async (c) => {
         'event_times'
       ].join(',')
     );
-    graphUrl.searchParams.set('access_token', token);
-
-    const fbRes = await fetch(graphUrl.toString());
+    const fbRes = await fetch(graphUrl.toString(), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     if (!fbRes.ok) {
       const error = await fbRes.json().catch(() => ({}));
       console.error('Facebook Events API error:', error);
       return c.json({ error: 'facebook_api_error', details: error }, 502);
     }
 
-    const payload = await fbRes.json() as { data?: any[] };
+    const payload = await fbRes.json() as { data?: FacebookEvent[] };
     const events = (payload.data || []).map((ev) => ({
-      id: ev.id as string,
-      name: ev.name as string,
-      description: ev.description as string | undefined,
-      startTime: ev.start_time as string,
-      endTime: (ev.end_time as string | undefined) || undefined,
-      place: ev.place ? { name: ev.place.name as string, location: ev.place.location } : undefined,
-      coverPhoto: ev.cover?.source as string | undefined,
+      id: ev.id,
+      name: ev.name,
+      description: ev.description,
+      startTime: ev.start_time,
+      endTime: ev.end_time,
+      place: ev.place ? { name: ev.place.name, location: ev.place.location } : undefined,
+      coverPhoto: ev.cover?.source,
       eventUrl: `https://facebook.com/events/${ev.id}`,
       isOnline: !!ev.is_online,
-      ticketUri: ev.ticket_uri as string | undefined,
-      interestedCount: ev.interested_count as number | undefined,
-      attendingCount: ev.attending_count as number | undefined,
+      ticketUri: ev.ticket_uri,
+      interestedCount: ev.interested_count,
+      attendingCount: ev.attending_count,
       isCanceled: !!ev.is_canceled,
       category: undefined
     }));
@@ -1627,7 +2158,9 @@ app.get('/api/facebook/events', async (c) => {
     const result = { events };
     try {
       await (c.env.SESSIONS as KVNamespace | undefined)?.put?.(cacheKey, JSON.stringify(result), { expirationTtl: 300 });
-    } catch {}
+    } catch {
+      // Ignore cache write errors
+    }
     return c.json(result, 200, { 'Cache-Control': 'public, max-age=300', 'X-Cache': 'MISS' });
   } catch (err) {
     console.error('facebook_events_handler_error', err);

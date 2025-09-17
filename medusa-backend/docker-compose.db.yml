@@ -1,0 +1,33 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: medusa-db
+    environment:
+      POSTGRES_USER: medusa
+      POSTGRES_PASSWORD: medusa123
+      POSTGRES_DB: medusa-store
+    ports:
+      - "55432:5432"
+    volumes:
+      - medusa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medusa"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: medusa-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  medusa_pgdata:
+    driver: local

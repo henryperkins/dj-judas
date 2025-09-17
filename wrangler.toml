@@ -4,6 +4,11 @@ compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 account_id = "a77e479f6736120eadd99973dbeb705e"
 
+# ===== PERFORMANCE OPTIMIZATIONS =====
+# Smart placement automatically deploys your Worker to optimal locations
+[placement]
+mode = "smart"
+
 [observability]
 enabled = true
 
@@ -13,9 +18,87 @@ upload_source_maps = true
 directory = "./dist/client"
 not_found_handling = "single-page-application"
 
+# ===== CORE BINDINGS =====
+# KV Namespace for session storage
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "b7654d69472c4e1b8eda8bbae8ee2776"
 
+# Workers AI for product suggestions and AI features
 [ai]
 binding = "AI"
+
+# R2 Buckets
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "dj-judas-media"
+
+[[r2_buckets]]
+binding = "USER_ASSETS"
+bucket_name = "user-assets"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "dj-judas-db"
+database_id = "5b2ae7e3-cc4d-4c1e-9c14-63974347443a"
+
+# Smart placement for better performance
+[placement]
+mode = "smart"
+
+# ===== OPTIONAL ADVANCED BINDINGS =====
+# Uncomment and configure as needed:
+
+# D1 Database for structured data (events, products, etc.)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "dj-judas-db"
+# database_id = "YOUR_DATABASE_ID"
+
+# R2 for media storage (images, videos)
+# [[r2_buckets]]
+# binding = "MEDIA_BUCKET"
+# bucket_name = "dj-judas-media"
+
+# Queue for background processing (emails, notifications)
+# [[queues.producers]]
+# binding = "EMAIL_QUEUE"
+# queue = "email-queue"
+
+## Durable Objects for rate limiting and session management
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[durable_objects.bindings]]
+name = "USER_SESSIONS"
+class_name = "UserSession"
+
+[[migrations]]
+tag = "do-v1"
+new_classes = ["RateLimiter", "UserSession"]
+
+# Analytics Engine for custom metrics
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+# Analytics Engine for custom analytics
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+
+# Rate limiting configuration
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1"
+# simple = { limit = 10, period = 60 }
+
+# ===== ENVIRONMENT-SPECIFIC CONFIGURATIONS =====
+# [env.production]
+# vars = { ENVIRONMENT = "production" }
+# route = "djlee.com/*"
+# 
+# [env.staging]
+# vars = { ENVIRONMENT = "staging" }
+# route = "staging.djlee.com/*"

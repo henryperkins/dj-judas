@@ -1,4 +1,5 @@
 import { Component, ReactNode } from 'react';
+import { trackError } from '../utils/analytics';
 
 interface Props {
   children: ReactNode;
@@ -23,13 +24,12 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Error caught by boundary:', error, errorInfo);
     
-    // Send error to analytics if available
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'exception', {
-        description: error.message,
-        fatal: false
-      });
-    }
+    // Send error to centralized analytics
+    trackError({
+      error,
+      errorInfo,
+      fatal: false
+    });
   }
 
   render() {

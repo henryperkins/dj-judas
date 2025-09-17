@@ -1,4 +1,4 @@
-import { socialMetrics } from './socialMetrics';
+import { socialMetrics } from '../components/social/utils/socialMetrics';
 
 interface MusicKitInstance {
   isAuthorized: boolean;
@@ -100,13 +100,13 @@ class AppleMusicKitManager {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.message || `Failed to fetch developer token: ${res.status}`);
       }
-      
+
       const data = await res.json() as { token?: string; error?: string; message?: string };
-      
+
       if (data.error) {
         throw new Error(data.message || 'Apple Music configuration error');
       }
-      
+
       if (!data.token) {
         throw new Error('Developer token not configured on server');
       }
@@ -114,7 +114,7 @@ class AppleMusicKitManager {
       this.developerToken = data.token;
       // Cache for 11 hours (token is valid for 12 hours)
       this.tokenExpiry = Date.now() + 11 * 60 * 60 * 1000;
-      
+
       return data.token;
     } catch (error) {
       console.error('Apple Music developer token fetch error:', error);
@@ -133,7 +133,7 @@ class AppleMusicKitManager {
 
   private async initializeMusicKit(): Promise<void> {
     const win = window as unknown as MusicKitGlobal;
-    
+
     if (!win.MusicKit) {
       throw new Error('MusicKit not available');
     }
@@ -141,7 +141,7 @@ class AppleMusicKitManager {
     try {
       win.MusicKit.configure({
         developerTokenFetcher: () => this.fetchDeveloperToken(),
-        app: { 
+        app: {
           name: 'DJ Lee & Voices of Judah',
           build: '1.0.0'
         }
@@ -159,7 +159,7 @@ class AppleMusicKitManager {
       }
 
       // Track initialization
-      socialMetrics.trackEntry({ source: 'apple_music', medium: 'sdk_load' });
+      socialMetrics.trackEntry({ source: 'appleMusic', medium: 'sdk_load' });
     } catch (error) {
       console.error('Failed to configure MusicKit:', error);
       throw error;
@@ -169,9 +169,9 @@ class AppleMusicKitManager {
   private handleAuthChange(): void {
     const authorized = this.musicKit?.isAuthorized || false;
     this.authCallbacks.forEach(cb => cb(authorized));
-    
+
     if (authorized) {
-      socialMetrics.trackSocialInteraction('apple_music', 'authorize', {});
+      socialMetrics.trackSocialInteraction('appleMusic', 'authorize', {});
     }
   }
 
@@ -184,7 +184,7 @@ class AppleMusicKitManager {
     if (!this.musicKit) {
       await this.loadMusicKit();
     }
-    
+
     if (!this.musicKit) {
       throw new Error('MusicKit not initialized');
     }
@@ -204,7 +204,7 @@ class AppleMusicKitManager {
 
   async unauthorize(): Promise<void> {
     if (!this.musicKit) return;
-    
+
     try {
       await this.musicKit.unauthorize();
     } catch (error) {
@@ -230,9 +230,9 @@ class AppleMusicKitManager {
 
     try {
       await this.musicKit.api.library.add(items);
-      
+
       // Track successful library addition
-      socialMetrics.trackSocialInteraction('apple_music', 'add_to_library', {
+      socialMetrics.trackSocialInteraction('appleMusic', 'add_library', {
         items: items.map(i => `${i.type}:${i.id}`).join(',')
       });
     } catch (error) {
@@ -266,11 +266,11 @@ class AppleMusicKitManager {
           [contentType]: contentId
         });
       }
-      
+
       await this.musicKit.player.play();
-      
+
       // Track playback
-      socialMetrics.trackSocialInteraction('apple_music', 'play', {
+      socialMetrics.trackSocialInteraction('appleMusic', 'play', {
         contentId,
         contentType
       });
@@ -325,7 +325,7 @@ class AppleMusicKitManager {
         types: types.join(','),
         limit: 25
       });
-      
+
       return results;
     } catch (error) {
       console.error('Search failed:', error);
@@ -339,7 +339,7 @@ export const appleMusicKit = AppleMusicKitManager.getInstance();
 // Export convenience functions
 export const loadAppleMusicKit = () => appleMusicKit.loadMusicKit();
 export const authorizeAppleMusic = () => appleMusicKit.authorize();
-export const addToAppleMusicLibrary = (items: { id: string; type: 'songs' | 'albums' | 'playlists' }[]) => 
+export const addToAppleMusicLibrary = (items: { id: string; type: 'songs' | 'albums' | 'playlists' }[]) =>
   appleMusicKit.addToLibrary(items);
-export const playAppleMusic = (contentId?: string, contentType?: 'song' | 'album' | 'playlist') => 
+export const playAppleMusic = (contentId?: string, contentType?: 'song' | 'album' | 'playlist') =>
   appleMusicKit.play(contentId, contentType);

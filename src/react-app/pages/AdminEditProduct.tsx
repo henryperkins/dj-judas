@@ -29,6 +29,8 @@ export default function AdminEditProduct(props: { id: string }) {
   const [msg, setMsg] = useState<string | null>(null)
   const [newImages, setNewImages] = useState<Array<{ id?: string; url: string }>>([])
   const [uploads, setUploads] = useState<Array<{ name: string; progress: number; status: 'uploading'|'done'|'error' }>>([])
+  const [imageUrl, setImageUrl] = useState('')
+  const [imagePath, setImagePath] = useState('products')
 
   useEffect(() => {
     fetch('/api/admin/session').then(r => r.json() as Promise<AdminSessionResponse>).then(j => setAuth(!!j?.authenticated))
@@ -80,6 +82,31 @@ export default function AdminEditProduct(props: { id: string }) {
       if (urlOut) { setNewImages(prev => [...prev, { id, url: urlOut }]); setUploads(prev => prev.map(u => u.name === file.name ? { ...u, progress: 100, status: 'done' } : u)) }
     } catch {
       alert('Upload failed')
+    }
+  }
+
+  const attachImageFromUrl = async () => {
+    if (!p) return
+    const url = imageUrl.trim()
+    if (!url) { alert('Enter an image URL'); return }
+    setBusy(true)
+    setMsg(null)
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}/images/upload`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url, path: imagePath || 'products' })
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j?.error || 'upload_failed')
+      // Refresh product so images reflect server state
+      const refreshed = await fetch(`/api/admin/products/${p.id}`).then(r => r.json() as Promise<ProductResponse>)
+      setP(refreshed?.product || (refreshed as any) || p)
+      setMsg('Image added via R2')
+      setImageUrl('')
+    } catch (e) {
+      alert(`Failed to add image: ${(e as Error).message}`)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -189,6 +216,14 @@ export default function AdminEditProduct(props: { id: string }) {
 
       <section className="checkout-section" style={{ marginTop: 16 }}>
         <h2 className="checkout-section__title">Images</h2>
+        <div className="card" style={{ padding: 12, marginBottom: 12 }}>
+          <div className="text-sm text-muted" style={{ marginBottom: 6 }}>Add image from URL (stored on R2, then attached to this product)</div>
+          <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+            <input className="form-input" style={{ minWidth: 280 }} placeholder="https://.../image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+            <input className="form-input" style={{ width: 160 }} placeholder="path (optional)" value={imagePath} onChange={e => setImagePath(e.target.value)} />
+            <button className="btn btn-primary" disabled={busy} onClick={attachImageFromUrl}>Add from URL</button>
+          </div>
+        </div>
         <div className="form-field" style={{ gridColumn: '1 / -1' }}>
           <div
             onDragOver={(e) => { e.preventDefault(); }}

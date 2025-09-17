@@ -3,7 +3,12 @@
   "timeout": 120000,
   "runners": ["axe"],
   "chromeLaunchConfig": {
-    "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+    "port": 9222,
+    "args": [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage"
+    ]
   },
   "hideElements": "iframe"
 }

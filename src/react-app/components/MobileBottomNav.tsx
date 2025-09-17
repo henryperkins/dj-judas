@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import React, { useState, useEffect, useRef, KeyboardEvent, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart, LuUsers } from 'react-icons/lu';
 import { navigate } from '../utils/nav';
+import { isMobileDevice } from '@/react-app/utils/platformDetection';
 
 
 export interface NavItem {
@@ -9,6 +10,7 @@ export interface NavItem {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   href?: string;
+  sectionId?: string; // explicit section mapping for scroll targets
   action?: () => void;
   badge?: number;
 }
@@ -21,30 +23,30 @@ export interface MobileBottomNavProps {
   showOnDesktop?: boolean;
 }
 
-const defaultNavItems: NavItem[] = [
+const NAV_ITEMS: NavItem[] = [
   {
     id: 'home',
     icon: LuHouse,
     label: 'Home',
-    href: '#home'
+    sectionId: 'home'
   },
   {
     id: 'listen',
     icon: LuMusic,
     label: 'Listen',
-    action: () => {} // Will be overridden by onPlatformLauncherOpen
+    action: () => { } // Will be overridden by onPlatformLauncherOpen
   },
   {
     id: 'events',
     icon: LuCalendar,
     label: 'Events',
-    href: '#events'
+    sectionId: 'events'
   },
   {
     id: 'social',
     icon: LuUsers,
     label: 'Social',
-    action: () => navigate('/social')
+    sectionId: 'social'
   },
   {
     id: 'shop',
@@ -60,33 +62,32 @@ const defaultNavItems: NavItem[] = [
   }
 ];
 
-const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
+export function MobileBottomNav({
   activeItem = 'home',
   onItemClick,
   onPlatformLauncherOpen,
   customItems,
   showOnDesktop = false
-}) => {
+}: MobileBottomNavProps) {
   const [currentActive, setCurrentActive] = useState(activeItem);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => isMobileDevice());
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  const navItems = customItems || defaultNavItems;
+  const navItems = customItems || NAV_ITEMS;
+
+  const checkMobile = useCallback(() => {
+    const mobile = isMobileDevice();
+    setIsMobile(mobile);
+    setIsVisible(mobile || showOnDesktop);
+  }, [showOnDesktop]);
 
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile =
-        typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches;
-      setIsMobile(mobile);
-      setIsVisible(mobile || showOnDesktop);
-    };
-
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, [showOnDesktop]);
+  }, [checkMobile]);
 
   useEffect(() => {
     if (!isMobile && !showOnDesktop) return;
@@ -109,10 +110,12 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   }, [lastScrollY, isMobile, showOnDesktop]);
 
   useEffect(() => {
-    // Map section ids to nav ids where needed (media -> listen)
-    const mapped = activeItem === 'media' ? 'listen' : activeItem;
-    setCurrentActive(mapped);
-  }, [activeItem]);
+    // Resolve active nav item by explicit sectionId mapping
+    const match =
+      navItems.find((item) => item.sectionId && item.sectionId === activeItem) ||
+      navItems.find((item) => item.id === activeItem);
+    setCurrentActive(match ? match.id : activeItem);
+  }, [activeItem, navItems]);
 
   useEffect(() => {
     if (isMobile || showOnDesktop) {
@@ -155,8 +158,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
     if (item.action) {
       item.action();
+    } else if (item.sectionId) {
+      // Smooth scroll to explicit section id
+      const target = document.getElementById(item.sectionId);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     } else if (item.href) {
-      // Smooth scroll to section
+      // Smooth scroll to section via href anchor
       const target = document.querySelector(item.href);
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -212,7 +221,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 const Icon = item.icon;
                 const isActive = currentActive === item.id;
 
-                const ariaControls = item.href && item.href.startsWith('#') ? item.href.slice(1) : undefined;
+                const ariaControls = item.sectionId
+                  ? item.sectionId
+                  : (item.href && item.href.startsWith('#') ? item.href.slice(1) : undefined);
                 return (
                   <li className="nav-li" key={item.id}>
                     <motion.button

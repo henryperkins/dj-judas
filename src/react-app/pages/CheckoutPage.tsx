@@ -95,7 +95,7 @@ export default function CheckoutPage() {
   const loadOptions = async () => {
     if (!MEDUSA_URL || !cartId) return
     const list = await listShippingOptions(cartId)
-    setOptions(list)
+    setOptions(list as ShippingOption[])
   }
 
   const addShippingMethod = async (option_id: string) => {

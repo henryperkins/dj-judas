@@ -3,58 +3,15 @@ import { LuMapPin, LuCalendarPlus, LuExternalLink, LuShare2, LuCopy } from 'reac
 import { useMemo, useState } from 'react';
 import { isIOS } from '../../utils/platformDetection';
 import { googleCalUrl } from '@/react-app/utils/events';
-
-function fmtDate(iso: string) {
-  const d = new Date(iso);
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-  return new Intl.DateTimeFormat(undefined, opts).format(d);
-}
-function fmtTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
-
-function monthDayBadge(iso: string) {
-  const d = new Date(iso);
-  return {
-    month: d.toLocaleString(undefined, { month: 'short' }).toUpperCase(),
-    day: d.getDate(),
-  };
-}
-
-
-function eventOffsetMinutes(iso: string): number | null {
-  const m = iso.match(/[+-]\d{2}:\d{2}$/);
-  if (!m) return 0; // Z or unspecified => treat as UTC
-  const sign = m[0][0] === '-' ? -1 : 1;
-  const [hh, mm] = m[0].slice(1).split(':').map(Number);
-  return sign * (hh * 60 + mm);
-}
-
-function userOffsetMinutes(): number {
-  return -new Date().getTimezoneOffset(); // convert to ISO-style sign
-}
-
-function formatRelative(iso: string): string {
-  const now = Date.now();
-  const start = new Date(iso).getTime();
-  const diffMs = start - now;
-
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
-
-  const byDay = Math.round(diffMs / day);
-  if (Math.abs(byDay) >= 1) return rtf.format(byDay, 'day');
-
-  const byHour = Math.round(diffMs / hour);
-  if (Math.abs(byHour) >= 1) return rtf.format(byHour, 'hour');
-
-  const byMinute = Math.round(diffMs / minute);
-  return rtf.format(byMinute, 'minute');
-}
+import {
+  eventOffsetMinutes,
+  formatFullDate,
+  formatPrimaryTime,
+  formatRelativeTime,
+  formatUserLocalTime,
+  monthDayBadge,
+  userOffsetMinutes,
+} from '@/react-app/utils/dateTime';
 
 export default function EventCard({ ev }: { ev: EventItem }) {
   const [copied, setCopied] = useState(false);
@@ -89,7 +46,7 @@ export default function EventCard({ ev }: { ev: EventItem }) {
   const eventOffset = eventOffsetMinutes(ev.startDateTime);
   const userOffset = userOffsetMinutes();
   const showUserLocal = eventOffset !== null && eventOffset !== userOffset;
-  const relativeStr = formatRelative(ev.startDateTime);
+  const relativeStr = formatRelativeTime(ev.startDateTime);
 
   return (
     <article className="event-card">
@@ -113,14 +70,19 @@ export default function EventCard({ ev }: { ev: EventItem }) {
         <div style={{ flex: 1 }}>
           <h3 style={{ margin: 0 }}>{ev.title}</h3>
           <p style={{ margin: '4px 0', opacity: 0.9 }}>
-            <time dateTime={ev.startDateTime}>{fmtDate(ev.startDateTime)} • {fmtTime(ev.startDateTime)}</time>
+            <time dateTime={ev.startDateTime}>{formatFullDate(ev.startDateTime)} • {formatPrimaryTime(ev.startDateTime)}</time>
             {` • ${relativeStr}`}
             {ev.city ? ` • ${ev.city}${ev.region ? ', ' + ev.region : ''}` : ''}
           </p>
           {showUserLocal && (
-            <p style={{ margin: '4px 0', opacity: 0.8 }}>Your time: {fmtTime(ev.startDateTime)}</p>
+            <p style={{ margin: '4px 0', opacity: 0.8 }}>Your time: {formatUserLocalTime(ev.startDateTime)}</p>
           )}
-          {ev.priceText && <p style={{ margin: '4px 0' }}>{ev.priceText}</p>}
+          {ev.summary && (
+            <p style={{ margin: '4px 0', opacity: 0.85 }}>{ev.summary}</p>
+          )}
+          {(ev.priceSummary || ev.priceText) && (
+            <p style={{ margin: '4px 0' }}>{ev.priceSummary || ev.priceText}</p>
+          )}
         </div>
       </div>
 

@@ -4,7 +4,11 @@
     "slug": "reunion-12-chicago-2026",
     "title": "12th Anniversary Reunion Concert",
     "description": "A special night with DJ Lee & The Voices of Judah celebrating 12 years of ministry.",
+    "summary": "Celebrate 12 years of worship with an evening of live praise, testimonies, and special guests in the heart of Chicago.",
     "flyerUrl": "/content/flyers/reunion-12-chicago-2026.jpg",
+    "flyerWidth": 1080,
+    "flyerHeight": 1350,
+    "imageMode": "contain",
     "startDateTime": "2026-01-10T18:00:00-06:00",
     "endDateTime": "2026-01-10T21:00:00-06:00",
     "venueName": "TBD",
@@ -14,13 +18,25 @@
     "country": "US",
     "latitude": null,
     "longitude": null,
-    "ticketUrl": "",
+    "ticketUrl": "https://example.com/tickets/reunion-12",
     "rsvpUrl": "",
-    "priceText": "",
-    "tags": ["concert"],
+    "priceText": "Early bird $20 • At the door $30",
+    "priceSummary": "Limited early bird tickets available until December 15.",
+    "mediaEmbedUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "mapEmbedUrl": "https://www.google.com/maps?q=41.8781,-87.6298&z=14&output=embed",
+    "faq": [
+      {
+        "question": "What time do doors open?",
+        "answer": "Doors open at 5:00 PM with pre-show fellowship before the concert begins at 6:00 PM."
+      },
+      {
+        "question": "Is parking available on site?",
+        "answer": "Yes, complimentary parking is available in the church lot and overflow parking is permitted in the adjacent community center."
+      }
+    ],
+    "tags": ["concert", "anniversary", "live"],
     "status": "published",
     "createdAt": "2025-09-02T00:00:00Z",
     "updatedAt": "2025-09-02T00:00:00Z"
   }
 ]
-

@@ -9,6 +9,7 @@ const AdminHome = lazy(() => import('./pages/AdminHome'));
 const AdminAddProduct = lazy(() => import('./pages/AdminAddProduct'));
 const AdminProductsList = lazy(() => import('./pages/AdminProductsList'));
 const AdminEditProduct = lazy(() => import('./pages/AdminEditProduct'));
+const EventDetailsPage = lazy(() => import('./pages/EventDetailsPage'));
 const EnhancedLandingPage = lazy(() => import('./components/EnhancedLandingPageV2'));
 
 interface RouterProps {
@@ -34,6 +35,12 @@ const Router: React.FC<RouterProps> = ({ path }) => {
     case '/admin/products/new':
       return <AdminAddProduct />;
     default:
+      {
+        const match = path.match(/^\/events\/([^/.]+)\/?$/);
+        if (match) {
+          return <EventDetailsPage slug={match[1]} />;
+        }
+      }
       if (/^\/admin\/products\/.+/.test(path)) {
         return <AdminEditProduct id={path.replace('/admin/products/', '')} />;
       }

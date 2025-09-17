@@ -16,6 +16,15 @@ export type EventItem = {
   ticketUrl?: string;
   rsvpUrl?: string;
   priceText?: string;
+  priceSummary?: string;
   tags?: string[];
   status?: 'draft' | 'published' | 'archived';
+  imageMode?: 'cover' | 'contain';
+  flyerWidth?: number | null;
+  flyerHeight?: number | null;
+  summary?: string;
+  mediaEmbedUrl?: string;
+  mapEmbedUrl?: string;
+  faq?: { question: string; answer: string }[];
+  galleryImages?: string[];
 };

@@ -43,9 +43,6 @@ binding = "DB"
 database_name = "dj-judas-db"
 database_id = "5b2ae7e3-cc4d-4c1e-9c14-63974347443a"
 
-# Smart placement for better performance
-[placement]
-mode = "smart"
 
 # ===== OPTIONAL ADVANCED BINDINGS =====
 # Uncomment and configure as needed:

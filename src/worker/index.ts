@@ -107,7 +107,7 @@ const app = new Hono<{ Bindings: Env }>();
 // Mount social metrics routes
 app.route('/', socialMetricsApp);
 
-// Analytics timing middleware (best-effort)
+ // Analytics timing middleware (best-effort)
 app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
@@ -121,6 +121,72 @@ app.use('*', async (c, next) => {
       });
     }
   } catch { /* ignore */ }
+});
+
+// Security headers and CORS
+app.use('*', async (c, next) => {
+  // Preflight
+  if (c.req.method === 'OPTIONS') {
+    const origin = c.req.header('Origin') || '';
+    const allowedOrigins = ['https://djlee.com', 'https://www.djlee.com', 'http://localhost:5173'];
+    if (origin && allowedOrigins.includes(origin)) {
+      c.header('Access-Control-Allow-Origin', origin);
+      c.header('Access-Control-Allow-Credentials', 'true');
+    }
+    c.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Signature, X-Timestamp');
+    return c.text('', 204);
+  }
+
+  await next();
+
+  c.header('X-Frame-Options', 'DENY');
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+  const origin = c.req.header('Origin') || '';
+  const allowedOrigins = ['https://djlee.com', 'https://www.djlee.com', 'http://localhost:5173'];
+  if (origin && allowedOrigins.includes(origin)) {
+    c.header('Access-Control-Allow-Origin', origin);
+    c.header('Access-Control-Allow-Credentials', 'true');
+  }
+});
+
+// Static assets served from R2 with edge caching
+app.get('/static/*', async (c) => {
+  const cache = (caches as any).default as Cache;
+  const cacheKey = new Request(c.req.url);
+
+  let response = await cache.match(cacheKey);
+
+  if (!response) {
+    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
+    const userAssets: any = (c.env as any).USER_ASSETS;
+    const bucket: any = mediaBucket || userAssets;
+
+    if (bucket && typeof bucket.get === 'function') {
+      const key = c.req.path.replace(/^\/static\/+/, '');
+      const object = await bucket.get(key);
+
+      if (object) {
+        response = new Response(object.body, {
+          headers: {
+            'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'ETag': object.etag || ''
+          }
+        });
+        try {
+          c.executionCtx?.waitUntil?.(cache.put(cacheKey, response.clone()));
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
+
+  return response || c.text('Not Found', 404);
 });
 
 // ---- Facebook/Instagram helpers ----

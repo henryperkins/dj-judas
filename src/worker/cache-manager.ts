@@ -86,7 +86,9 @@ export class CacheManager {
     const resp = new Response(body, {
       headers: {
         'content-type': 'application/json',
-        'Cache-Control': `public, max-age=${ttl}`,
+        'Cache-Control': `public, max-age=${ttl}, s-maxage=${ttl}`,
+        'CDN-Cache-Control': `max-age=${ttl}`,
+        'Cloudflare-CDN-Cache-Control': `max-age=${ttl}`,
         'X-Cache': 'MISS'
       }
     });

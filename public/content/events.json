@@ -1,42 +1,136 @@
 [
   {
+    "id": "fall-worship-night-indianapolis-2025",
+    "slug": "fall-worship-night-indianapolis-2025",
+    "title": "Fall Worship Night",
+    "summary": "An intimate evening of worship featuring new arrangements and testimonies from the road in Indianapolis.",
+    "description": "Join DJ Lee & The Voices of Judah for an immersive night of praise as we unveil new music and testimonies from this season's ministry tour. Expect a full choir, live band, and special guest psalmists from the Indianapolis region.",
+    "flyerUrl": "/content/flyers/fall-worship-night-indianapolis-2025.jpg",
+    "flyerWidth": 1200,
+    "flyerHeight": 1500,
+    "imageMode": "contain",
+    "startDateTime": "2025-10-18T19:00:00-04:00",
+    "endDateTime": "2025-10-18T21:30:00-04:00",
+    "venueName": "Calvary Community Church",
+    "address": "4400 N High School Rd",
+    "city": "Indianapolis",
+    "region": "IN",
+    "country": "US",
+    "latitude": 39.840901,
+    "longitude": -86.266148,
+    "ticketUrl": "https://tickets.djleevoices.com/fall-worship-night",
+    "rsvpUrl": "https://form.djleevoices.com/fall-worship-night",
+    "priceText": "Advance $25 • At the door $35",
+    "priceSummary": "Group bundles available for ministries of 10 or more.",
+    "mediaEmbedUrl": "https://www.youtube-nocookie.com/embed/hk6UMmqLw0g",
+    "mapEmbedUrl": "https://www.google.com/maps?q=39.840901,-86.266148&z=15&output=embed",
+    "faq": [
+      {
+        "question": "Are seats reserved?",
+        "answer": "All tickets are general admission. Doors open at 6:00 PM and seating is first come, first served."
+      },
+      {
+        "question": "Will childcare be provided?",
+        "answer": "Yes. A supervised kids worship lab is available for ages 4–10; register during checkout so we can plan volunteers."
+      }
+    ],
+    "galleryImages": [
+      "/content/gallery/fall-worship-setup.jpg",
+      "/content/gallery/fall-worship-choir.jpg",
+      "/content/gallery/fall-worship-crowd.jpg"
+    ],
+    "tags": ["worship night", "choir", "indianapolis"],
+    "status": "published",
+    "createdAt": "2025-09-12T00:00:00Z",
+    "updatedAt": "2025-09-12T00:00:00Z"
+  },
+  {
     "id": "reunion-12-chicago-2026",
     "slug": "reunion-12-chicago-2026",
     "title": "12th Anniversary Reunion Concert",
-    "description": "A special night with DJ Lee & The Voices of Judah celebrating 12 years of ministry.",
-    "summary": "Celebrate 12 years of worship with an evening of live praise, testimonies, and special guests in the heart of Chicago.",
+    "summary": "Celebrate 12 years of ministry with a full choir reunion, live band, and special alumni features in Chicago.",
+    "description": "We’re inviting every past and present member of DJ Lee & The Voices of Judah back to the stage for one unforgettable night of praise. Expect new arrangements of the classics, a live string section, and an extended altar ministry moment.",
     "flyerUrl": "/content/flyers/reunion-12-chicago-2026.jpg",
     "flyerWidth": 1080,
     "flyerHeight": 1350,
     "imageMode": "contain",
     "startDateTime": "2026-01-10T18:00:00-06:00",
     "endDateTime": "2026-01-10T21:00:00-06:00",
-    "venueName": "TBD",
-    "address": "",
+    "venueName": "House of Hope Chicago",
+    "address": "752 E 114th St",
     "city": "Chicago",
     "region": "IL",
     "country": "US",
-    "latitude": null,
-    "longitude": null,
-    "ticketUrl": "https://example.com/tickets/reunion-12",
-    "rsvpUrl": "",
+    "latitude": 41.689726,
+    "longitude": -87.603892,
+    "ticketUrl": "https://tickets.djleevoices.com/reunion-12",
+    "rsvpUrl": "https://form.djleevoices.com/reunion-12",
     "priceText": "Early bird $20 • At the door $30",
-    "priceSummary": "Limited early bird tickets available until December 15.",
-    "mediaEmbedUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    "mapEmbedUrl": "https://www.google.com/maps?q=41.8781,-87.6298&z=14&output=embed",
+    "priceSummary": "VIP meet & greet packages include reserved seating and signed merch.",
+    "mediaEmbedUrl": "https://w.soundcloud.com/player/?url=https%3A%2F%2Fapi.soundcloud.com%2Fusers%2Fsoundcloud%253Ausers%253A99304610&auto_play=false&show_artwork=true&visual=true",
+    "mapEmbedUrl": "https://www.google.com/maps?q=41.689726,-87.603892&z=15&output=embed",
     "faq": [
       {
         "question": "What time do doors open?",
-        "answer": "Doors open at 5:00 PM with pre-show fellowship before the concert begins at 6:00 PM."
+        "answer": "Doors open at 5:00 PM with a pre-show fellowship lounge. VIP guests may check in starting at 4:30 PM."
       },
       {
         "question": "Is parking available on site?",
-        "answer": "Yes, complimentary parking is available in the church lot and overflow parking is permitted in the adjacent community center."
+        "answer": "Complimentary parking is available in the main lot. Overflow parking with shuttle service is available from the 115th Street commuter lot."
       }
     ],
-    "tags": ["concert", "anniversary", "live"],
+    "galleryImages": [
+      "/content/gallery/reunion-choir-1.jpg",
+      "/content/gallery/reunion-altar-call.jpg",
+      "/content/gallery/reunion-band.jpg"
+    ],
+    "tags": ["anniversary", "concert", "chicago"],
     "status": "published",
     "createdAt": "2025-09-02T00:00:00Z",
-    "updatedAt": "2025-09-02T00:00:00Z"
+    "updatedAt": "2025-09-17T00:00:00Z"
+  },
+  {
+    "id": "new-year-praise-revival-atlanta-2026",
+    "slug": "new-year-praise-revival-atlanta-2026",
+    "title": "New Year Praise Revival",
+    "summary": "Launch 2026 with a high-energy revival night featuring DJ Lee & The Voices of Judah and guest worship leaders from Atlanta.",
+    "description": "We’re starting the new year with a declaration of victory in Atlanta. Experience prophetic worship, mass choir collaborations, and a midnight communion moment as we dedicate 2026 to the Lord.",
+    "flyerUrl": "/content/flyers/new-year-praise-revival-atlanta-2026.jpg",
+    "flyerWidth": 1200,
+    "flyerHeight": 1600,
+    "imageMode": "contain",
+    "startDateTime": "2026-01-02T18:30:00-05:00",
+    "endDateTime": "2026-01-02T22:30:00-05:00",
+    "venueName": "New Life Cathedral",
+    "address": "4025 Welcome All Rd",
+    "city": "Atlanta",
+    "region": "GA",
+    "country": "US",
+    "latitude": 33.626846,
+    "longitude": -84.516233,
+    "ticketUrl": "https://tickets.djleevoices.com/new-year-praise",
+    "rsvpUrl": "https://form.djleevoices.com/new-year-praise",
+    "priceText": "General $30 • VIP $55",
+    "priceSummary": "VIP includes early entry, reserved front-row seating, and post-service photo opportunity.",
+    "mediaEmbedUrl": "https://www.youtube-nocookie.com/embed/quZYCOGojw4",
+    "mapEmbedUrl": "https://www.google.com/maps?q=33.626846,-84.516233&z=15&output=embed",
+    "faq": [
+      {
+        "question": "Will there be a livestream?",
+        "answer": "Yes. A pay-per-view livestream will be available worldwide; details will be emailed to registered guests."
+      },
+      {
+        "question": "Can youth participate?",
+        "answer": "Absolutely. Our youth choir will open the night, and a student discount is available with valid ID."
+      }
+    ],
+    "galleryImages": [
+      "/content/gallery/new-year-revival-stage.jpg",
+      "/content/gallery/new-year-revival-congregation.jpg"
+    ],
+    "tags": ["revival", "atlanta", "worship"],
+    "status": "published",
+    "createdAt": "2025-09-15T00:00:00Z",
+    "updatedAt": "2025-09-17T00:00:00Z"
   }
 ]

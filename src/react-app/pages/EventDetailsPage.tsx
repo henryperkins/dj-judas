@@ -535,6 +535,19 @@ export default function EventDetailsPage({ slug }: EventDetailsPageProps) {
               </section>
             )}
 
+            {event.galleryImages?.length ? (
+              <section className="event-details-gallery" aria-label="Gallery">
+                <h2>Moments from tour</h2>
+                <div className="event-details-gallery-grid">
+                  {event.galleryImages.map((src, idx) => (
+                    <figure key={src} className="event-details-gallery-item">
+                      <img src={src} alt={`Gallery image ${idx + 1} for ${event.title}`} loading="lazy" />
+                    </figure>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {faqItems.length > 0 && (
               <section className="event-details-faq" aria-label="Frequently asked questions">
                 <h2>Frequently asked questions</h2>

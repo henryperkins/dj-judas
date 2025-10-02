@@ -36,6 +36,7 @@ export default function CheckoutPage() {
   })
   const [options, setOptions] = useState<ShippingOption[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [shippingBusy, setShippingBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const headers: Record<string, string> = useMemo(() => {
     const base: Record<string, string> = { 'content-type': 'application/json' }
@@ -100,11 +101,16 @@ export default function CheckoutPage() {
 
   const addShippingMethod = async (option_id: string) => {
     if (!MEDUSA_URL || !cartId) return
-    await fetch(`${MEDUSA_URL}/store/carts/${cartId}/shipping-methods`, {
-      method: 'POST', headers, body: JSON.stringify({ option_id })
-    })
-    const updated = await getCart(cartId)
-    setCart(updated)
+    setShippingBusy(true)
+    try {
+      await fetch(`${MEDUSA_URL}/store/carts/${cartId}/shipping-methods`, {
+        method: 'POST', headers, body: JSON.stringify({ option_id })
+      })
+      const updated = await getCart(cartId)
+      setCart(updated)
+    } finally {
+      setShippingBusy(false)
+    }
   }
 
   const completeMedusa = async () => {
@@ -229,10 +235,11 @@ export default function CheckoutPage() {
                 const price = typeof o.amount === 'number' ? formatAmount(o.amount, cart?.region?.currency_code || 'usd') : (o.price_type === 'calculated' ? 'Calculated at checkout' : '—')
                 return (
                   <button
-                    className={`shipping-option ${selected ? 'shipping-option--selected' : ''}`}
+                    className={`shipping-option ${selected ? 'shipping-option--selected' : ''} ${shippingBusy ? 'btn-loading' : ''}`}
                     key={o.id}
                     aria-pressed={selected}
                     onClick={() => addShippingMethod(o.id)}
+                    disabled={shippingBusy}
                   >
                     <span className="shipping-option__name">{o.name}</span>
                     <span className="shipping-option__price">{price}</span>
@@ -254,12 +261,19 @@ export default function CheckoutPage() {
     <aside className="checkout-summary">
       <h2 className="checkout-section__title">Order Summary</h2>
       {/* Line items */}
-      {cart?.items?.map((li: CartItem) => (
+      {cart?.items?.map((li: CartItem) => {
+        const totalDiscount = li.adjustments?.reduce((sum, adj) => sum + (adj.amount || 0), 0) || 0
+        return (
         <div key={li.id} className="cart-item">
           {li.thumbnail && <img className="cart-item__image" src={li.thumbnail} alt="" />}
           <div className="cart-item__details">
             <div className="cart-item__name">{li.title}</div>
             {li.variant?.title && <div className="cart-item__variant">{li.variant.title}</div>}
+            {totalDiscount > 0 && (
+              <div className="text-success text-sm">
+                Discount: -{formatAmount(totalDiscount, cart?.region?.currency_code || 'usd')}
+              </div>
+            )}
           </div>
           <div className="cart-item__actions">
             <div className="quantity-selector" aria-label={`Quantity for ${li.title || 'item'}`} role="group">
@@ -289,7 +303,31 @@ export default function CheckoutPage() {
             <div className="ml-2">{formatAmount(li.unit_price * li.quantity, cart?.region?.currency_code || 'usd')}</div>
           </div>
         </div>
-      ))}
+        )
+      })}
+
+      {/* Applied Promotion Codes */}
+      {cart?.promotions && cart.promotions.length > 0 && (
+        <div className="mb-3 pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <div className="text-sm font-medium mb-2">Applied Promotions:</div>
+          {cart.promotions.map((promo) => (
+            <div key={promo.id} className="text-sm text-success flex items-center justify-between">
+              <span>
+                {promo.code || 'Auto-applied'}
+                {promo.is_automatic && <span className="text-muted ml-1">(automatic)</span>}
+              </span>
+              {promo.application_method && (
+                <span className="text-xs">
+                  {promo.application_method.type === 'percentage'
+                    ? `${promo.application_method.value}% off`
+                    : `-${formatAmount(Number(promo.application_method.value), promo.application_method.currency_code)}`
+                  }
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Totals */}
       <div className="cart-summary__row">
@@ -300,6 +338,12 @@ export default function CheckoutPage() {
         <span>Shipping</span>
         <span>{formatAmount(cart?.shipping_total ?? 0, cart?.region?.currency_code || 'usd')}</span>
       </div>
+      {cart?.discount_total != null && cart.discount_total > 0 && (
+        <div className="cart-summary__row text-success">
+          <span>Discount</span>
+          <span>-{formatAmount(cart.discount_total, cart?.region?.currency_code || 'usd')}</span>
+        </div>
+      )}
       <div className="cart-summary__row">
         <span>Tax</span>
         <span>{formatAmount(cart?.tax_total ?? 0, cart?.region?.currency_code || 'usd')}</span>

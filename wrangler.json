@@ -15,10 +15,6 @@
   "kv_namespaces": [
     { "binding": "SESSIONS", "id": "b7654d69472c4e1b8eda8bbae8ee2776" }
   ],
-  "r2_buckets": [
-    { "binding": "MEDIA_BUCKET", "bucket_name": "dj-judas-media" },
-    { "binding": "USER_ASSETS", "bucket_name": "user-assets" }
-  ],
   "d1_databases": [
     { "binding": "DB", "database_name": "dj-judas-db", "database_id": "5b2ae7e3-cc4d-4c1e-9c14-63974347443a" }
   ],
@@ -29,7 +25,7 @@
     ]
   },
   "migrations": [
-    { "tag": "do-v1", "new_classes": ["RateLimiter", "UserSession"] }
+    { "tag": "do-v1", "new_sqlite_classes": ["RateLimiter", "UserSession"] }
   ],
   "analytics_engine_datasets": [
     { "binding": "ANALYTICS" }

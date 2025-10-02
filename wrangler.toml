@@ -28,15 +28,6 @@ id = "b7654d69472c4e1b8eda8bbae8ee2776"
 [ai]
 binding = "AI"
 
-# R2 Buckets
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "dj-judas-media"
-
-[[r2_buckets]]
-binding = "USER_ASSETS"
-bucket_name = "user-assets"
-
 # D1 Database
 [[d1_databases]]
 binding = "DB"
@@ -45,19 +36,6 @@ database_id = "5b2ae7e3-cc4d-4c1e-9c14-63974347443a"
 
 
 # ===== OPTIONAL ADVANCED BINDINGS =====
-# Uncomment and configure as needed:
-
-# D1 Database for structured data (events, products, etc.)
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "dj-judas-db"
-# database_id = "YOUR_DATABASE_ID"
-
-# R2 for media storage (images, videos)
-# [[r2_buckets]]
-# binding = "MEDIA_BUCKET"
-# bucket_name = "dj-judas-media"
-
 # Queue for background processing (emails, notifications)
 # [[queues.producers]]
 # binding = "EMAIL_QUEUE"
@@ -74,7 +52,7 @@ class_name = "UserSession"
 
 [[migrations]]
 tag = "do-v1"
-new_classes = ["RateLimiter", "UserSession"]
+new_sqlite_classes = ["RateLimiter", "UserSession"]
 
 # Analytics Engine for custom metrics
 [[analytics_engine_datasets]]

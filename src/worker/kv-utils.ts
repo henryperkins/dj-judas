@@ -30,7 +30,6 @@ export async function kvGetWithRetry<T = string>(
   maxRetries = 3
 ): Promise<T | null> {
   let attempt = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const resp = await kv.get(key);
@@ -56,7 +55,6 @@ export async function kvPutWithRetry(
 ): Promise<void> {
   const body = typeof value === 'string' ? value : JSON.stringify(value);
   let attempt = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       await kv.put(key, body, { expirationTtl: ttl });
@@ -102,7 +100,7 @@ export async function getCachedOrFetch<T>(
 // -----------------------------------------------------------------------------
 // Request coalescing: deduplicate in-flight calls by key
 // -----------------------------------------------------------------------------
-const inflight = new Map<string, Promise<any>>();
+const inflight = new Map<string, Promise<unknown>>();
 
 export function coalesceRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   if (!inflight.has(key)) {
@@ -116,6 +114,9 @@ export function coalesceRequest<T>(key: string, fetcher: () => Promise<T>): Prom
     })();
     inflight.set(key, p);
   }
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return inflight.get(key)! as Promise<T>;
+  const promise = inflight.get(key);
+  if (!promise) {
+    throw new Error('Inflight promise not found for key: ' + key);
+  }
+  return promise as Promise<T>;
 }

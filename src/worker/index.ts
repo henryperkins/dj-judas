@@ -63,6 +63,103 @@ interface FacebookEvent {
   is_canceled?: boolean;
 }
 
+// Durable Object namespace binding type
+interface DurableObjectNamespace {
+  idFromName(name: string): DurableObjectId;
+  idFromString(id: string): DurableObjectId;
+  get(id: DurableObjectId): DurableObjectStub;
+}
+
+interface DurableObjectId {
+  toString(): string;
+  equals(other: DurableObjectId): boolean;
+}
+
+interface DurableObjectStub {
+  fetch(requestOrUrl: Request | string, init?: RequestInit): Promise<Response>;
+}
+
+// D1 Database binding type
+interface D1Database {
+  prepare(query: string): D1PreparedStatement;
+  batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
+  exec(query: string): Promise<D1ExecResult>;
+  dump(): Promise<ArrayBuffer>;
+}
+
+interface D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement;
+  first<T = unknown>(colName?: string): Promise<T | null>;
+  run<T = unknown>(): Promise<D1Result<T>>;
+  all<T = unknown>(): Promise<D1Result<T>>;
+  raw<T = unknown>(): Promise<T[]>;
+}
+
+interface D1Result<T = unknown> {
+  results?: T[];
+  success: boolean;
+  meta?: Record<string, unknown>;
+  error?: string;
+}
+
+interface D1ExecResult {
+  count: number;
+  duration: number;
+}
+
+// Analytics Engine binding type
+interface AnalyticsEngineDataset {
+  writeDataPoint(event: {
+    indexes?: string[];
+    doubles?: number[];
+    blobs?: string[];
+  }): void;
+}
+
+// R2 Bucket binding type
+interface R2Bucket {
+  get(key: string): Promise<R2Object | null>;
+  head(key: string): Promise<R2Object | null>;
+  put(key: string, value: ReadableStream | ArrayBuffer | string, options?: R2PutOptions): Promise<R2Object>;
+  delete(keys: string | string[]): Promise<void>;
+  list(options?: R2ListOptions): Promise<R2Objects>;
+}
+
+interface R2Object {
+  key: string;
+  body: ReadableStream;
+  etag: string;
+  size: number;
+  uploaded: Date;
+  httpMetadata?: {
+    contentType?: string;
+    contentLanguage?: string;
+    contentDisposition?: string;
+    contentEncoding?: string;
+    cacheControl?: string;
+    cacheExpiry?: Date;
+  };
+  customMetadata?: Record<string, string>;
+}
+
+interface R2PutOptions {
+  httpMetadata?: R2Object['httpMetadata'];
+  customMetadata?: Record<string, string>;
+}
+
+interface R2Objects {
+  objects: R2Object[];
+  truncated: boolean;
+  cursor?: string;
+}
+
+interface R2ListOptions {
+  limit?: number;
+  prefix?: string;
+  cursor?: string;
+  delimiter?: string;
+}
+
 interface Env {
 	SESSIONS: KVNamespace;
 	SPOTIFY_CLIENT_ID: string;
@@ -96,10 +193,13 @@ interface Env {
     run: (model: string, options: { prompt: string; image?: Uint8Array[] }) => Promise<{ output?: string; response?: string; text?: string }>;
   }; // Workers AI binding
   // Durable Object namespace bindings (optional; configured in wrangler.toml when enabled)
-  RATE_LIMITER?: any;
-  USER_SESSIONS?: any;
-  DB?: any;
-  ANALYTICS?: any;
+  RATE_LIMITER?: DurableObjectNamespace;
+  USER_SESSIONS?: DurableObjectNamespace;
+  DB?: D1Database;
+  ANALYTICS?: AnalyticsEngineDataset;
+  // R2 Buckets
+  MEDIA_BUCKET?: R2Bucket;
+  USER_ASSETS?: R2Bucket;
   R2_PUBLIC_BASE?: string; // e.g., https://r2.thevoicesofjudah.com
 }
 const app = new Hono<{ Bindings: Env }>();
@@ -112,11 +212,11 @@ app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
   try {
-    const ae: any = (c.env as any).ANALYTICS;
+    const ae = c.env.ANALYTICS;
     if (ae && typeof ae.writeDataPoint === 'function') {
       ae.writeDataPoint({
         indexes: [c.req.path, c.req.method],
-        doubles: [Date.now() - start, (c.res as any)?.status || 0],
+        doubles: [Date.now() - start, c.res?.status || 0],
         blobs: [c.req.header('CF-Connecting-IP') || '', c.req.header('User-Agent') || '']
       });
     }
@@ -155,15 +255,15 @@ app.use('*', async (c, next) => {
 
 // Static assets served from R2 with edge caching
 app.get('/static/*', async (c) => {
-  const cache = (caches as any).default as Cache;
+  const cache = (caches as unknown as { default: Cache }).default;
   const cacheKey = new Request(c.req.url);
 
   let response = await cache.match(cacheKey);
 
   if (!response) {
-    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
-    const userAssets: any = (c.env as any).USER_ASSETS;
-    const bucket: any = mediaBucket || userAssets;
+    const mediaBucket = c.env.MEDIA_BUCKET;
+    const userAssets = c.env.USER_ASSETS;
+    const bucket = mediaBucket || userAssets;
 
     if (bucket && typeof bucket.get === 'function') {
       const key = c.req.path.replace(/^\/static\/+/, '');
@@ -230,11 +330,11 @@ app.get("/api/", (c) => c.json({ name: "Cloudflare" }));
 
 // Real aggregated social metrics endpoint with caching
 app.get('/api/metrics', async (c) => {
-  const cache = new CacheManager((c.env as any).SESSIONS);
+  const cache = new CacheManager(c.env.SESSIONS);
   const cacheKey = 'social_metrics:aggregate:v3';
 
   // L1/L2 cache
-  const hit = await cache.get<any>(`/${cacheKey}`).catch(() => null);
+  const hit = await cache.get<Record<string, unknown>>(`/${cacheKey}`).catch(() => null);
   if (hit) {
     return c.json(hit, 200, {
       'Cache-Control': 'public, max-age=900',
@@ -468,7 +568,7 @@ app.get('/api/spotify/callback', async (c) => {
 
 		// Also persist in Durable Object (if bound)
 		try {
-			const ns: any = (c.env as any).USER_SESSIONS;
+			const ns = c.env.USER_SESSIONS;
 			if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
 				const id = ns.idFromName(sessionId);
 				const stub = ns.get(id);
@@ -578,7 +678,7 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 
 	// Prefer Durable Object
 	try {
-		const ns: any = (c.env as any).USER_SESSIONS;
+		const ns = c.env.USER_SESSIONS;
 		if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
 			const id = ns.idFromName(match[1]);
 			const stub = ns.get(id);
@@ -724,7 +824,7 @@ app.post('/api/admin/login', async (c) => {
     c.header('Set-Cookie', `medusa_admin_jwt=${encodeURIComponent(token)}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${60 * 60 * 6}`);
     // Track session in DO (best-effort), keyed by token
     try {
-      const ns: any = (c.env as any).USER_SESSIONS;
+      const ns = c.env.USER_SESSIONS;
       if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
         const key = `admin:${token.slice(0, 16)}`; // avoid full token in key
         const id = ns.idFromName(key);
@@ -755,7 +855,7 @@ app.get('/api/admin/session', async (c) => {
   if (!token) return c.json({ authenticated: false }, 200);
   // Prefer DO session check first
   try {
-    const ns: any = (c.env as any).USER_SESSIONS;
+    const ns = c.env.USER_SESSIONS;
     if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
       const key = `admin:${token.slice(0, 16)}`;
       const id = ns.idFromName(key);
@@ -886,9 +986,9 @@ app.post('/api/admin/products/:id/images/upload', async (c) => {
     if (!url) return c.json({ error: 'missing_url' }, 400);
 
     // Upload to R2 (prefer MEDIA_BUCKET + custom domain)
-    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
-    const userAssets: any = (c.env as any).USER_ASSETS;
-    const bucket: any = mediaBucket || userAssets;
+    const mediaBucket = c.env.MEDIA_BUCKET;
+    const userAssets = c.env.USER_ASSETS;
+    const bucket = mediaBucket || userAssets;
     if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
 
     const upstream = await fetch(url);
@@ -906,11 +1006,11 @@ app.post('/api/admin/products/:id/images/upload', async (c) => {
     const pRes = await fetch(`${MEDUSA}/admin/products/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
     let currentImages: string[] = [];
     if (pRes.ok) {
-      const pj: any = await pRes.json();
-      const product = pj?.product || pj; // v1 sometimes returns { product }
+      const pj = await pRes.json() as { product?: { images?: unknown[] } } | { images?: unknown[] };
+      const product: { images?: unknown[] } = ('product' in pj && pj?.product ? pj.product : pj) as { images?: unknown[] }; // v1 sometimes returns { product }
       const imgs = product?.images || [];
       // Normalize to array of URLs
-      currentImages = (imgs as any[]).map((x: any) => (typeof x === 'string' ? x : (x?.url || x?.src || x?.original_url))).filter(Boolean);
+      currentImages = (Array.isArray(imgs) ? imgs : []).map((x: unknown) => (typeof x === 'string' ? x : ((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.src || (x as Record<string, unknown>)?.original_url) as string)).filter(Boolean);
     }
     // Append new image if not present
     const next = publicUrl ? Array.from(new Set([...currentImages, publicUrl])) : currentImages;
@@ -951,9 +1051,9 @@ app.post('/api/images/direct-upload', async (c) => {
 app.post('/api/r2/upload', async (c) => {
   const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!admin) return c.json({ error: 'unauthorized' }, 401);
-  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
-  const userAssets: any = (c.env as any).USER_ASSETS;
-  const bucket: any = mediaBucket || userAssets;
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const userAssets = c.env.USER_ASSETS;
+  const bucket = mediaBucket || userAssets;
   if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'not_configured' }, 501);
   try {
     const { url, path } = await c.req.json<{ url: string; path?: string }>();
@@ -974,9 +1074,9 @@ app.post('/api/r2/upload', async (c) => {
 
 app.get('/api/r2/*', async (c) => {
   const key = c.req.path.replace(/^\/api\/r2\//, '');
-  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
-  const userAssets: any = (c.env as any).USER_ASSETS;
-  const bucket: any = mediaBucket || userAssets;
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const userAssets = c.env.USER_ASSETS;
+  const bucket = mediaBucket || userAssets;
   if (!bucket || typeof bucket.get !== 'function') return c.json({ error: 'not_configured' }, 501);
   // If a public base is configured (or we know MEDIA_BUCKET custom domain), redirect to CDN
   const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
@@ -993,11 +1093,11 @@ app.get('/api/r2/*', async (c) => {
 app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!token) return c.json({ error: 'unauthorized' }, 401);
-  const db: any = (c.env as any).DB;
+  const db = c.env.DB;
   if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
-  const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
-  const userAssets: any = (c.env as any).USER_ASSETS;
-  const bucket: any = mediaBucket || userAssets;
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const userAssets = c.env.USER_ASSETS;
+  const bucket = mediaBucket || userAssets;
   if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
   try {
     const { url } = await c.req.json<{ url: string }>();
@@ -1122,7 +1222,7 @@ app.post('/api/booking', async (c) => {
     // Prefer DO-based rate limiter if bound; fallback to in-memory
     const allowed = await (async () => {
       try {
-        const ns: any = (c.env as any).RATE_LIMITER;
+        const ns = c.env.RATE_LIMITER;
         if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
           const id = ns.idFromName('global');
           const stub = ns.get(id);
@@ -1132,10 +1232,12 @@ app.post('/api/booking', async (c) => {
             body: JSON.stringify({ ip, limit: 10, window: 60 })
           });
           if (res.status === 429) return false;
-          const j = await res.json().catch(() => ({ allowed: true }));
+          const j = await res.json().catch(() => ({ allowed: true })) as { allowed?: boolean };
           return !!j.allowed;
         }
-      } catch {}
+      } catch {
+        // Ignore rate limiter errors, fall back to in-memory
+      }
       const now = Date.now();
       const bucket = rateMap.get(ip);
       if (!bucket || bucket.reset < now) {
@@ -1330,9 +1432,9 @@ app.get('/api/instagram/oembed', async (c) => {
 
     // Multi-tier cache key
     const cacheKey = `ig:${url}:${maxwidth || ''}:${omitscript || ''}:${hidecaption || ''}`;
-    const cache = new CacheManager((c.env as any).SESSIONS);
+    const cache = new CacheManager(c.env.SESSIONS);
     const edgeKey = `/oembed:${cacheKey}`;
-    const l1 = await cache.get<any>(edgeKey).catch(() => null);
+    const l1 = await cache.get<Record<string, unknown>>(edgeKey).catch(() => null);
     if (l1) {
       return c.json(l1, 200, {
         'Access-Control-Allow-Origin': '*',
@@ -1484,9 +1586,9 @@ app.get('/api/instagram/media', async (c) => {
     const fields = c.req.query('fields') || 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username';
 
     // L1 + L2 cache
-    const cache = new CacheManager((c.env as any).SESSIONS);
+    const cache = new CacheManager(c.env.SESSIONS);
     const cacheKey = `/ig_media:${igUserId}:${limit}:${fields}`;
-    const cached = await cache.get<any>(cacheKey).catch(() => null);
+    const cached = await cache.get<Record<string, unknown>>(cacheKey).catch(() => null);
     if (cached) {
       return c.json(cached, 200, {
         'Access-Control-Allow-Origin': '*',
@@ -1923,7 +2025,7 @@ const STATIC_EVENTS_FALLBACK: EventItem[] = [
 ];
 async function loadEventsFromD1(c: { env: Env }): Promise<EventItem[] | null> {
   try {
-    const db: any = (c.env as any).DB;
+    const db = c.env.DB;
     if (!db || typeof db.prepare !== 'function') return null;
     const sql = `SELECT id, slug, title, description, flyer_url as flyerUrl,
       start_time as startDateTime, end_time as endDateTime, venue_name as venueName,
@@ -1932,12 +2034,12 @@ async function loadEventsFromD1(c: { env: Env }): Promise<EventItem[] | null> {
       FROM events WHERE status = 'published' ORDER BY datetime(start_time) ASC`;
     const { results } = await db.prepare(sql).all();
     if (!results || results.length === 0) return [];
-    return results.map((r: any) => ({
-      id: r.id,
-      slug: r.slug,
-      title: r.title,
-      description: r.description || undefined,
-      flyerUrl: r.flyerUrl || undefined,
+    return (results as Array<Record<string, unknown>>).map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      slug: r.slug as string,
+      title: r.title as string,
+      description: (r.description as string) || undefined,
+      flyerUrl: (r.flyerUrl as string) || undefined,
       startDateTime: r.startDateTime,
       endDateTime: r.endDateTime || undefined,
       venueName: r.venueName || undefined,
@@ -1950,7 +2052,7 @@ async function loadEventsFromD1(c: { env: Env }): Promise<EventItem[] | null> {
       ticketUrl: r.ticketUrl || undefined,
       rsvpUrl: r.rsvpUrl || undefined,
       priceText: r.priceText || undefined,
-      tags: r.tags ? JSON.parse(r.tags) : [],
+      tags: r.tags ? JSON.parse(r.tags as string) : [],
       status: r.status || 'published'
     })) as EventItem[];
   } catch {
@@ -2000,11 +2102,11 @@ app.post('/api/admin/events/import', async (c) => {
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!token) return c.json({ error: 'unauthorized' }, 401);
   try {
-    const db: any = (c.env as any).DB;
+    const db = c.env.DB;
     if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
-    const mediaBucket: any = (c.env as any).MEDIA_BUCKET;
-    const userAssets: any = (c.env as any).USER_ASSETS;
-    const bucket: any = mediaBucket || userAssets;
+    const mediaBucket = c.env.MEDIA_BUCKET;
+    const userAssets = c.env.USER_ASSETS;
+    const bucket = mediaBucket || userAssets;
 
     const body = await c.req.json<{ url?: string; events?: EventItem[]; replace?: boolean; uploadFlyersToR2?: boolean }>();
     let list: EventItem[] | null = null;
@@ -2042,7 +2144,7 @@ app.post('/api/admin/events/import', async (c) => {
     const wantR2 = !!body?.uploadFlyersToR2 && bucket && typeof bucket.put === 'function' && base;
 
     for (const ev of list) {
-      let flyerUrl = ev.flyerUrl || (ev as any).flyer_url || '';
+      let flyerUrl = ev.flyerUrl || (ev as Record<string, unknown>).flyer_url as string || '';
       // Upload flyer to R2 if requested and flyerUrl is http(s) or relative
       if (wantR2 && flyerUrl) {
         try {
@@ -2088,7 +2190,7 @@ app.post('/api/admin/events/import', async (c) => {
         JSON.stringify(ev.tags || []),
         ev.status || 'published'
       ).run();
-      if ((insert as any)?.success !== false) upserts++;
+      if ((insert as { success?: boolean })?.success !== false) upserts++;
     }
 
     // Invalidate cache

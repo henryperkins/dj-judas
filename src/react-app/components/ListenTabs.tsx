@@ -33,7 +33,11 @@ export default function ListenTabs({
   const [active, setActive] = useState<Provider>(initial)
 
   useEffect(() => {
-    try { localStorage.setItem('preferredProvider', active) } catch {}
+    try {
+      localStorage.setItem('preferredProvider', active)
+    } catch {
+      // Ignore localStorage errors (e.g., private browsing)
+    }
   }, [active])
 
   const resolvedSpotify = spotifyUrl || defaultSpotifyUrl
@@ -80,7 +84,7 @@ export default function ListenTabs({
                 rel="noopener noreferrer"
                 className="brand-btn brand-btn--spotify"
                 aria-label="Open in Spotify (opens app)"
-                style={{ ['--brand-color' as any]: SPOTIFY_COLOR }}
+                style={{ ['--brand-color' as string]: SPOTIFY_COLOR } as React.CSSProperties}
               >
                 <FaSpotify /> Open in Spotify
               </a>
@@ -92,7 +96,7 @@ export default function ListenTabs({
                 rel="noopener noreferrer"
                 className="brand-btn brand-btn--apple"
                 aria-label="Open in Apple Music (opens app)"
-                style={{ ['--brand-color' as any]: APPLE_COLOR }}
+                style={{ ['--brand-color' as string]: APPLE_COLOR } as React.CSSProperties}
               >
                 <FaApple /> Open in Apple Music
               </a>

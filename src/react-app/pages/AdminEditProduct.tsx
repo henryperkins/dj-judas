@@ -100,7 +100,7 @@ export default function AdminEditProduct(props: { id: string }) {
       if (!res.ok) throw new Error(j?.error || 'upload_failed')
       // Refresh product so images reflect server state
       const refreshed = await fetch(`/api/admin/products/${p.id}`).then(r => r.json() as Promise<ProductResponse>)
-      setP(refreshed?.product || (refreshed as any) || p)
+      setP(refreshed?.product || (refreshed as unknown as Product) || p)
       setMsg('Image added via R2')
       setImageUrl('')
     } catch (e) {

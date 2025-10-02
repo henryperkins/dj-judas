@@ -4,7 +4,10 @@
       "Bash(npm run dev:*)",
       "Bash(npm install:*)",
       "WebSearch",
-      "mcp__medusa__search_medusa_sources"
+      "mcp__medusa__search_medusa_sources",
+      "Bash(test:*)",
+      "Bash(npx medusa db:migrate:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []

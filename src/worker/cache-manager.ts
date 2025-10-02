@@ -29,7 +29,7 @@ export class CacheManager {
   constructor (kv: KVNamespace | undefined | null, edgeCache?: Cache) {
     this.kv = kv ?? null;
     // `caches.default` is available at runtime; cast for TS
-    this.edgeCache = (edgeCache ?? ((caches as any).default as Cache));
+    this.edgeCache = (edgeCache ?? ((caches as unknown as { default: Cache }).default));
   }
 
   /**
@@ -37,7 +37,7 @@ export class CacheManager {
    *
    * If `asResponse` is true, returns a Response; otherwise parses JSON.
    */
-  async get<T = any> (
+  async get<T = unknown> (
     key: string,
     { asResponse = false }: { asResponse?: boolean } = {}
   ): Promise<T | Response | null> {
@@ -78,7 +78,7 @@ export class CacheManager {
    */
   async set (
     key: string,
-    value: any,
+    value: unknown,
     ttl = 900
   ): Promise<void> {
     const body = typeof value === 'string' ? value : JSON.stringify(value);

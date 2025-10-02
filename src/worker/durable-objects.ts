@@ -2,9 +2,19 @@
 // This file contains the Durable Object classes for rate limiting and session management
 
 // Minimal local types to avoid requiring external type packages during build
+interface DurableObjectStorage {
+  get<T = unknown>(key: string): Promise<T | undefined>;
+  get<T = unknown>(keys: string[]): Promise<Map<string, T>>;
+  list<T = unknown>(options?: { prefix?: string; start?: string; end?: string }): Promise<Map<string, T>>;
+  put<T = unknown>(key: string, value: T, options?: { expirationTtl?: number }): Promise<void>;
+  put<T = unknown>(entries: Record<string, T>): Promise<void>;
+  delete(key: string | string[]): Promise<boolean | number>;
+  setAlarm(scheduledTime: number | Date): Promise<void>;
+}
+
 type DurableObjectState = {
-  storage: any;
-  acceptWebSocket: (ws: any) => void;
+  storage: DurableObjectStorage;
+  acceptWebSocket: (ws: WebSocket) => void;
   blockConcurrencyWhile: (fn: () => Promise<void>) => void;
 };
 
@@ -12,9 +22,18 @@ interface DurableObject {
   fetch(request: Request): Promise<Response>;
 }
 
-// Declared globals in Workers runtime (use any for TS compile)
-declare const WebSocketPair: any;
-type AnalyticsEngineDataset = any;
+// Declared globals in Workers runtime
+declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
+
+interface AnalyticsEngineDataPoint {
+  blobs?: string[];
+  doubles?: number[];
+  indexes?: string[];
+}
+
+type AnalyticsEngineDataset = {
+  writeDataPoint(event: AnalyticsEngineDataPoint): void;
+};
 
 /**
  * RateLimiter Durable Object
@@ -22,8 +41,8 @@ type AnalyticsEngineDataset = any;
  */
 export class RateLimiter implements DurableObject {
   private state: DurableObjectState;
-  
-  constructor(state: DurableObjectState, _env: any) {
+
+  constructor(state: DurableObjectState) {
     this.state = state;
   }
   
@@ -113,19 +132,26 @@ export class RateLimiter implements DurableObject {
  * UserSession Durable Object
  * Provides secure, distributed session management
  */
+interface SessionData {
+  [key: string]: unknown;
+  createdAt?: number;
+  expiresAt?: number;
+  lastAccessed?: number;
+}
+
 export class UserSession implements DurableObject {
   private state: DurableObjectState;
-  private sessions: Map<string, any> = new Map();
+  private sessions: Map<string, SessionData> = new Map();
   private websockets: Set<WebSocket> = new Set();
-  
-  constructor(state: DurableObjectState, _env: any) {
+
+  constructor(state: DurableObjectState) {
     this.state = state;
-    
+
     // Restore sessions from storage
     this.state.blockConcurrencyWhile(async () => {
-      const stored = await this.state.storage.get('sessions');
+      const stored = await this.state.storage.get<Array<[string, SessionData]>>('sessions');
       if (stored) {
-        this.sessions = new Map(stored as any);
+        this.sessions = new Map(stored);
       }
     });
   }
@@ -177,21 +203,21 @@ export class UserSession implements DurableObject {
   }
   
   private async setSession(request: Request): Promise<Response> {
-    const { sessionId, data, ttl = 3600 } = await request.json() as { sessionId: string; data: any; ttl?: number };
-    
-    const session = {
+    const { sessionId, data, ttl = 3600 } = await request.json() as { sessionId: string; data: Record<string, unknown>; ttl?: number };
+
+    const session: SessionData = {
       ...data,
       createdAt: Date.now(),
       expiresAt: Date.now() + (ttl * 1000),
       lastAccessed: Date.now()
     };
-    
+
     this.sessions.set(sessionId, session);
     await this.persistSessions();
-    
+
     // Notify WebSocket clients
     this.broadcastUpdate('session_updated', { sessionId });
-    
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -238,35 +264,35 @@ export class UserSession implements DurableObject {
     if (!upgradeHeader || upgradeHeader !== 'websocket') {
       return new Response('Expected Upgrade: websocket', { status: 426 });
     }
-    
+
     const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair) as any[];
-    
-    this.state.acceptWebSocket(server as any);
+    const [client, server] = [pair[0], pair[1]];
+
+    this.state.acceptWebSocket(server);
     this.websockets.add(server);
-    
-    (server as any).addEventListener('close', () => {
+
+    server.addEventListener('close', () => {
       this.websockets.delete(server);
     });
-    
-    (server as any).addEventListener('message', async (_event: any) => {
+
+    server.addEventListener('message', async () => {
       try {
         // noop
-      } catch (error) {
-        (server as any).send(JSON.stringify({ error: 'Invalid message format' }));
+      } catch {
+        server.send(JSON.stringify({ error: 'Invalid message format' }));
       }
     });
-    
-    return new Response(null, { status: 101, webSocket: client } as any);
+
+    return new Response(null, { status: 101, webSocket: client } as ResponseInit & { webSocket: WebSocket });
   }
   
-  private broadcastUpdate(type: string, data: any): void {
+  private broadcastUpdate(type: string, data: Record<string, unknown>): void {
     const message = JSON.stringify({ type, data, timestamp: Date.now() });
-    
+
     this.websockets.forEach(ws => {
       try {
         ws.send(message);
-      } catch (error) {
+      } catch {
         // Remove dead connections
         this.websockets.delete(ws);
       }
@@ -303,7 +329,7 @@ export class UserSession implements DurableObject {
  * Cache manager utility using Cache API
  */
 export class CacheManager {
-  private readonly cacheApi = (caches as any).default as Cache;
+  private readonly cacheApi = (caches as unknown as { default: Cache }).default;
   
   async get<T>(key: string): Promise<T | null> {
     const cacheKey = new Request(`https://cache.internal/${key}`);
@@ -419,7 +445,7 @@ export class AnalyticsTracker {
   }): void {
     try {
       this.analyticsEngine.writeDataPoint({
-        blobs: [event.type, event.endpoint, event.userId, event.error].filter(Boolean),
+        blobs: [event.type, event.endpoint, event.userId, event.error].filter(Boolean) as string[],
         doubles: [Date.now(), event.duration || 0, event.status || 0],
         indexes: [event.type]
       });

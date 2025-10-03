@@ -126,7 +126,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         localController.destroy();
       }
     };
-  }, [spotifyUri]);
+  }, [spotifyUri, seeking]);
 
   // Check auth session
   useEffect(() => {

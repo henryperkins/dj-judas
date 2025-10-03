@@ -49,7 +49,8 @@
   --color-secondary: hsl(0 0% 96%);
   --color-secondary-foreground: hsl(240 5.9% 10%);
   --color-muted: hsl(0 0% 96%);
-  --color-muted-foreground: hsl(240 4% 38%);
+  /* Increase contrast for small text (AA) */
+  --color-muted-foreground: hsl(240 5% 26%);
   --color-border: hsl(240 5% 58%);
   --color-border-strong: hsl(240 5% 48%);
   --color-input: var(--color-border-strong);
@@ -219,6 +220,10 @@
   /* Section helpers */
   .section-title {
     @apply text-center mb-8 text-foreground;
+  }
+
+  .section-subtitle {
+    @apply text-center mb-6 text-muted-foreground;
   }
 
   .section-py {
@@ -566,6 +571,17 @@
     contain-intrinsic-size: 520px;
   }
 
+  /* Ensure solid background for contrast-sensitive areas */
+  .social-section {
+    @apply bg-card;
+  }
+
+  .social-section .section-title,
+  .social-section .section-subtitle,
+  .social-section h3 {
+    @apply text-foreground;
+  }
+
   .hero-content {
     @apply text-center text-foreground p-8 md:p-12 max-w-[800px] z-[1] bg-card rounded-[var(--radius)] border border-border;
   }
@@ -764,7 +780,8 @@
   }
 
   .photo-overlay p {
-    @apply text-white text-[0.95rem] font-semibold inline-block px-2 py-1 rounded-md bg-black/60;
+    /* Stronger overlay for reliable contrast on varied images */
+    @apply text-white text-[0.95rem] font-semibold inline-block px-2 py-1 rounded-md bg-black/80;
   }
 
   .lightbox-overlay {
@@ -3772,6 +3789,44 @@ img[loading='lazy'] {
     border-radius: var(--radius-lg);
     box-shadow: none;
     animation: none;
+  }
+}
+
+/* ==========================================================================
+   PHASE 4.5: MOBILE SHARE & SOCIAL BUTTON COMPLIANCE
+   - WCAG 2.2 Level AA touch targets (44×44px minimum)
+   - Applied to ShareManager and social share buttons
+   - Desktop unchanged, mobile-only fixes
+   ========================================================================== */
+
+/* Mobile: ShareManager action buttons - 44px minimum height */
+@media (max-width: 767px) {
+  .share-action-btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem; /* 12px vertical for better touch */
+  }
+
+  .deep-link-btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  .share-btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem; /* Override px-3 py-2 */
+  }
+
+  /* Ensure proper flex sizing on mobile */
+  .share-primary-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .share-platform-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 }
 

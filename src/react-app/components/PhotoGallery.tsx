@@ -298,8 +298,8 @@ const PhotoGallery: React.FC = () => {
                 decoding="async"
                 className="object-cover w-full h-full"
               />
-              <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-black/20 to-transparent p-2">
-                <p className="text-xs text-white line-clamp-2">{photo.caption}</p>
+              <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/50 to-transparent p-2">
+                <p className="text-xs text-white line-clamp-2 bg-black/80 px-2 py-1 rounded">{photo.caption}</p>
               </div>
             </motion.button>
           ))}

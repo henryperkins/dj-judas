@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
   LuCirclePlay, LuMusic, LuShare2, LuFacebook, LuInstagram, LuGlobe, LuMic
 } from "react-icons/lu";
@@ -9,8 +8,11 @@ import {
   LazyUniversalEmbed
 } from './social/embeds/LazyEmbeds';
 import ListenTabs from './ListenTabs';
+import ListenTabsMobile from './ListenTabsMobile';
+import InstagramEmbedMobile from './social/embeds/InstagramEmbedMobile';
 import { ShareManager } from './social';
 import type { DeepLink } from './social/sharing/ShareManager';
+import { useIsMobile } from '@/react-app/hooks/useMediaQuery';
 
 export type CreatorMediaPanelProps = {
   artist?: string;
@@ -45,6 +47,7 @@ export default function CreatorMediaPanel({
 }: CreatorMediaPanelProps) {
   const [tab, setTab] = useState<"listen" | "watch" | "social" | "share">("listen");
   const canonical = useMemo(() => shareUrl || (typeof window !== "undefined" ? window.location.href : ""), [shareUrl]);
+  const isMobile = useIsMobile();
 
   // Get environment variables for defaults
   const spotifyArtistId = import.meta.env?.VITE_SPOTIFY_ARTIST_ID;
@@ -111,45 +114,52 @@ export default function CreatorMediaPanel({
 
 
   return (
-    <section className="relative">
-      <div className="mx-auto w-full max-w-5xl rounded-xl border bg-card p-1 text-card-foreground">
+    <section className="relative mx-auto w-full max-w-5xl">
+      <div className="rounded-xl border bg-card p-6 sm:p-8 text-card-foreground">
         {/* Header */}
-        <div className="rounded-xl border bg-card p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{artist}</h2>
-              <p className="text-muted-foreground">{tagline}</p>
-            </div>
-
-            {/* Tabs */}
-            <div className="inline-flex rounded-lg border bg-card p-1">
-              {[
-                { key: "listen", label: "Listen", icon: LuMusic },
-                { key: "watch", label: "Watch", icon: LuCirclePlay },
-                { key: "social", label: "Social", icon: LuMic },
-                { key: "share", label: "Share", icon: LuShare2 },
-              ].map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setTab(key as "listen" | "watch" | "social" | "share")}
-                  className={`group relative inline-flex items-center gap-2 rounded-md px-3 sm:px-4 py-2 text-sm font-semibold transition
-                    ${tab === key ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:bg-secondary"}`}
-                >
-                  <Icon size={18} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{artist}</h2>
+            <p className="text-muted-foreground">{tagline}</p>
           </div>
 
-          {/* Body */}
-          <div className="mt-6 grid gap-6">
+          {/* Tabs */}
+          <div className="inline-flex rounded-lg border bg-background p-1">
+            {[
+              { key: "listen", label: "Listen", icon: LuMusic },
+              { key: "watch", label: "Watch", icon: LuCirclePlay },
+              { key: "social", label: "Social", icon: LuMic },
+              { key: "share", label: "Share", icon: LuShare2 },
+            ].map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setTab(key as "listen" | "watch" | "social" | "share")}
+                className={`group relative inline-flex items-center gap-2 rounded-md px-3 sm:px-4 py-2 text-sm font-semibold transition
+                  ${tab === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="grid gap-6">
             {tab === "listen" && (
               <SectionCard title="Listen" hint="Choose your streaming platform">
-                <ListenTabs
-                  spotifyUrl={spotifyUrl || defaultSpotifyUrl}
-                  appleMusicUrl={appleMusicUrl}
-                />
+                {isMobile ? (
+                  <ListenTabsMobile
+                    spotifyUrl={spotifyUrl || defaultSpotifyUrl}
+                    appleMusicUrl={appleMusicUrl}
+                    autoExpand={false}
+                  />
+                ) : (
+                  <ListenTabs
+                    spotifyUrl={spotifyUrl || defaultSpotifyUrl}
+                    appleMusicUrl={appleMusicUrl}
+                  />
+                )}
               </SectionCard>
             )}
 
@@ -183,7 +193,14 @@ export default function CreatorMediaPanel({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Instagram" hint="Latest posts and reels">
                   {instagramPermalink ? (
-                    <LazyInstagramEmbed url={instagramPermalink} />
+                    isMobile ? (
+                      <InstagramEmbedMobile
+                        posts={[{ url: instagramPermalink }]}
+                        profileUrl={defaultInstagramUrl}
+                      />
+                    ) : (
+                      <LazyInstagramEmbed url={instagramPermalink} />
+                    )
                   ) : defaultInstagramUrl ? (
                     <div className="grid grid-cols-2 gap-3">
                       <LinkTile href={defaultInstagramUrl} label="View Profile" icon={<LuInstagram size={18} />} />
@@ -236,7 +253,6 @@ export default function CreatorMediaPanel({
                 layout="auto"
               />
             )}
-          </div>
         </div>
       </div>
     </section>
@@ -249,17 +265,15 @@ function SectionCard({
   title, hint, children,
 }: React.PropsWithChildren<{ title: string; hint?: string }>) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {hint && <CardDescription>{hint}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-hidden rounded-md bg-card">
-          {children}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="rounded-lg border bg-background/50 overflow-hidden">
+      <div className="p-4 border-b bg-muted/30">
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        {hint && <p className="text-sm text-muted-foreground mt-1">{hint}</p>}
+      </div>
+      <div className="p-4">
+        {children}
+      </div>
+    </div>
   );
 }
 

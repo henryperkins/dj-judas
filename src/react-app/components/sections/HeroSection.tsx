@@ -14,7 +14,6 @@ interface HeroSectionProps {
 const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
   return (
     <motion.section
-      id="home"
       className={`hero-section ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -33,6 +32,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           transition={{ delay: 0.1, duration: 0.8 }}
         />
         <motion.h1
+          id="hero-heading"
           className="hero-title"
           initial={{ y: 30 }}
           animate={{ y: 0 }}

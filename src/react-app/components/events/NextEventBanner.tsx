@@ -268,7 +268,7 @@ export default function NextEventBanner({ imageMode = 'contain' }: NextEventBann
                 <span className="next-event-date-label">{formatShortDate(event.startDateTime)}</span>
                 <time dateTime={event.startDateTime}>{formatPrimaryTime(event.startDateTime)}</time>
               </div>
-              <div className="next-event-location" aria-label="Event location">
+              <div className="next-event-location">
                 <LuMapPin size={16} aria-hidden="true" />
                 <span>{cityRegion || event.venueName || 'Location TBA'}</span>
               </div>

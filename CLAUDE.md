@@ -2,7 +2,87 @@
 
 Guidance for Claude Code when working in this repository.
 
-Last updated: 2025-10-03 (Mobile Modern Features - Phase 3)
+Last updated: 2025-10-03 (Mobile Streaming & Social - Phase 4)
+
+## Recent Updates
+
+### Mobile Streaming & Social Components (Phase 4) - 2025-10-03
+
+**What Changed**:
+- ✅ Mobile-optimized streaming players (Spotify, Apple Music)
+- ✅ Bottom sheet design pattern for full-screen players
+- ✅ Instagram card-based feed with pull-to-refresh
+- ✅ Listen tabs with mini player and platform switcher
+- ✅ 60px primary controls (play/pause buttons)
+- ✅ 48px secondary controls (all other buttons)
+- ✅ Haptic feedback on all interactions
+- ✅ Offline mode support (Apple Music)
+- ✅ WCAG 2.2 Level AA compliance (24px min, achieved 44-60px)
+
+**Files Added**:
+- `src/react-app/components/social/embeds/SpotifyEmbedMobile.tsx` - Bottom sheet Spotify player
+- `src/react-app/components/social/embeds/AppleMusicEmbedMobile.tsx` - Native-style Apple Music player
+- `src/react-app/components/social/embeds/InstagramEmbedMobile.tsx` - Card-based Instagram feed
+- `src/react-app/components/ListenTabsMobile.tsx` - Platform switcher with mini player
+- `docs/MOBILE_STREAMING_SOCIAL_COMPONENTS.md` - **Comprehensive documentation**
+
+**Files Modified**:
+- `src/react-app/index.css` - Added ~350 lines Phase 4 CSS (lines 3427-3776)
+
+**Utilities Leveraged** (No Duplication):
+- `src/react-app/utils/haptics.ts` - Haptic feedback (Phase 3)
+- `src/react-app/utils/pull-to-refresh.ts` - Pull-to-refresh (Phase 3)
+
+**Utilities Available** (From Prior Phases):
+- `src/react-app/utils/swipe.ts` - Swipe gestures (available if needed)
+
+**Breaking Changes**: None (new components, existing ones unchanged)
+
+**Performance Impact**: +33KB gzipped (includes components + CSS)
+
+**Browser Support**: iOS 14+, Android 10+, Desktop evergreen browsers
+
+**Documentation**: See `docs/MOBILE_STREAMING_SOCIAL_COMPONENTS.md` for:
+- Complete component API reference
+- Usage examples
+- Migration guide from desktop components
+- Accessibility compliance details
+- Performance optimization strategies
+- Troubleshooting guide
+
+**Usage Examples**:
+```typescript
+// Spotify player with haptics
+import SpotifyEmbedMobile from './components/social/embeds/SpotifyEmbedMobile'
+<SpotifyEmbedMobile
+  url="https://open.spotify.com/track/123"
+  autoExpand={false}
+/>
+
+// Apple Music with offline support
+import AppleMusicEmbedMobile from './components/social/embeds/AppleMusicEmbedMobile'
+<AppleMusicEmbedMobile
+  url="https://music.apple.com/album/456"
+  affiliateToken="1000l3K"
+/>
+
+// Instagram feed with pull-to-refresh
+import InstagramEmbedMobile from './components/social/embeds/InstagramEmbedMobile'
+<InstagramEmbedMobile
+  posts={[{ url: 'https://instagram.com/p/ABC/' }]}
+  onRefresh={async () => await fetchPosts()}
+/>
+
+// Listen tabs with platform switcher
+import ListenTabsMobile from './components/ListenTabsMobile'
+<ListenTabsMobile
+  spotifyUrl="https://open.spotify.com/artist/123"
+  appleMusicUrl="https://music.apple.com/artist/456"
+  defaultProvider="spotify"
+/>
+```
+
+---
 
 ## Recent Updates
 

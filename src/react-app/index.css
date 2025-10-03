@@ -3424,6 +3424,357 @@ img[loading='lazy'] {
   }
 }
 
+/* =====================================================================
+   PHASE 4: MOBILE STREAMING & SOCIAL EMBEDS (2025 Standards)
+   Added: 2025-10-03
+   Standards: WCAG 2.2 AA (24px min), 44-60px primary controls
+   ===================================================== */
+
+/* 4.1: Spotify Embed Mobile - Bottom Sheet Player */
+.spotify-mini-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 72px;
+}
+
+.spotify-mini-player:hover {
+  background: var(--color-secondary);
+}
+
+.mini-player__art {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.mini-player__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mini-player__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mini-player__track {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-player__artist {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-player__play-btn {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  background: var(--color-brand-spotify);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s ease;
+}
+
+.mini-player__play-btn:active {
+  transform: scale(0.95);
+}
+
+.spotify-bottom-sheet,
+.apple-bottom-sheet,
+.listen-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-card);
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  padding: 1.5rem;
+  z-index: 1000;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  animation: slideUpMobile 0.3s ease;
+}
+
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.bottom-sheet__handle-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.bottom-sheet__handle {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-muted-foreground);
+}
+
+.bottom-sheet__art {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 1.5rem;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-muted);
+}
+
+.bottom-sheet__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bottom-sheet__metadata {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.bottom-sheet__track-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
+}
+
+.bottom-sheet__artist-name {
+  font-size: 1rem;
+  color: var(--color-muted-foreground);
+  margin: 0;
+}
+
+.bottom-sheet__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.progress__time {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+  min-width: 3ch;
+}
+
+.progress__slider {
+  flex: 1;
+  height: 48px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.progress__slider::-webkit-slider-track {
+  height: 4px;
+  background: var(--color-muted);
+  border-radius: 2px;
+}
+
+.progress__slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-spotify);
+  cursor: pointer;
+  margin-top: -6px;
+}
+
+.bottom-sheet__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.control-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.control-btn--primary {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  background: var(--color-brand-spotify);
+  color: white;
+}
+
+.control-btn--secondary {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.control-btn:active {
+  transform: scale(0.9);
+}
+
+.bottom-sheet__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.action-btn:hover {
+  background: var(--color-secondary);
+}
+
+/* 4.2: Instagram Cards */
+.instagram-feed-mobile {
+  width: 100%;
+}
+
+.instagram-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.instagram-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.card-metrics {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-muted-foreground);
+}
+
+/* 4.3: Listen Tabs Mobile */
+.listen-mini-player {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.platform-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  min-height: 48px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.platform-tab.active {
+  border-bottom-color: currentColor;
+}
+
+@media (min-width: 768px) {
+  .spotify-mini-player,
+  .apple-mini-player,
+  .listen-mini-player {
+    display: none;
+  }
+
+  .spotify-bottom-sheet,
+  .apple-bottom-sheet,
+  .listen-bottom-sheet {
+    position: relative;
+    max-height: none;
+    border-radius: var(--radius-lg);
+    box-shadow: none;
+    animation: none;
+  }
+}
+
 /* 6) Print minimal overrides --------------------------------------------- */
 @media print {
 

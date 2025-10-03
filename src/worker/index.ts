@@ -185,6 +185,7 @@ interface Env {
   STRIPE_WEBHOOK_SECRET?: string;
   SITE_URL?: string;
   MEDUSA_URL?: string; // Base URL to Medusa backend for admin proxy
+  ALLOWED_ORIGINS?: string; // Comma-separated list of allowed CORS origins
   CF_IMAGES_ACCOUNT_ID?: string;
   CF_IMAGES_API_TOKEN?: string;
   CF_IMAGES_VARIANT?: string; // e.g., 'public'
@@ -225,10 +226,15 @@ app.use('*', async (c, next) => {
 
 // Security headers and CORS
 app.use('*', async (c, next) => {
+  // Get allowed origins from env or use defaults
+  const defaultOrigins = ['https://djlee.com', 'https://www.djlee.com', 'http://localhost:5173'];
+  const allowedOrigins = c.env.ALLOWED_ORIGINS
+    ? c.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+    : defaultOrigins;
+
   // Preflight
   if (c.req.method === 'OPTIONS') {
     const origin = c.req.header('Origin') || '';
-    const allowedOrigins = ['https://djlee.com', 'https://www.djlee.com', 'http://localhost:5173'];
     if (origin && allowedOrigins.includes(origin)) {
       c.header('Access-Control-Allow-Origin', origin);
       c.header('Access-Control-Allow-Credentials', 'true');
@@ -246,7 +252,6 @@ app.use('*', async (c, next) => {
   c.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
   const origin = c.req.header('Origin') || '';
-  const allowedOrigins = ['https://djlee.com', 'https://www.djlee.com', 'http://localhost:5173'];
   if (origin && allowedOrigins.includes(origin)) {
     c.header('Access-Control-Allow-Origin', origin);
     c.header('Access-Control-Allow-Credentials', 'true');
@@ -580,8 +585,14 @@ app.get('/api/spotify/callback', async (c) => {
 			}
 		} catch { /* ignore */ }
 
-		c.header('Set-Cookie', `spotify_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
-		return c.json({ success: true });
+		// Conditional Secure flag for local development
+		const isHttps = new URL(c.req.url).protocol === 'https:';
+		const secure = isHttps ? ' Secure;' : '';
+		c.header('Set-Cookie', `spotify_session=${sessionId}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
+
+		// Redirect back to app instead of returning JSON
+		const returnUrl = c.env.SITE_URL || new URL(c.req.url).origin;
+		return c.redirect(`${returnUrl}/?spotify=connected`);
 });
 
 // Session status
@@ -613,12 +624,21 @@ app.get('/api/spotify/session', async (c) => {
 	return c.json({ authenticated: true, expiresAt: session.expiresAt });
 });
 
-// Apple Developer Token (ES256). Cache in memory until near expiry.
-let cachedAppleToken: { token: string; exp: number } | null = null;
+// Apple Developer Token (ES256). Cache in KV for shared access across worker instances.
 app.get('/api/apple/developer-token', async (c) => {
   const now = Math.floor(Date.now() / 1000);
-  if (cachedAppleToken && cachedAppleToken.exp - 60 > now) {
-    return c.json({ token: cachedAppleToken.token, cached: true });
+  const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
+
+  // Try KV cache first (shared across all worker instances)
+  if (kv) {
+    try {
+      const cached = await kv.get('apple_music_token', { type: 'json' }) as { token: string; exp: number } | null;
+      if (cached && cached.exp - 60 > now) {
+        return c.json({ token: cached.token, cached: true });
+      }
+    } catch (error) {
+      console.error('Failed to read Apple token from KV:', error);
+    }
   }
 
   // Check if required environment variables are configured
@@ -659,7 +679,18 @@ app.get('/api/apple/developer-token', async (c) => {
       .setExpirationTime(exp)
       .setIssuer(teamId)
       .sign(pk);
-    cachedAppleToken = { token, exp };
+
+    // Cache in KV for shared access across worker instances (11 hour TTL)
+    if (kv) {
+      try {
+        await kv.put('apple_music_token', JSON.stringify({ token, exp }), {
+          expirationTtl: 11 * 60 * 60
+        });
+      } catch (error) {
+        console.error('Failed to cache Apple token in KV:', error);
+      }
+    }
+
     return c.json({ token, cached: false, exp });
   } catch (error) {
     console.error('Failed to generate Apple Music developer token:', error);
@@ -711,7 +742,10 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 
 // Refresh Spotify access token
 async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: SpotifySession): Promise<SpotifySession | null> {
-	if (!session.refreshToken || !c.env.SPOTIFY_CLIENT_ID) return null;
+	if (!session.refreshToken || !c.env.SPOTIFY_CLIENT_ID) {
+		console.error('Cannot refresh Spotify token: missing refresh_token or SPOTIFY_CLIENT_ID');
+		return null;
+	}
 
 	try {
 		const res = await fetch('https://accounts.spotify.com/api/token', {
@@ -724,7 +758,11 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 			})
 		});
 
-		if (!res.ok) return null;
+		if (!res.ok) {
+			const errorText = await res.text().catch(() => 'Unknown error');
+			console.error(`Spotify token refresh failed: ${res.status} ${res.statusText}`, errorText);
+			return null;
+		}
 
 		const tokenJson = await res.json() as { access_token: string; refresh_token?: string; expires_in: number };
 		session.accessToken = tokenJson.access_token;
@@ -743,8 +781,10 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 			);
 		}
 
+		console.log('Spotify token refreshed successfully');
 		return session;
-	} catch {
+	} catch (error) {
+		console.error('Spotify token refresh exception:', error instanceof Error ? error.message : error);
 		return null;
 	}
 }

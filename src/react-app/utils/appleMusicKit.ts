@@ -292,7 +292,9 @@ class AppleMusicKitManager {
 
   // Extract Apple Music ID from URL
   extractIdFromUrl(url: string): { id: string; type: 'songs' | 'albums' | 'playlists' } | null {
-    const match = url.match(/music\.apple\.com\/[^/]+\/(album|playlist|song)\/[^/]+\/(?:pl\.)?([a-zA-Z0-9]+)/);
+    // Strip query parameters first to handle URLs like ?i=456&at=1000l3K
+    const cleanUrl = url.split('?')[0];
+    const match = cleanUrl.match(/music\.apple\.com\/[^/]+\/(album|playlist|song)\/[^/]+\/(?:pl\.)?([a-zA-Z0-9]+)/);
     if (!match) return null;
 
     let type: 'songs' | 'albums' | 'playlists';

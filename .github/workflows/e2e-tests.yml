@@ -1,0 +1,130 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  test:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run tests on multiple browsers
+        project: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.project }}
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run E2E tests
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+        env:
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos-${{ matrix.project }}
+          path: test-results/
+          retention-days: 7
+
+  # Separate job for accessibility testing
+  accessibility:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run accessibility tests
+        run: npm run check:a11y
+
+  # Report test results in PR
+  report:
+    if: always() && github.event_name == 'pull_request'
+    needs: [test, accessibility]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: reports/
+
+      - name: Comment PR with test results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            let comment = '## 🧪 E2E Test Results\n\n';
+
+            const reportDirs = fs.readdirSync('reports');
+
+            for (const dir of reportDirs) {
+              const browser = dir.replace('playwright-report-', '');
+              comment += `### ${browser}\n`;
+
+              try {
+                const resultsPath = path.join('reports', dir, 'results.json');
+                if (fs.existsSync(resultsPath)) {
+                  const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+                  const stats = results.stats || {};
+
+                  comment += `- ✅ Passed: ${stats.expected || 0}\n`;
+                  comment += `- ❌ Failed: ${stats.unexpected || 0}\n`;
+                  comment += `- ⏭️ Skipped: ${stats.skipped || 0}\n\n`;
+                }
+              } catch (e) {
+                comment += `- ⚠️ Could not parse results\n\n`;
+              }
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

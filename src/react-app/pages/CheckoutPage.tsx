@@ -131,42 +131,40 @@ export default function CheckoutPage() {
   }
 
   const payWithStripe = async () => {
-    if (!cartId || !sdk) return;
+    if (!cartId) return;
     setBusy(true);
     try {
+      // Create payment sessions
       await createPaymentSessions(cartId);
-      const cart = await getCart(cartId);
-      if (!cart) {
+      const freshCart = await getCart(cartId);
+      if (!freshCart) {
         setMsg("Cart not found");
         return;
       }
-      // Check if cart has payment sessions
+
+      // Check if Stripe provider is available
       interface CartWithSessions extends Cart {
-        payment_sessions?: Array<{ provider_id: string }>;
+        payment_sessions?: Array<{ provider_id: string; data?: { client_secret?: string } }>;
       }
-      const cartWithSessions = cart as CartWithSessions;
-      const stripeProvider = cartWithSessions?.payment_sessions?.find(
-        (ps: { provider_id: string }) => ps.provider_id === "stripe"
+      const cartWithSessions = freshCart as CartWithSessions;
+      const stripeSession = cartWithSessions?.payment_sessions?.find(
+        (ps) => ps.provider_id === "stripe"
       );
-      if (stripeProvider) {
-        // Use the initiatePaymentSession instead of non-existent setPaymentProvider
-        await sdk.store.payment.initiatePaymentSession(cart, {
-          provider_id: "stripe",
-        });
-        const res = await sdk.store.cart.complete(cartId);
-        if (res.type === "order") {
-          const oid = res.order?.id;
-          localStorage.removeItem("medusa_cart_id");
-          navigate(`/success${oid ? `?order_id=${encodeURIComponent(oid)}` : ""}`);
-        } else {
-          setMsg("Unable to complete order. Please check payment and address details.");
-        }
-      } else {
-        setMsg("Stripe payment provider not available.");
+
+      if (!stripeSession) {
+        setMsg("Stripe payment provider not available. Please use Medusa payment.");
+        return;
       }
+
+      // For Stripe, you need to collect payment details first
+      // This requires either:
+      // 1. Redirecting to Stripe Checkout (requires backend endpoint)
+      // 2. Using Stripe Elements to collect card (requires Stripe.js integration)
+      setMsg("Stripe payment requires additional setup. Please use Medusa payment for now.");
+
     } catch (error) {
-      console.error("Failed to pay with Stripe:", error);
-      setMsg("An error occurred while processing your payment. Please try again.");
+      console.error("Failed to initialize Stripe payment:", error);
+      setMsg("An error occurred while setting up payment. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -253,7 +251,7 @@ export default function CheckoutPage() {
             <h2 className="checkout-section__title">Payment</h2>
             <div className="payment-methods">
               <button className="btn btn-primary" onClick={completeMedusa} disabled={!cartId}>Pay (Medusa provider)</button>
-              <button className="btn btn-outline" onClick={payWithStripe}>Pay with Stripe</button>
+              <button className="btn btn-outline" onClick={payWithStripe} disabled title="Stripe integration requires backend setup">Pay with Stripe (Coming Soon)</button>
             </div>
           </section>
         </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { LuExternalLink, LuMusic, LuPlay, LuPause, LuLogIn, LuHeart, LuShare2 } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
+import { loadSpotifyEmbedAPI } from '@/react-app/utils/spotifyEmbedKit';
 
 interface SpotifyEmbedProps {
   url?: string; // Full Spotify URL or URI format
@@ -79,62 +80,67 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const embedHeight = compact ? 152 : contentType === 'album' ? 380 : 232;
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://open.spotify.com/embed/iframe-api/v1';
-    script.async = true;
     let localController: SpotifyEmbedController | null = null;
     let playbackHandler: ((e: { data: SpotifyPlaybackData }) => void) | null = null;
     let readyHandler: ((e: { data: SpotifyPlaybackData }) => void) | null = null;
 
-    script.onload = () => {
-  type IFrameAPIType = { createController: (el: HTMLElement, opts: Record<string, unknown>, cb: (ctrl: SpotifyEmbedController) => void) => void };
-  (window as unknown as { onSpotifyIframeApiReady?: (api: IFrameAPIType) => void }).onSpotifyIframeApiReady = (IFrameAPI: IFrameAPIType) => {
-        if (!embedRef.current) return;
+    const initEmbed = async () => {
+      try {
+        // Use singleton to load API (prevents duplicate script loads)
+        await loadSpotifyEmbedAPI();
 
-        const options = {
-          uri: spotifyUri,
-          width: '100%',
-          height: embedHeight,
-          theme: theme === 'dark' ? 0 : 1,
-        };
+        type IFrameAPIType = { createController: (el: HTMLElement, opts: Record<string, unknown>, cb: (ctrl: SpotifyEmbedController) => void) => void };
+        (window as unknown as { onSpotifyIframeApiReady?: (api: IFrameAPIType) => void }).onSpotifyIframeApiReady = (IFrameAPI: IFrameAPIType) => {
+          if (!embedRef.current) return;
 
-        IFrameAPI.createController(embedRef.current, options, (EmbedController) => {
-          setController(EmbedController);
-          localController = EmbedController;
-          setIsLoaded(true);
-
-          // Listen to playback updates
-          playbackHandler = (e) => {
-            setIsPlaying(!e.data.isPaused);
-            setTrackInfo(e.data.track_window?.current_track || null);
-            // Try reading position/duration from event (ms), fallback to track info
-            const posMs = (e.data.position ?? 0) as number;
-            const durMs = (e.data.duration ?? e.data.track_window?.current_track?.duration_ms ?? 0) as number;
-            if (!seeking) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
-            setDurationSec(Math.max(0, Math.floor(durMs / 1000)));
-            if (e.data.isPaused === false && onPlay) {
-              onPlay();
-              trackEngagement('spotify_play', { uri: spotifyUri, contentType });
-            }
+          const options = {
+            uri: spotifyUri,
+            width: '100%',
+            height: embedHeight,
+            theme: theme === 'dark' ? 0 : 1,
           };
-          EmbedController.addListener('playback_update', playbackHandler);
-          
-          // Listen to ready state
-          readyHandler = () => { console.log('Spotify player ready'); };
-          EmbedController.addListener('ready', readyHandler);
 
-          // Ensure the generated iframe has an accessible title
-          setTimeout(() => {
-            const iframe = embedRef.current?.querySelector('iframe');
-            if (iframe && !iframe.getAttribute('title')) {
-              iframe.setAttribute('title', 'Spotify player');
-            }
-          }, 0);
-        });
-      };
+          IFrameAPI.createController(embedRef.current, options, (EmbedController) => {
+            setController(EmbedController);
+            localController = EmbedController;
+            setIsLoaded(true);
+
+            // Listen to playback updates
+            playbackHandler = (e) => {
+              setIsPlaying(!e.data.isPaused);
+              setTrackInfo(e.data.track_window?.current_track || null);
+              // Try reading position/duration from event (ms), fallback to track info
+              const posMs = (e.data.position ?? 0) as number;
+              const durMs = (e.data.duration ?? e.data.track_window?.current_track?.duration_ms ?? 0) as number;
+              if (!seeking) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
+              setDurationSec(Math.max(0, Math.floor(durMs / 1000)));
+              if (e.data.isPaused === false && onPlay) {
+                onPlay();
+                trackEngagement('spotify_play', { uri: spotifyUri, contentType });
+              }
+            };
+            EmbedController.addListener('playback_update', playbackHandler);
+
+            // Listen to ready state
+            readyHandler = () => { console.log('Spotify player ready'); };
+            EmbedController.addListener('ready', readyHandler);
+
+            // Ensure the generated iframe has an accessible title
+            setTimeout(() => {
+              const iframe = embedRef.current?.querySelector('iframe');
+              if (iframe && !iframe.getAttribute('title')) {
+                iframe.setAttribute('title', 'Spotify player');
+              }
+            }, 0);
+          });
+        };
+      } catch (error) {
+        console.error('Failed to load Spotify Embed API:', error);
+      }
     };
 
-    document.body.appendChild(script);
+    initEmbed();
+
     return () => {
       try {
         if (localController) {
@@ -144,14 +150,6 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
         }
       } catch {
         // Intentionally empty: suppress any errors during cleanup
-      }
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-      // Avoid dangling callbacks if script was loaded
-      const win = window as unknown as { onSpotifyIframeApiReady?: unknown };
-      if (win.onSpotifyIframeApiReady) {
-        delete (win as Record<string, unknown>).onSpotifyIframeApiReady;
       }
     };
   }, [spotifyUri, embedHeight, theme, onPlay, contentType, seeking]);

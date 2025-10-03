@@ -138,53 +138,19 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     });
   }, [isLoaded.tiktok, mergedConfig.tiktok]);
 
-  const loadAppleMusicSDK = useCallback(() => {
+  const loadAppleMusicSDK = useCallback(async () => {
     if (isLoaded.apple) return;
 
-    return new Promise<void>((resolve) => {
-      if (document.getElementById('apple-music-js')) {
-        setIsLoaded(prev => ({ ...prev, apple: true }));
-        resolve();
-        return;
-      }
-
-      const initAppleMusic = async () => {
-        try {
-          const tokenResponse = await fetch('/api/apple/developer-token');
-          if (!tokenResponse.ok) throw new Error('Failed to get Apple developer token');
-          const { token } = await tokenResponse.json();
-
-          const script = document.createElement('script');
-          script.id = 'apple-music-js';
-          script.src = 'https://js-cdn.music.apple.com/musickit/v3/musickit.js';
-          script.async = true;
-          script.onload = () => {
-            if (window.MusicKit) {
-              window.MusicKit.configure({
-                developerToken: token,
-                app: {
-                  name: 'DJ Judas',
-                  build: '1.0.0'
-                }
-              });
-              setIsLoaded(prev => ({ ...prev, apple: true }));
-              socialMetrics.trackSDKLoad('appleMusic');
-            }
-            resolve();
-          };
-          script.onerror = () => {
-            console.error('Failed to load Apple Music SDK');
-            resolve();
-          };
-          document.body.appendChild(script);
-        } catch (error) {
-          console.error('Failed to initialize Apple Music:', error);
-          resolve();
-        }
-      };
-
-      initAppleMusic();
-    });
+    // Delegate to the proper singleton implementation in appleMusicKit.ts
+    // This prevents duplicate script loading and initialization conflicts
+    try {
+      const { loadAppleMusicKit } = await import('../utils/appleMusicKit');
+      await loadAppleMusicKit();
+      setIsLoaded(prev => ({ ...prev, apple: true }));
+      socialMetrics.trackSDKLoad('appleMusic');
+    } catch (error) {
+      console.error('Failed to load Apple Music SDK:', error);
+    }
   }, [isLoaded.apple]);
 
   const loadSpotifySDK = useCallback(() => {

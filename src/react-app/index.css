@@ -1963,15 +1963,7 @@
     @apply text-xl font-semibold m-0 mb-4 text-foreground;
   }
 
-  .checkout-summary {
-    @apply lg:sticky lg:top-6;
-  }
-
-  @media (max-width: 968px) {
-    .checkout-summary {
-      @apply sticky bottom-0 bg-background border-t-2 border-border mx-[-1rem] px-4 py-4 z-10;
-    }
-  }
+  /* Checkout summary positioning handled by Phase 1 mobile-first styles (line ~2830) */
 
   .form-field {
     @apply mb-5 last:mb-0;
@@ -2623,6 +2615,253 @@
 
 .admin-compact .checkout-section__title {
   font-size: 1.1rem;
+}
+
+/* =====================================================
+   PHASE 1: Mobile Touch Target Compliance (WCAG 2.2)
+   Added: 2025-10-03
+   ===================================================== */
+
+/* 1.1: Base touch target sizing - applies to all interactive elements */
+@media (max-width: 640px) {
+  /* Ensure all buttons meet 44x44px minimum */
+  .btn,
+  button:not(.unstyled),
+  a.btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem 1rem; /* 10px 16px */
+  }
+
+  /* Small buttons - increase from current ~32x28px */
+  .btn-sm {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem 0.875rem; /* 10px 14px */
+    font-size: 0.875rem; /* Maintain visual hierarchy */
+  }
+
+  /* Icon-only buttons - explicit sizing */
+  .btn-icon {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem;
+  }
+
+  /* Quantity selector - critical for checkout UX */
+  .quantity-selector__btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem; /* 20px - larger tap area visual */
+    padding: 0.5rem;
+    touch-action: manipulation; /* Prevent double-tap zoom */
+  }
+
+  /* Shipping options - often too small */
+  .shipping-option {
+    min-height: 56px; /* Extra height for readability */
+    padding: 0.875rem 1rem; /* 14px 16px */
+    touch-action: manipulation;
+  }
+
+  /* Product card buttons - key conversion point */
+  .product-card__actions .btn {
+    min-height: 44px;
+    width: 100%; /* Full width for easier tapping */
+    justify-content: center;
+  }
+
+  /* Navigation items - already compliant but explicit */
+  .nav-item {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Form submit buttons - critical actions */
+  .submit-button,
+  .booking-cta-button {
+    min-height: 48px; /* Slightly larger for primary actions */
+    min-width: 48px;
+    padding: 0.75rem 1.5rem; /* 12px 24px */
+  }
+
+  /* Checkout footer button - thumb zone optimization */
+  .checkout-footer .btn {
+    min-height: 52px; /* Easier to tap with thumb */
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Admin compact mode buttons */
+  .admin-compact .btn-sm {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Radio buttons and checkboxes - increase hit area */
+  input[type="radio"],
+  input[type="checkbox"] {
+    min-width: 24px;
+    min-height: 24px;
+    margin-right: 0.5rem;
+  }
+
+  /* Radio/checkbox labels - expand clickable area */
+  input[type="radio"] + *,
+  input[type="checkbox"] + * {
+    padding: 0.5rem;
+    margin: -0.5rem;
+  }
+
+  /* Ensure spacing between touch targets (24px minimum) */
+  .product-card__actions {
+    gap: 0.75rem; /* 12px - adequate for 44px targets */
+  }
+
+  .form-grid button + button,
+  .btn-group .btn + .btn {
+    margin-left: 0.75rem; /* 12px spacing */
+  }
+
+  /* Stack buttons vertically when space is tight */
+  .payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .payment-methods .btn {
+    width: 100%;
+  }
+}
+
+/* High-contrast mode - ensure touch targets are visible */
+@media (prefers-contrast: high) {
+  .btn,
+  button:not(.unstyled) {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* 1.2: Input font-size compliance - prevent iOS auto-zoom */
+@media (max-width: 640px) {
+  /* All form inputs must be 16px minimum to prevent iOS Safari zoom */
+  .form-input,
+  .form-select,
+  .form-textarea,
+  input:not([type="radio"]):not([type="checkbox"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important; /* Override any smaller sizes */
+    -webkit-text-size-adjust: 100%; /* Prevent font scaling */
+  }
+
+  /* Admin compact inputs - override the 14.4px */
+  .admin-compact .form-input-sm,
+  .admin-compact .form-select-sm,
+  .admin-compact .form-textarea-sm {
+    font-size: 16px !important;
+    padding: 0.5rem 0.75rem; /* Adjust padding to maintain visual size */
+  }
+
+  /* BookingForm inputs */
+  .booking-form input,
+  .booking-form select,
+  .booking-form textarea,
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px !important;
+  }
+
+  /* Search inputs */
+  input[type="search"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="url"],
+  input[type="password"] {
+    font-size: 16px !important;
+  }
+
+  /* Placeholder text should also be 16px */
+  input::placeholder,
+  textarea::placeholder {
+    font-size: 16px;
+  }
+
+  /* Labels can be smaller, but not inputs */
+  .form-label,
+  .form-group label {
+    font-size: 0.875rem; /* 14px - acceptable for labels */
+  }
+}
+
+/* 1.3: Mobile-first breakpoint standardization
+
+   BREAKPOINT SYSTEM (mobile-first):
+   - Base: 320px - 480px (Mobile - default styles, no media query)
+   - sm:  481px+ (min-width: 481px) - Large mobile
+   - md:  769px+ (min-width: 769px) - Tablet
+   - lg:  1025px+ (min-width: 1025px) - Desktop
+   - xl:  1281px+ (min-width: 1281px) - Large desktop
+*/
+
+/* Product Grid - Already mobile-first via Tailwind, enhanced here for smallest screens */
+@media (max-width: 480px) {
+  .product-grid {
+    gap: 1rem; /* Tighter gap on smallest screens */
+  }
+}
+
+/* Checkout Summary - Convert from desktop-first to mobile-first */
+.checkout-summary {
+  /* Mobile base: sticky at bottom */
+  position: sticky;
+  bottom: 0;
+  background: var(--color-background);
+  border-top: 2px solid var(--color-border);
+  margin-inline: -1rem;
+  padding: 1rem;
+  z-index: 10;
+}
+
+@media (min-width: 969px) {
+  /* Desktop: sticky at top in sidebar */
+  .checkout-summary {
+    position: sticky;
+    top: 1.5rem;
+    border-top: none;
+    margin-inline: 0;
+  }
+}
+
+/* Form grids - Ensure single column on mobile (already handled by Tailwind sm:, md:, lg:) */
+/* Hero section mobile optimizations - Already using max-width which is appropriate for mobile-specific tweaks */
+/* Services sections - Already using max-width which is appropriate for mobile-specific tweaks */
+
+/* Mobile-specific enhancements for 320px minimum width */
+@media (max-width: 375px) {
+  /* Extra small screens (iPhone SE, etc) */
+  .section-title {
+    font-size: 1.5rem; /* Slightly smaller */
+  }
+
+  .product-card__title {
+    font-size: 1rem;
+  }
+
+  .checkout-container {
+    padding-inline: 0.5rem; /* Tighter padding */
+  }
+
+  .hero-content {
+    padding: 1.25rem;
+  }
 }
 
 /* 5) Animations (keyframes only; use Tailwind animate-* where possible) --- */

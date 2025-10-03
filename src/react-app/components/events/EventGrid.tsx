@@ -110,13 +110,13 @@ export default function EventGrid() {
         )}
 
         {upcoming.length > 1 && (
-          <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div className="events-bulk-actions">
             <a href="/events.ics" className="btn btn-secondary">Add All Upcoming to Calendar (ICS)</a>
           </div>
         )}
 
         {past.length > 0 && (
-          <div style={{ marginTop: 40 }}>
+          <div className="events-past-section">
             <h3 className="section-title">Past Events</h3>
             <div className="events-list">
               {past.map(ev => <EventCard key={ev.id} ev={ev} />)}

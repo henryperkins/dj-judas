@@ -69,11 +69,25 @@ binding = "ANALYTICS"
 # namespace_id = "1"
 # simple = { limit = 10, period = 60 }
 
+# ===== ENVIRONMENT VARIABLES =====
+# Local development uses localhost URLs
+# Production will use vars set via `wrangler secret put` or dashboard
+# After deploying, configure these in Cloudflare Dashboard:
+# - MEDUSA_URL (your production Medusa backend URL)
+# - CF_IMAGES_ACCOUNT_ID & CF_IMAGES_API_TOKEN (for product image uploads)
+# - OPENAI_API_KEY (for AI product descriptions - optional)
+# - RESEND_API_KEY or SENDGRID_API_KEY (for booking emails - optional)
+
+[vars]
+# These are dev defaults - override in production via dashboard
+MEDUSA_URL = "http://localhost:9000"
+SITE_URL = "http://localhost:5173"
+
 # ===== ENVIRONMENT-SPECIFIC CONFIGURATIONS =====
 # [env.production]
-# vars = { ENVIRONMENT = "production" }
+# vars = { ENVIRONMENT = "production", MEDUSA_URL = "https://your-medusa-backend.com" }
 # route = "djlee.com/*"
-# 
+#
 # [env.staging]
 # vars = { ENVIRONMENT = "staging" }
 # route = "staging.djlee.com/*"

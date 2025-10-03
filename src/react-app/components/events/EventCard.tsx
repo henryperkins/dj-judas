@@ -49,44 +49,43 @@ export default function EventCard({ ev }: { ev: EventItem }) {
   const relativeStr = formatRelativeTime(ev.startDateTime);
 
   return (
-    <article className="event-card">
+    <article className="local-event-card">
       {/* Image-first layout */}
       {ev.flyerUrl && (
         <div className="event-flyer">
           <img
             src={ev.flyerUrl}
             alt={`${ev.title} flyer`}
-            style={{ width: '100%', borderRadius: 8, maxHeight: 540, objectFit: 'cover' }}
             loading="lazy"
           />
         </div>
       )}
 
-      <div className="event-meta-row" style={{ display: 'flex', gap: 16, marginTop: ev.flyerUrl ? 12 : 0 }}>
+      <div className="event-meta-row">
         <div className="event-date" aria-hidden="true">
           <div className="month">{badge.month}</div>
           <div className="day">{badge.day}</div>
         </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0 }}>{ev.title}</h3>
-          <p style={{ margin: '4px 0', opacity: 0.9 }}>
+        <div className="event-info">
+          <h3>{ev.title}</h3>
+          <p className="event-time">
             <time dateTime={ev.startDateTime}>{formatFullDate(ev.startDateTime)} • {formatPrimaryTime(ev.startDateTime)}</time>
             {` • ${relativeStr}`}
             {ev.city ? ` • ${ev.city}${ev.region ? ', ' + ev.region : ''}` : ''}
           </p>
           {showUserLocal && (
-            <p style={{ margin: '4px 0', opacity: 0.8 }}>Your time: {formatUserLocalTime(ev.startDateTime)}</p>
+            <p className="event-user-time">Your time: {formatUserLocalTime(ev.startDateTime)}</p>
           )}
           {ev.summary && (
-            <p style={{ margin: '4px 0', opacity: 0.85 }}>{ev.summary}</p>
+            <p className="event-summary">{ev.summary}</p>
           )}
           {(ev.priceSummary || ev.priceText) && (
-            <p style={{ margin: '4px 0' }}>{ev.priceSummary || ev.priceText}</p>
+            <p className="event-price">{ev.priceSummary || ev.priceText}</p>
           )}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
+      <div className="event-actions-row">
         {ev.ticketUrl && (
           <a href={ev.ticketUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" aria-label="Tickets">
             <LuExternalLink size={16} /> Tickets

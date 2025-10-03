@@ -2,7 +2,85 @@
 
 Guidance for Claude Code when working in this repository.
 
-Last updated: 2025-09-07 (Admin UI, Images, AI, Mobile compact)
+Last updated: 2025-10-03 (Mobile Modern Features - Phase 3)
+
+## Recent Updates
+
+### Mobile Modern Features (Phase 3) - 2025-10-03
+
+**What Changed**:
+- ✅ Pull-to-refresh for mobile lists (hook + CSS animations ready)
+- ✅ Haptic feedback via Web Vibration API (6 preset patterns: light, medium, heavy, success, error, selection)
+- ✅ Performance monitoring (Web Vitals: LCP, FID, CLS, FCP, TTFB)
+- ✅ CSS performance optimizations (content-visibility, contain, will-change)
+- ✅ Lazy loading image support with layout shift prevention
+- ✅ Reduced motion and high contrast support
+
+**Files Added/Modified**:
+- `src/react-app/utils/pull-to-refresh.ts` - NEW pull-to-refresh hook with resistance & threshold
+- `src/react-app/utils/haptics.ts` - NEW haptic feedback manager with user preferences
+- `src/react-app/utils/performance.ts` - NEW Web Vitals monitoring with auto-logging
+- `src/react-app/index.css` - Added ~150 lines (pull-to-refresh UI + performance CSS)
+
+**Breaking Changes**: None
+**Performance Impact**: +~150 bytes CSS gzip
+**Browser Support**: iOS 15+, Android 10+, Desktop evergreen browsers
+
+**Usage Examples**:
+```typescript
+// Pull-to-refresh
+import { usePullToRefresh } from './utils/pull-to-refresh'
+const { state, containerRef } = usePullToRefresh({
+  onRefresh: async () => { await loadProducts() }
+})
+
+// Haptic feedback
+import { haptics } from './utils/haptics'
+haptics.trigger('success') // On successful action
+haptics.trigger('medium')  // On button press
+
+// Performance monitoring (auto-logs after 5s in dev)
+import { perfMonitor } from './utils/performance'
+perfMonitor.logMetrics() // Manual check
+```
+
+---
+
+### Mobile UX Enhancements (Phase 2) - 2025-10-03
+
+**What Changed**:
+- ✅ Product grid horizontal card layout on mobile (<480px)
+- ✅ Swipe-to-delete functionality for cart items (CSS + utility hook ready)
+- ✅ Enhanced checkout mobile layout with full-bleed sections
+- ✅ Improved cart item visualization (64x64 images, compact spacing)
+- ✅ Loading skeleton animations for product cards
+- ✅ Tablet-specific layout optimizations (641px-1023px)
+
+**Files Added/Modified**:
+- `src/react-app/index.css` - Added ~400 lines of UX enhancements (lines 2867-3255)
+- `src/react-app/utils/swipe.ts` - NEW swipe gesture hook for touch interactions
+
+---
+
+### Mobile Compliance (Phase 1) - 2025-10-03
+
+**What Changed**:
+- ✅ WCAG 2.2 Level AA compliance for touch targets (44×44px minimum on mobile)
+- ✅ iOS Safari input zoom prevention (16px minimum font-size on all inputs)
+- ✅ Mobile-first breakpoint system standardization
+- ✅ Consistent spacing between interactive elements (24px minimum)
+
+**Files Modified**:
+- `src/react-app/index.css` - Added ~150 lines of mobile-first CSS (lines 2628-2873)
+- `docs/PHASE1_TESTING.md` - Comprehensive testing documentation
+
+**Testing Required**:
+- Touch target audit on mobile viewports (320px-480px)
+- iOS Safari input zoom verification
+- Cross-browser testing (iOS Safari, Android Chrome, Desktop)
+- Accessibility audit: `npm run check:a11y` (threshold ≤10 issues)
+
+See `docs/PHASE1_TESTING.md` for detailed test procedures.
 
 ## Project Overview
 

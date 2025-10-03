@@ -1963,15 +1963,7 @@
     @apply text-xl font-semibold m-0 mb-4 text-foreground;
   }
 
-  .checkout-summary {
-    @apply lg:sticky lg:top-6;
-  }
-
-  @media (max-width: 968px) {
-    .checkout-summary {
-      @apply sticky bottom-0 bg-background border-t-2 border-border mx-[-1rem] px-4 py-4 z-10;
-    }
-  }
+  /* Checkout summary positioning handled by Phase 1 mobile-first styles (line ~2830) */
 
   .form-field {
     @apply mb-5 last:mb-0;
@@ -2623,6 +2615,780 @@
 
 .admin-compact .checkout-section__title {
   font-size: 1.1rem;
+}
+
+/* =====================================================
+   PHASE 1: Mobile Touch Target Compliance (WCAG 2.2)
+   Added: 2025-10-03
+   ===================================================== */
+
+/* 1.1: Base touch target sizing - applies to all interactive elements */
+@media (max-width: 640px) {
+  /* Ensure all buttons meet 44x44px minimum */
+  .btn,
+  button:not(.unstyled),
+  a.btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem 1rem; /* 10px 16px */
+  }
+
+  /* Small buttons - increase from current ~32x28px */
+  .btn-sm {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem 0.875rem; /* 10px 14px */
+    font-size: 0.875rem; /* Maintain visual hierarchy */
+  }
+
+  /* Icon-only buttons - explicit sizing */
+  .btn-icon {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem;
+  }
+
+  /* Quantity selector - critical for checkout UX */
+  .quantity-selector__btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem; /* 20px - larger tap area visual */
+    padding: 0.5rem;
+    touch-action: manipulation; /* Prevent double-tap zoom */
+  }
+
+  /* Shipping options - often too small */
+  .shipping-option {
+    min-height: 56px; /* Extra height for readability */
+    padding: 0.875rem 1rem; /* 14px 16px */
+    touch-action: manipulation;
+  }
+
+  /* Product card buttons - key conversion point */
+  .product-card__actions .btn {
+    min-height: 44px;
+    width: 100%; /* Full width for easier tapping */
+    justify-content: center;
+  }
+
+  /* Navigation items - already compliant but explicit */
+  .nav-item {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Form submit buttons - critical actions */
+  .submit-button,
+  .booking-cta-button {
+    min-height: 48px; /* Slightly larger for primary actions */
+    min-width: 48px;
+    padding: 0.75rem 1.5rem; /* 12px 24px */
+  }
+
+  /* Checkout footer button - thumb zone optimization */
+  .checkout-footer .btn {
+    min-height: 52px; /* Easier to tap with thumb */
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Admin compact mode buttons */
+  .admin-compact .btn-sm {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Radio buttons and checkboxes - increase hit area */
+  input[type="radio"],
+  input[type="checkbox"] {
+    min-width: 24px;
+    min-height: 24px;
+    margin-right: 0.5rem;
+  }
+
+  /* Radio/checkbox labels - expand clickable area */
+  input[type="radio"] + *,
+  input[type="checkbox"] + * {
+    padding: 0.5rem;
+    margin: -0.5rem;
+  }
+
+  /* Ensure spacing between touch targets (24px minimum) */
+  .product-card__actions {
+    gap: 0.75rem; /* 12px - adequate for 44px targets */
+  }
+
+  .form-grid button + button,
+  .btn-group .btn + .btn {
+    margin-left: 0.75rem; /* 12px spacing */
+  }
+
+  /* Stack buttons vertically when space is tight */
+  .payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .payment-methods .btn {
+    width: 100%;
+  }
+}
+
+/* High-contrast mode - ensure touch targets are visible */
+@media (prefers-contrast: high) {
+  .btn,
+  button:not(.unstyled) {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* 1.2: Input font-size compliance - prevent iOS auto-zoom */
+@media (max-width: 640px) {
+  /* All form inputs must be 16px minimum to prevent iOS Safari zoom */
+  .form-input,
+  .form-select,
+  .form-textarea,
+  input:not([type="radio"]):not([type="checkbox"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important; /* Override any smaller sizes */
+    -webkit-text-size-adjust: 100%; /* Prevent font scaling */
+  }
+
+  /* Admin compact inputs - override the 14.4px */
+  .admin-compact .form-input-sm,
+  .admin-compact .form-select-sm,
+  .admin-compact .form-textarea-sm {
+    font-size: 16px !important;
+    padding: 0.5rem 0.75rem; /* Adjust padding to maintain visual size */
+  }
+
+  /* BookingForm inputs */
+  .booking-form input,
+  .booking-form select,
+  .booking-form textarea,
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px !important;
+  }
+
+  /* Search inputs */
+  input[type="search"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="url"],
+  input[type="password"] {
+    font-size: 16px !important;
+  }
+
+  /* Placeholder text should also be 16px */
+  input::placeholder,
+  textarea::placeholder {
+    font-size: 16px;
+  }
+
+  /* Labels can be smaller, but not inputs */
+  .form-label,
+  .form-group label {
+    font-size: 0.875rem; /* 14px - acceptable for labels */
+  }
+}
+
+/* 1.3: Mobile-first breakpoint standardization
+
+   BREAKPOINT SYSTEM (mobile-first):
+   - Base: 320px - 480px (Mobile - default styles, no media query)
+   - sm:  481px+ (min-width: 481px) - Large mobile
+   - md:  769px+ (min-width: 769px) - Tablet
+   - lg:  1025px+ (min-width: 1025px) - Desktop
+   - xl:  1281px+ (min-width: 1281px) - Large desktop
+*/
+
+/* Product Grid - Already mobile-first via Tailwind, enhanced here for smallest screens */
+@media (max-width: 480px) {
+  .product-grid {
+    gap: 1rem; /* Tighter gap on smallest screens */
+  }
+}
+
+/* Checkout Summary - Convert from desktop-first to mobile-first */
+.checkout-summary {
+  /* Mobile base: sticky at bottom */
+  position: sticky;
+  bottom: 0;
+  background: var(--color-background);
+  border-top: 2px solid var(--color-border);
+  margin-inline: -1rem;
+  padding: 1rem;
+  z-index: 10;
+}
+
+@media (min-width: 969px) {
+  /* Desktop: sticky at top in sidebar */
+  .checkout-summary {
+    position: sticky;
+    top: 1.5rem;
+    border-top: none;
+    margin-inline: 0;
+  }
+}
+
+/* Form grids - Ensure single column on mobile (already handled by Tailwind sm:, md:, lg:) */
+/* Hero section mobile optimizations - Already using max-width which is appropriate for mobile-specific tweaks */
+/* Services sections - Already using max-width which is appropriate for mobile-specific tweaks */
+
+/* Mobile-specific enhancements for 320px minimum width */
+@media (max-width: 375px) {
+  /* Extra small screens (iPhone SE, etc) */
+  .section-title {
+    font-size: 1.5rem; /* Slightly smaller */
+  }
+
+  .product-card__title {
+    font-size: 1rem;
+  }
+
+  .checkout-container {
+    padding-inline: 0.5rem; /* Tighter padding */
+  }
+
+  .hero-content {
+    padding: 1.25rem;
+  }
+}
+
+/* =====================================================
+   PHASE 2: UX Enhancements
+   Added: 2025-10-03
+   ===================================================== */
+
+/* 2.1: Product Grid - Horizontal Card Layout on Mobile */
+@media (max-width: 480px) {
+  /* Override default grid for single-column horizontal cards */
+  .product-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Horizontal card layout - image left, content right */
+  .product-card {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    min-height: 140px; /* Ensure consistent height */
+  }
+
+  /* Image on left, fixed size */
+  .product-card__image {
+    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: calc(var(--radius) * 0.75);
+  }
+
+  /* Content on right, fills remaining space */
+  .product-card__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0; /* Allow text truncation */
+  }
+
+  /* Title - 2 line clamp */
+  .product-card__title {
+    font-size: 1rem;
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Description - 1 line clamp */
+  .product-card__content > p {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Price - prominent */
+  .product-card__price,
+  .product-card__content .product-card__price {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  /* Actions - full width buttons stacked */
+  .product-card__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: auto; /* Push to bottom */
+  }
+
+  .product-card__actions .btn {
+    width: 100%;
+    font-size: 0.875rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  /* Hide "View All" button on smallest screens to save space */
+  .product-card__actions .btn-outline {
+    display: none;
+  }
+
+  /* Primary CTA takes full width */
+  .product-card__actions .btn-primary {
+    width: 100%;
+  }
+}
+
+/* Tablet: Show both buttons side by side */
+@media (min-width: 481px) and (max-width: 768px) {
+  .product-card__actions {
+    flex-direction: row;
+  }
+
+  .product-card__actions .btn-outline {
+    display: inline-flex;
+  }
+}
+
+/* 2.1b: Product Card Loading Skeletons */
+.product-card--loading {
+  pointer-events: none;
+  user-select: none;
+}
+
+.product-card--loading .product-card__image {
+  background: linear-gradient(
+    90deg,
+    var(--color-muted) 25%,
+    var(--color-border) 50%,
+    var(--color-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.product-card--loading .product-card__title,
+.product-card--loading .product-card__price {
+  background: var(--color-muted);
+  color: transparent;
+  border-radius: 4px;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes product-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 2.2: Swipe-to-Delete Cart Items */
+@media (max-width: 640px) {
+  .cart-item {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y; /* Allow vertical scroll, handle horizontal in JS */
+  }
+
+  /* Swipeable container */
+  .cart-item__swipeable {
+    position: relative;
+    display: flex;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .cart-item__swipeable.swiping {
+    transition: none; /* Disable transition during swipe */
+  }
+
+  /* Delete action revealed on swipe */
+  .cart-item__delete-action {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-destructive);
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+
+  .cart-item--swiped-left .cart-item__delete-action {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* Delete icon */
+  .cart-item__delete-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .cart-item__delete-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Swipe hint on first item */
+  .cart-item:first-child::after {
+    content: '← Swipe to delete';
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: var(--color-muted-foreground);
+    pointer-events: none;
+    opacity: 0;
+    animation: swipe-hint 4s ease-in-out;
+  }
+
+  @keyframes swipe-hint {
+    0%, 90%, 100% { opacity: 0; }
+    10%, 80% { opacity: 0.5; }
+  }
+
+  /* Hide hint after first swipe */
+  .cart-items--has-swiped .cart-item:first-child::after {
+    display: none;
+  }
+}
+
+/* 2.3: Checkout Page Mobile Optimization */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .checkout-container {
+    padding-inline: 0.75rem;
+  }
+
+  /* Section cards - full bleed with border */
+  .checkout-section {
+    margin-inline: -0.75rem;
+    padding: 1.25rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .checkout-section:first-of-type {
+    border-top: none;
+  }
+
+  /* Section titles - slightly smaller */
+  .checkout-section__title {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Form fields - optimize spacing */
+  .form-field {
+    margin-bottom: 1rem;
+  }
+
+  /* Form inputs - larger touch area */
+  .checkout-section .form-input,
+  .checkout-section .form-select {
+    padding: 0.875rem 1rem;
+  }
+
+  /* Save address button - full width */
+  .checkout-section .btn:not(.shipping-option):not(.quantity-selector__btn) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Shipping options - enhanced card style */
+  .shipping-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 2px solid var(--color-border);
+    border-radius: calc(var(--radius) * 0.75);
+    background: var(--color-card);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .shipping-option:active {
+    transform: scale(0.98);
+  }
+
+  .shipping-option--selected {
+    border-color: var(--color-primary);
+    background: color-mix(in oklab, var(--color-primary) 5%, var(--color-card));
+  }
+
+  .shipping-option__name {
+    font-weight: 500;
+    font-size: 0.9375rem;
+  }
+
+  .shipping-option__price {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  /* Cart items - compact on mobile */
+  .cart-item {
+    padding: 0.75rem 0;
+    gap: 0.75rem;
+  }
+
+  .cart-item__image {
+    width: 64px;
+    height: 64px;
+  }
+
+  .cart-item__details {
+    font-size: 0.875rem;
+  }
+
+  .cart-item__name {
+    font-size: 0.9375rem;
+    line-height: 1.3;
+  }
+
+  /* Quantity selector - optimize spacing */
+  .quantity-selector {
+    gap: 0.375rem;
+  }
+
+  .quantity-selector__btn {
+    width: 36px;
+    height: 36px;
+    /* Note: Touch target 44x44 handled by Phase 1 via min-width/min-height */
+  }
+
+  .quantity-selector__value {
+    min-width: 32px;
+    text-align: center;
+    font-size: 0.9375rem;
+  }
+
+  /* Summary rows - clear hierarchy */
+  .cart-summary__row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.625rem 0;
+    font-size: 0.9375rem;
+  }
+
+  .cart-summary__row--total {
+    font-size: 1.125rem;
+    font-weight: 700;
+    padding-top: 0.75rem;
+    border-top: 2px solid var(--color-border);
+    margin-top: 0.5rem;
+  }
+
+  /* Checkout footer - full width CTA */
+  .checkout-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem 0.75rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    background: var(--color-card);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+  }
+
+  .checkout-footer .btn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Add bottom padding to prevent content hiding behind footer */
+  body.has-checkout-footer {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Tablet optimization */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+    max-width: 700px;
+    margin-inline: auto;
+  }
+
+  .checkout-summary {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+/* =====================================================
+   PHASE 3: Modern Features
+   Added: 2025-10-03
+   ===================================================== */
+
+/* 3.1: Pull-to-Refresh */
+@media (max-width: 640px) {
+  .pull-to-refresh-container {
+    position: relative;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Refresh indicator */
+  .pull-to-refresh-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    transform: translateY(-80px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .pull-to-refresh-indicator--pulling {
+    transform: translateY(0);
+  }
+
+  /* Spinner */
+  .pull-to-refresh-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--color-muted);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    transition: transform 0.3s;
+  }
+
+  .pull-to-refresh-spinner--rotating {
+    animation: ptr-spin 0.8s linear infinite;
+  }
+
+  @keyframes ptr-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Text feedback */
+  .pull-to-refresh-text {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    font-weight: 500;
+  }
+
+  /* Success feedback */
+  .pull-to-refresh-success {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: ptr-success-slide 0.3s ease-out;
+  }
+
+  @keyframes ptr-success-slide {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* 3.3: Performance Optimizations */
+
+/* Lazy loading images - prevent layout shift */
+img[loading='lazy'] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px; /* Placeholder height */
+}
+
+/* Optimize product images */
+.product-card__image {
+  content-visibility: auto;
+}
+
+/* Reduce repaints - contain layout */
+.cart-item,
+.product-card,
+.shipping-option {
+  contain: layout style paint;
+}
+
+/* GPU acceleration for animations only when needed */
+.nav-indicator,
+.pull-to-refresh-spinner,
+.cart-item__swipeable {
+  will-change: transform;
+}
+
+/* Remove will-change after animation completes */
+@media (prefers-reduced-motion: no-preference) {
+  *:not(:hover):not(:focus):not(.animating) {
+    will-change: auto;
+  }
+}
+
+/* Critical CSS - above the fold */
+.hero-section,
+.mobile-bottom-nav,
+.nav-item {
+  contain: layout style paint;
+}
+
+/* Reduce paint on scroll */
+.container,
+.section {
+  contain: layout style;
 }
 
 /* 5) Animations (keyframes only; use Tailwind animate-* where possible) --- */

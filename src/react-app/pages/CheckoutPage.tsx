@@ -1,4 +1,3 @@
-import { sdk } from '../lib/medusa-sdk'
 import { useEffect, useMemo, useState } from 'react'
 import { navigate } from '../utils/nav'
 import {

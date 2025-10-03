@@ -2347,21 +2347,9 @@
     @apply text-[0.75rem] text-foreground;
   }
 
-  /* Share toolbar / manager (condensed) */
-  .share-toolbar {
-    @apply flex items-center justify-between gap-3 mb-3;
-  }
-
-  .share-actions {
-    @apply inline-flex gap-2 flex-wrap;
-  }
-
+  /* Share components */
   .utm-toggle {
     @apply inline-flex items-center gap-1.5 text-[0.8rem] text-muted-foreground;
-  }
-
-  .share-grid {
-    @apply grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4;
   }
 
   .share-btn {
@@ -2588,12 +2576,37 @@
   }
   .share-qr-card { margin:0; }
 
-  /* Mobile tweaks for ShareManager */
-  @media (max-width: 640px) {
+  /* Mobile: ShareManager WCAG 2.2 AA compliance (44×44px minimum touch targets) */
+  @media (max-width: 767px) {
     .share-manager { padding:1rem; }
-    .share-primary-actions { width:100%; }
-    .share-action-btn, .deep-link-btn {
-      flex:1; min-width: calc(50% - .375rem); justify-content:center;
+
+    .share-primary-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .share-action-btn {
+      min-height: 44px;
+      padding: 0.75rem 1rem; /* 12px vertical for 44px min-height */
+      justify-content: center;
+    }
+
+    .deep-link-btn {
+      min-height: 44px;
+      padding: 0.75rem 1rem;
+      justify-content: center;
+    }
+
+    .share-btn {
+      min-height: 44px;
+      padding: 0.75rem 1rem; /* Override @apply px-3 py-2 */
+    }
+
+    .share-platform-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
     }
   }
 }
@@ -3707,6 +3720,16 @@ img[loading='lazy'] {
   background: var(--color-secondary);
 }
 
+.action-btn--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+.action-btn--primary:hover {
+  background: color-mix(in oklab, var(--color-primary) 85%, black 15%);
+}
+
 /* 4.2: Instagram Cards */
 .instagram-feed-mobile {
   width: 100%;
@@ -3789,44 +3812,6 @@ img[loading='lazy'] {
     border-radius: var(--radius-lg);
     box-shadow: none;
     animation: none;
-  }
-}
-
-/* ==========================================================================
-   PHASE 4.5: MOBILE SHARE & SOCIAL BUTTON COMPLIANCE
-   - WCAG 2.2 Level AA touch targets (44×44px minimum)
-   - Applied to ShareManager and social share buttons
-   - Desktop unchanged, mobile-only fixes
-   ========================================================================== */
-
-/* Mobile: ShareManager action buttons - 44px minimum height */
-@media (max-width: 767px) {
-  .share-action-btn {
-    min-height: 44px;
-    padding: 0.75rem 1rem; /* 12px vertical for better touch */
-  }
-
-  .deep-link-btn {
-    min-height: 44px;
-    padding: 0.75rem 1rem;
-  }
-
-  .share-btn {
-    min-height: 44px;
-    padding: 0.75rem 1rem; /* Override px-3 py-2 */
-  }
-
-  /* Ensure proper flex sizing on mobile */
-  .share-primary-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.75rem;
-  }
-
-  .share-platform-buttons {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
   }
 }
 

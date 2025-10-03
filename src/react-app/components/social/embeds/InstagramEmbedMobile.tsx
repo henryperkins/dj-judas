@@ -49,23 +49,15 @@ const InstagramEmbedMobile: React.FC<InstagramEmbedMobileProps> = ({
   onRefresh
 }) => {
   const [showMusicPrompt, setShowMusicPrompt] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Pull to refresh
-  const { state: refreshState, containerRef: pullContainerRef } = usePullToRefresh({
+  const { state: refreshState, containerRef } = usePullToRefresh({
     onRefresh: async () => {
       haptics.trigger('light');
       await onRefresh?.();
     },
     enabled: !!onRefresh
   });
-
-  // Set container ref for pull-to-refresh
-  useEffect(() => {
-    if (containerRef.current) {
-      (pullContainerRef as React.MutableRefObject<HTMLElement | null>).current = containerRef.current;
-    }
-  }, [pullContainerRef]);
 
   // Track view
   useEffect(() => {
@@ -105,7 +97,12 @@ const InstagramEmbedMobile: React.FC<InstagramEmbedMobileProps> = ({
   };
 
   return (
-    <div className="instagram-feed-mobile" ref={containerRef}>
+    <div
+      className="instagram-feed-mobile"
+      ref={(el) => {
+        (containerRef as React.MutableRefObject<HTMLElement | null>).current = el;
+      }}
+    >
       {/* Pull-to-refresh indicator */}
       {refreshState.isPulling && (
         <div

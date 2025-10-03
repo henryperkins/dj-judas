@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { LuPlay, LuPause, LuSkipBack, LuSkipForward, LuHeart, LuShare2, LuExternalLink, LuChevronDown } from 'react-icons/lu';
+import { LuPlay, LuPause, LuSkipBack, LuSkipForward, LuHeart, LuShare2, LuExternalLink, LuChevronDown, LuLogIn, LuUserPlus } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
 import { loadSpotifyEmbedAPI } from '@/react-app/utils/spotifyEmbedKit';
 import { haptics } from '@/react-app/utils/haptics';
@@ -64,10 +64,14 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
   const [seeking, setSeeking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveDone, setSaveDone] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followDone, setFollowDone] = useState(false);
+  const [authLoaded, setAuthLoaded] = useState(false);
 
   const spotifyId = spotifyUri.split(':').pop();
   const contentType = spotifyUri.includes('track') ? 'track' : spotifyUri.includes('album') ? 'album' : 'artist';
   const spotifyUrl = `https://open.spotify.com/${contentType}/${spotifyId}`;
+  const isArtist = contentType === 'artist';
 
 
   // Initialize Spotify Embed
@@ -126,7 +130,8 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         localController.destroy();
       }
     };
-  }, [spotifyUri, seeking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spotifyUri]); // NOT seeking - transient UI state should not reinit embed
 
   // Check auth session
   useEffect(() => {
@@ -141,10 +146,26 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
       } catch {
         if (!cancelled) setIsAuthed(false);
       }
+      if (!cancelled) setAuthLoaded(true);
     };
     check();
     return () => { cancelled = true; };
   }, []);
+
+  const handleLogin = useCallback(async () => {
+    try {
+      haptics.trigger('medium');
+      const res = await fetch('/api/spotify/login');
+      const data = await res.json() as { authorizeUrl?: string };
+      if (data.authorizeUrl) {
+        socialMetrics.trackSocialInteraction('spotify', 'login_start', { uri: spotifyUri });
+        window.location.href = data.authorizeUrl;
+      }
+    } catch (error) {
+      console.error('Spotify login error:', error);
+      haptics.trigger('error');
+    }
+  }, [spotifyUri]);
 
   const handlePlayPause = useCallback(() => {
     haptics.trigger('medium');
@@ -191,6 +212,28 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
     haptics.trigger('light');
     navigator.clipboard.writeText(spotifyUrl);
     socialMetrics.trackSocialInteraction('spotify', 'share', { uri: spotifyUri });
+  };
+
+  const handleFollow = async () => {
+    if (!isArtist || !spotifyId || !isAuthed) return;
+    haptics.trigger('medium');
+    setIsFollowing(true);
+    setFollowDone(false);
+    try {
+      const res = await fetch('/api/spotify/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artistIds: [spotifyId] })
+      });
+      if (!res.ok) throw new Error(`follow_failed_${res.status}`);
+      setFollowDone(true);
+      socialMetrics.trackSocialInteraction('spotify', 'follow', { uri: spotifyUri });
+    } catch (err) {
+      console.error('Spotify follow error:', err);
+      haptics.trigger('error');
+    } finally {
+      setIsFollowing(false);
+    }
   };
 
   const handleSeek = (value: number) => {
@@ -325,16 +368,42 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
 
       {/* Secondary actions - 48px touch targets */}
       <div className="bottom-sheet__actions">
-        {isAuthed && (
-          <button
-            className="action-btn"
-            onClick={handleSave}
-            disabled={isSaving}
-            aria-label="Save to library"
-          >
-            <LuHeart size={20} fill={saveDone ? 'currentColor' : 'none'} />
-            <span>{isSaving ? 'Saving...' : saveDone ? 'Saved' : 'Save'}</span>
+        {!authLoaded ? (
+          <button className="action-btn" disabled>
+            <span>Checking account…</span>
           </button>
+        ) : !isAuthed ? (
+          <button
+            className="action-btn action-btn--primary"
+            onClick={handleLogin}
+            aria-label="Connect Spotify account"
+          >
+            <LuLogIn size={20} />
+            <span>Connect Spotify</span>
+          </button>
+        ) : (
+          <>
+            <button
+              className="action-btn"
+              onClick={handleSave}
+              disabled={isSaving}
+              aria-label="Save to library"
+            >
+              <LuHeart size={20} fill={saveDone ? 'currentColor' : 'none'} />
+              <span>{isSaving ? 'Saving…' : saveDone ? 'Saved' : 'Save'}</span>
+            </button>
+            {isArtist && (
+              <button
+                className="action-btn"
+                onClick={handleFollow}
+                disabled={isFollowing}
+                aria-label="Follow artist"
+              >
+                <LuUserPlus size={20} />
+                <span>{isFollowing ? 'Following…' : followDone ? 'Following' : 'Follow'}</span>
+              </button>
+            )}
+          </>
         )}
         <button
           className="action-btn"

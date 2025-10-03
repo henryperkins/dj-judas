@@ -1,8 +1,9 @@
+import { useSyncExternalStore } from 'react'
+
 /**
  * Haptic feedback utility using Web Vibration API
  * Provides native-like tactile feedback on supported devices
  */
-
 export type HapticPattern =
   | 'light' // 10ms - subtle tap
   | 'medium' // 20ms - button press
@@ -23,9 +24,12 @@ const PATTERNS: Record<HapticPattern, number | number[]> = {
 class HapticManager {
   private enabled: boolean = true
   private supported: boolean = false
+  private listeners: Set<() => void> = new Set()
 
   constructor() {
-    this.supported = 'vibrate' in navigator
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      this.supported = true
+    }
 
     // Check user preference for reduced motion
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -41,11 +45,24 @@ class HapticManager {
     }
   }
 
+  private notifyListeners() {
+    for (const listener of this.listeners) {
+      listener()
+    }
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
   /**
    * Trigger haptic feedback
    */
   trigger(pattern: HapticPattern): void {
-    if (!this.supported || !this.enabled) return
+    if (!this.supported || !this.enabled || typeof navigator === 'undefined') return
 
     const vibration = PATTERNS[pattern]
     navigator.vibrate(vibration)
@@ -55,7 +72,7 @@ class HapticManager {
    * Custom vibration pattern
    */
   custom(pattern: number | number[]): void {
-    if (!this.supported || !this.enabled) return
+    if (!this.supported || !this.enabled || typeof navigator === 'undefined') return
     navigator.vibrate(pattern)
   }
 
@@ -63,10 +80,14 @@ class HapticManager {
    * Enable/disable haptics
    */
   setEnabled(enabled: boolean): void {
+    if (this.enabled === enabled) return
+
     this.enabled = enabled
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('haptic-feedback', enabled ? 'enabled' : 'disabled')
     }
+
+    this.notifyListeners()
   }
 
   /**
@@ -90,11 +111,22 @@ export const haptics = new HapticManager()
  * React hook for haptic feedback
  */
 export function useHaptics() {
+  const getSnapshot = () => ({
+    supported: haptics.isSupported(),
+    enabled: haptics.isEnabled(),
+  })
+
+  const { supported, enabled } = useSyncExternalStore(
+    (listener) => haptics.subscribe(listener),
+    getSnapshot,
+    getSnapshot
+  )
+
   return {
     trigger: (pattern: HapticPattern) => haptics.trigger(pattern),
     custom: (pattern: number | number[]) => haptics.custom(pattern),
-    isSupported: haptics.isSupported(),
-    isEnabled: haptics.isEnabled(),
+    isSupported: supported,
+    isEnabled: enabled,
     setEnabled: (enabled: boolean) => haptics.setEnabled(enabled),
   }
 }

@@ -5,6 +5,26 @@ import {
 } from './helpers/test-helpers';
 import { APPLE_MUSIC_TEST_DATA, SELECTORS } from './fixtures/test-data';
 
+type AppleMusicTestWindow = Window & {
+  mockMusicKitAuthorized?: boolean;
+  lastAddedItems?: Array<Record<string, unknown>>;
+  MusicKit?: {
+    configure: () => void;
+    getInstance: () => {
+      isAuthorized: boolean;
+      authorize: () => Promise<string>;
+      api: {
+        library: {
+          add: (items: Array<Record<string, unknown>>) => Promise<void>;
+        };
+      };
+    };
+    Events: {
+      authorizationStatusDidChange: string;
+    };
+  };
+};
+
 test.describe('Apple Music Integration', () => {
   test.beforeEach(async ({ page }) => {
     // Mock Apple Music developer token endpoint
@@ -113,7 +133,8 @@ test.describe('Apple Music Integration', () => {
   test('should show authorization button when not authorized', async ({ page }) => {
     // Mock MusicKit not authorized
     await page.addInitScript(() => {
-      (window as any).mockMusicKitAuthorized = false;
+      const testWindow = window as AppleMusicTestWindow;
+      testWindow.mockMusicKitAuthorized = false;
     });
 
     await page.goto('/');
@@ -131,16 +152,17 @@ test.describe('Apple Music Integration', () => {
   test('should handle Add to Library action', async ({ page }) => {
     // Mock MusicKit API
     await page.addInitScript(() => {
-      (window as any).MusicKit = {
+      const testWindow = window as AppleMusicTestWindow;
+      testWindow.MusicKit = {
         configure: () => {},
         getInstance: () => ({
           isAuthorized: true,
           authorize: async () => 'authorized',
           api: {
             library: {
-              add: async (items: any[]) => {
-                (window as any).lastAddedItems = items;
-                return Promise.resolve();
+              add: async (items: Array<Record<string, unknown>>) => {
+                const targetWindow = window as AppleMusicTestWindow;
+                targetWindow.lastAddedItems = items;
               }
             }
           }
@@ -162,7 +184,10 @@ test.describe('Apple Music Integration', () => {
       await addButton.click();
 
       // Verify the mock API was called
-      const addedItems = await page.evaluate(() => (window as any).lastAddedItems);
+      const addedItems = await page.evaluate<Array<Record<string, unknown>> | null>(() => {
+        const targetWindow = window as AppleMusicTestWindow;
+        return targetWindow.lastAddedItems ?? null;
+      });
 
       // Should have attempted to add items
       if (addedItems) {

@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { SocialProviderContext } from '../providers/SocialProvider';
+import { SocialProviderContext } from '../providers/SocialProviderContext';
 
 export const useSocialSDK = () => {
   const context = useContext(SocialProviderContext);

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect } from 'react';
 import { useSocialSDK } from '../../../hooks/useSocialSDK';
-import type { SocialSDKState } from '../../../providers/SocialProvider';
+import type { SocialSDKState } from '../../../providers/SocialProviderContext';
 
 const SpotifyEmbed = lazy(() => import('./SpotifyEmbed'));
 const AppleMusicEmbed = lazy(() => import('./AppleMusicEmbed'));

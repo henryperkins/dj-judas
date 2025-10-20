@@ -178,6 +178,7 @@ interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM?: string; // e.g., 'Ministry <no-reply@yourdomain>'
   RESEND_TO?: string;   // destination inbox
+  ADMIN_SHARED_SECRET?: string; // HMAC shared secret for admin signing
   SENDGRID_API_KEY?: string;
   SENDGRID_FROM?: string;
   SENDGRID_TO?: string;
@@ -190,6 +191,7 @@ interface Env {
   CF_IMAGES_API_TOKEN?: string;
   CF_IMAGES_VARIANT?: string; // e.g., 'public'
   OPENAI_API_KEY?: string;
+  APPLE_METRICS_ENDPOINT?: string;
   AI?: {
     run: (model: string, options: { prompt: string; image?: Uint8Array[] }) => Promise<{ output?: string; response?: string; text?: string }>;
   }; // Workers AI binding
@@ -256,6 +258,51 @@ app.use('*', async (c, next) => {
     c.header('Access-Control-Allow-Origin', origin);
     c.header('Access-Control-Allow-Credentials', 'true');
   }
+});
+
+const ADMIN_SIGNED_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+app.use('/api/admin/*', async (c, next) => {
+  const method = c.req.method.toUpperCase();
+  if (!ADMIN_SIGNED_METHODS.has(method)) {
+    await next();
+    return;
+  }
+
+  const secret = c.env.ADMIN_SHARED_SECRET;
+  if (!secret) {
+    console.error('ADMIN_SHARED_SECRET not configured for admin route');
+    return c.json({ error: 'admin_secret_missing', message: 'ADMIN_SHARED_SECRET is not configured' }, 500);
+  }
+
+  const signature = (c.req.header('X-Admin-Signature') || '').trim().toLowerCase();
+  const timestampHeader = (c.req.header('X-Timestamp') || '').trim();
+  if (!signature || !timestampHeader) {
+    return c.json({ error: 'admin_signature_required', message: 'Missing X-Admin-Signature or X-Timestamp header' }, 401);
+  }
+
+  const timestamp = Number(timestampHeader);
+  if (!Number.isFinite(timestamp)) {
+    return c.json({ error: 'invalid_timestamp', message: 'X-Timestamp must be a UNIX epoch milliseconds value' }, 401);
+  }
+
+  if (Math.abs(Date.now() - timestamp) > 5 * 60 * 1000) {
+    return c.json({ error: 'timestamp_out_of_range', message: 'Timestamp is older than 5 minutes' }, 401);
+  }
+
+  const rawRequest = c.req.raw;
+  const bodyText = rawRequest.body ? await rawRequest.clone().text() : '';
+  try {
+    const expected = await signAdminPayload(secret, `${timestampHeader}.${bodyText}`);
+    if (!timingSafeEqual(signature, expected)) {
+      return c.json({ error: 'invalid_signature', message: 'Signature verification failed' }, 401);
+    }
+  } catch (error) {
+    console.error('Failed to verify admin signature', error);
+    return c.json({ error: 'signature_verification_failed' }, 500);
+  }
+
+  await next();
 });
 
 // Static assets served from R2 with edge caching
@@ -356,41 +403,86 @@ app.get('/api/metrics', async (c) => {
         followers: number;
         engagement: number;
         lastUpdated: string;
+        status?: 'ok' | 'missing_config' | 'error';
+        statusMessage?: string;
       }>,
       topConversionSource: 'unknown'
     };
 
-    // Fetch Instagram metrics if token available
-    if (c.env.IG_OEMBED_TOKEN || (c.env.FB_APP_ID && c.env.FB_APP_SECRET)) {
-      try {
-        // This would typically use Instagram Business Account ID
-        // For now, we'll use a placeholder approach
-        const igUserId = c.env.IG_USER_ID || '17841400000000000';
-        const url = new URL(`${graphBase(c.env)}/${igUserId}`);
-        url.searchParams.set('fields', 'followers_count,media_count,name');
-        const bearer = (await getAppAccessToken(c.env)) || c.env.IG_OEMBED_TOKEN as string;
-        const igResponse = await fetch(url.toString(), bearer ? { headers: { Authorization: `Bearer ${bearer}` } } : undefined).catch(() => null);
+    const hasIgAuth = Boolean(c.env.IG_OEMBED_TOKEN || (c.env.FB_APP_ID && c.env.FB_APP_SECRET));
+    if (hasIgAuth) {
+      const igUserId = c.env.IG_USER_ID;
+      if (!igUserId) {
+        m.platforms.push({
+          id: 'instagram',
+          name: 'Instagram',
+          followers: 0,
+          engagement: 0,
+          lastUpdated: new Date().toISOString(),
+          status: 'missing_config',
+          statusMessage: 'IG_USER_ID is not configured'
+        });
+      } else {
+        try {
+          const url = new URL(`${graphBase(c.env)}/${igUserId}`);
+          url.searchParams.set('fields', 'followers_count,media_count,name');
+          const bearer = (await getAppAccessToken(c.env)) || c.env.IG_OEMBED_TOKEN as string | undefined;
+          const requestInit: RequestInit | undefined = bearer ? { headers: { Authorization: `Bearer ${bearer}` } } : undefined;
+          const igResponse = await fetch(url.toString(), requestInit).catch(() => null);
 
-			if (igResponse && igResponse.ok) {
-				const igData = await igResponse.json() as { followers_count?: number; media_count?: number };
-				const followers = typeof igData.followers_count === 'number' ? igData.followers_count : 0;
-				metrics.platforms.push({
-					id: 'instagram',
-					name: 'Instagram',
-					followers,
-					engagement: 12.3, // Would calculate from insights API
-					lastUpdated: new Date().toISOString()
-				});
-				metrics.totalReach += followers;
-			}
-		} catch (error) {
-			console.error('Failed to fetch Instagram metrics:', error);
-		}
-	} else {
-		// Instagram metrics not configured; skipping.
-	}
+          if (igResponse && igResponse.ok) {
+            const igData = await igResponse.json() as { followers_count?: number; media_count?: number };
+            const followers = typeof igData.followers_count === 'number' ? igData.followers_count : 0;
+            const engagement = typeof igData.media_count === 'number' ? igData.media_count : 0;
+            m.platforms.push({
+              id: 'instagram',
+              name: 'Instagram',
+              followers,
+              engagement,
+              lastUpdated: new Date().toISOString(),
+              status: 'ok'
+            });
+            m.totalReach += followers;
+          } else {
+            const statusMessage = igResponse
+              ? `Graph API responded with ${igResponse.status}`
+              : 'No response from Graph API';
+            m.platforms.push({
+              id: 'instagram',
+              name: 'Instagram',
+              followers: 0,
+              engagement: 0,
+              lastUpdated: new Date().toISOString(),
+              status: 'error',
+              statusMessage
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch Instagram metrics:', error);
+          m.platforms.push({
+            id: 'instagram',
+            name: 'Instagram',
+            followers: 0,
+            engagement: 0,
+            lastUpdated: new Date().toISOString(),
+            status: 'error',
+            statusMessage: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+    } else {
+      m.platforms.push({
+        id: 'instagram',
+        name: 'Instagram',
+        followers: 0,
+        engagement: 0,
+        lastUpdated: new Date().toISOString(),
+        status: 'missing_config',
+        statusMessage: 'Instagram metrics bindings are not configured'
+      });
+    }
 
-	// Fetch Spotify metrics
+    // Fetch Spotify metrics
 	try {
 		const clientId = c.env.SPOTIFY_CLIENT_ID;
 		const clientSecret = c.env.SPOTIFY_CLIENT_SECRET;
@@ -413,14 +505,14 @@ app.get('/api/metrics', async (c) => {
 					const art = await artRes.json() as { followers?: { total?: number }; popularity?: number };
 					const followers = art.followers?.total ?? 0;
 					const engagement = typeof art.popularity === 'number' ? art.popularity : 0;
-					metrics.platforms.push({
+					m.platforms.push({
 						id: 'spotify',
 						name: 'Spotify',
 						followers,
 						engagement,
 						lastUpdated: new Date().toISOString()
 					});
-					metrics.totalReach += followers;
+					m.totalReach += followers;
 				}
 			}
 		}
@@ -439,22 +531,23 @@ app.get('/api/metrics', async (c) => {
 			if (pageRes.ok) {
 				const page = await pageRes.json() as { fan_count?: number; name?: string };
 				const followers = page.fan_count ?? 0;
-				metrics.platforms.push({
+				m.platforms.push({
 					id: 'facebook',
 					name: 'Facebook',
 					followers,
 					engagement: 0,
 					lastUpdated: new Date().toISOString()
 				});
-				metrics.totalReach += followers;
+				m.totalReach += followers;
 			}
 		}
 	} catch (e) {
 		console.error('Failed to fetch Facebook metrics:', e);
 	}
 
-    if (m.platforms.length > 0) {
-      const top = m.platforms.reduce((prev, curr) => (prev.engagement > curr.engagement ? prev : curr));
+    const successfulPlatforms = m.platforms.filter((platform) => platform.status === undefined || platform.status === 'ok');
+    if (successfulPlatforms.length > 0) {
+      const top = successfulPlatforms.reduce((prev, curr) => (prev.engagement > curr.engagement ? prev : curr));
       m.topConversionSource = top.id;
     }
     await cache.set(`/${cacheKey}`, m, 900);
@@ -484,6 +577,33 @@ function randomString(length = 64): string {
 	const array = new Uint8Array(length);
 	crypto.getRandomValues(array);
 	return Array.from(array, (b) => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+}
+
+async function signAdminPayload(secret: string, payload: string): Promise<string> {
+	const encoder = new TextEncoder();
+	const key = await crypto.subtle.importKey(
+		'raw',
+		encoder.encode(secret),
+		{ name: 'HMAC', hash: 'SHA-256' },
+		false,
+		['sign']
+	);
+	const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+	const bytes = new Uint8Array(signature);
+	let hex = '';
+	for (let i = 0; i < bytes.length; i++) {
+		hex += bytes[i].toString(16).padStart(2, '0');
+	}
+	return hex;
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+	if (a.length !== b.length) return false;
+	let result = 0;
+	for (let i = 0; i < a.length; i++) {
+		result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+	}
+	return result === 0;
 }
 
 // Spotify OAuth - Initiate login
@@ -2127,6 +2247,10 @@ app.get('/api/events', async (c) => {
 
 // Temporary debug endpoint to verify static events accessibility from within Worker
 app.get('/api/debug/events-source', async (c) => {
+  const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!token) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
   try {
     const url = new URL('/content/events.json', c.req.url).toString();
     const res = await fetch(url);

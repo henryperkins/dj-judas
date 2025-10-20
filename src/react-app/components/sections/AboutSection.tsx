@@ -20,7 +20,7 @@ const AboutSection: React.FC = () => {
           <div className="about-grid">
             <div className="about-text">
               <p>
-                DJ Lee & The Voices of Judah was established in 2008 in Gary, Indiana, when
+                DJ Lee & The Voices of Judah was established in 2012 in Gary, Indiana, when
                 D.J. Lee was given the opportunity to form a gospel choir within his high school.
                 What started as a school choir has grown into a powerful gospel music ministry
                 that has been touching lives for over 16 years.

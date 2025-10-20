@@ -3,6 +3,10 @@
  * Prevents multiple script loads and race conditions when using multiple embeds
  */
 
+type SpotifyEmbedWindow = Window & {
+  onSpotifyIframeApiReady?: () => void;
+};
+
 class SpotifyEmbedKitManager {
   private static instance: SpotifyEmbedKitManager;
   private embedReady = false;
@@ -26,7 +30,8 @@ class SpotifyEmbedKitManager {
       const existing = document.querySelector('script[src*="spotify.com/embed/iframe-api"]');
       if (existing) {
         // Script exists, check if API is ready
-        if ((window as any).onSpotifyIframeApiReady) {
+        const spotifyWindow = window as SpotifyEmbedWindow;
+        if (spotifyWindow.onSpotifyIframeApiReady) {
           this.embedReady = true;
           resolve();
           return;

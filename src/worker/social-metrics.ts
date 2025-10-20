@@ -21,6 +21,7 @@ interface Env {
   GA_PROPERTY_ID?: string;
   GA_SERVICE_ACCOUNT?: string;
   APPLE_DEVELOPER_TOKEN?: string;
+  APPLE_METRICS_ENDPOINT?: string;
 }
 
 interface SocialMetrics {
@@ -148,35 +149,33 @@ async function getFacebookMetrics(env: Env): Promise<{ followers: number; engage
 }
 
 async function getAppleMusicMetrics(env: Env): Promise<{ monthlyListeners: number; playlistReach: number } | null> {
-  if (!env.APPLE_DEVELOPER_TOKEN) return null;
+  const developerToken = env.APPLE_DEVELOPER_TOKEN;
+  const metricsEndpoint = env.APPLE_METRICS_ENDPOINT;
+
+  if (!developerToken || !metricsEndpoint) {
+    return null;
+  }
 
   try {
-    // This is a placeholder. In a real-world scenario, you would use the Apple Music API
-    // to fetch artist data. This would involve using the developer token to authorize
-    // requests to the Apple Music API.
-    //
-    // For example:
-    // const artistId = '12345'; // Replace with the actual artist ID
-    // const res = await fetch(`https://api.music.apple.com/v1/catalog/us/artists/${artistId}`,
-    //   {
-    //     headers: { 'Authorization': `Bearer ${env.APPLE_DEVELOPER_TOKEN}` }
-    //   }
-    // );
-    //
-    // if (!res.ok) throw new Error('Failed to fetch Apple Music artist data');
-    // const data = await res.json();
-    //
-    // // Process the data to extract the desired metrics
-    // const monthlyListeners = data.monthlyListeners;
-    // const playlistReach = data.playlistReach;
+    const res = await fetch(metricsEndpoint, {
+      headers: { 'Authorization': `Bearer ${developerToken}`, 'Accept': 'application/json' }
+    });
 
-    // For now, we'll return some mock data.
-    const monthlyListeners = 450;
-    const playlistReach = 32.1;
+    if (!res.ok) {
+      throw new Error(`Failed to fetch Apple Music metrics (${res.status})`);
+    }
+
+    const payload = await res.json() as { monthlyListeners?: number; playlistReach?: number };
+    const monthlyListeners = typeof payload.monthlyListeners === 'number' ? payload.monthlyListeners : null;
+    const playlistReach = typeof payload.playlistReach === 'number' ? payload.playlistReach : null;
+
+    if (monthlyListeners === null && playlistReach === null) {
+      return null;
+    }
 
     return {
-      monthlyListeners,
-      playlistReach
+      monthlyListeners: monthlyListeners ?? 0,
+      playlistReach: playlistReach ?? 0
     };
   } catch (error) {
     console.error('Apple Music metrics error:', error);
@@ -236,16 +235,18 @@ export async function getSocialMetrics(env: Env): Promise<SocialMetrics> {
   });
   metrics.totalReach += spotifyFollowers;
 
-  const appleMusicFollowers = appleMusicData?.monthlyListeners || 450;
-  const appleMusicEngagement = appleMusicData?.playlistReach || 32.1;
-  metrics.platforms.push({
-    id: 'apple-music',
-    name: 'Apple Music',
-    followers: appleMusicFollowers,
-    engagement: appleMusicEngagement,
-    lastUpdated: new Date().toISOString()
-  });
-  metrics.totalReach += appleMusicFollowers;
+  if (appleMusicData) {
+    const appleMusicFollowers = appleMusicData.monthlyListeners;
+    const appleMusicEngagement = appleMusicData.playlistReach;
+    metrics.platforms.push({
+      id: 'apple-music',
+      name: 'Apple Music',
+      followers: appleMusicFollowers,
+      engagement: appleMusicEngagement,
+      lastUpdated: new Date().toISOString()
+    });
+    metrics.totalReach += appleMusicFollowers;
+  }
 
   metrics.topConversionSource = await getTopConversionSource();
 

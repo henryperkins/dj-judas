@@ -1,44 +1,12 @@
-import React, { createContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { useEffect, useState, useCallback, ReactNode } from 'react';
 import { metaSDK } from '../components/social/utils/metaSdk';
 import { socialMetrics } from '../components/social/utils/socialMetrics';
-
-interface SocialSDKConfig {
-  meta?: {
-    appId?: string;
-    pixelId?: string;
-    version?: string;
-  };
-  twitter?: {
-    enabled?: boolean;
-  };
-  tiktok?: {
-    enabled?: boolean;
-  };
-  apple?: {
-    developerToken?: string;
-  };
-  spotify?: {
-    clientId?: string;
-  };
-}
-
-export interface SocialSDKState {
-  meta: boolean;
-  twitter: boolean;
-  tiktok: boolean;
-  apple: boolean;
-  spotify: boolean;
-}
-
-interface SocialProviderContextType {
-  isLoaded: SocialSDKState;
-  loadSDK: (platform: keyof SocialSDKState) => Promise<void>;
-  config: SocialSDKConfig;
-}
-
-// TODO: Move SocialProviderContext to separate file to satisfy fast refresh rule.
-// eslint-disable-next-line react-refresh/only-export-components
-export const SocialProviderContext = createContext<SocialProviderContextType | null>(null);
+import {
+  SocialProviderContext,
+  type SocialProviderContextType,
+  type SocialSDKConfig,
+  type SocialSDKState
+} from './SocialProviderContext';
 
 const DEFAULT_CONFIG: SocialSDKConfig = {
   meta: {

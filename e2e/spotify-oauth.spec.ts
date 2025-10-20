@@ -3,7 +3,6 @@ import {
   waitForNetworkIdle,
   clearAllCookies,
   getCookie,
-  mockSpotifyCallback,
   isSpotifyAuthenticated,
 } from './helpers/test-helpers';
 import { SPOTIFY_TEST_DATA, SELECTORS } from './fixtures/test-data';
@@ -42,7 +41,7 @@ test.describe('Spotify OAuth Integration', () => {
     }
   });
 
-  test('should complete OAuth callback and set session cookie', async ({ page, context }) => {
+  test('should complete OAuth callback and set session cookie', async ({ page }) => {
     // Mock the PKCE state in KV (simulating the /api/spotify/login flow)
     await page.route('/api/spotify/callback*', async route => {
       const url = new URL(route.request().url());

@@ -116,6 +116,8 @@ npx wrangler tail
 - [React Documentation](https://reactjs.org/)
 - [Hono Documentation](https://hono.dev/)
 - [Repository Guidelines](AGENTS.md)
+- [Architecture Overview](docs/architecture-overview.md)
+- [Remediation & Hardening Plan](docs/remediation-plan.md)
 
 ## Commerce Quickstart
 

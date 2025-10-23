@@ -15,6 +15,7 @@ import {
   useReducedMotion,
   type DragHandler,
 } from 'framer-motion';
+import { localGalleryPhotos } from '@/react-app/data/localGalleryPhotos';
 
 /* ──────────────────────────────────
  * Mock data
@@ -36,53 +37,13 @@ interface Photo {
   updated_at?: string;
 }
 
-const defaultPhotos: Photo[] = [
-  {
-    id: 'default-1',
-    src: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
-    alt: 'Live Performance at Gary Gospel Fest',
-    caption: 'Gary Gospel Fest 2024 - Main Stage Performance',
-    category: 'worship',
-  },
-  {
-    id: 'default-2',
-    src: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400',
-    alt: 'Voices of Judah Choir Practice',
-    caption: 'Thursday Night Rehearsal at Greater Faith Community',
-    category: 'worship',
-  },
-  {
-    id: 'default-3',
-    src: 'https://images.unsplash.com/photo-1529636798458-92182e662485?w=400',
-    alt: 'Community Outreach in Gary',
-    caption: 'Gary Community Outreach - Feeding the Homeless',
-    category: 'community',
-  },
-  {
-    id: 'default-4',
-    src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    alt: 'Studio Recording Session',
-    caption: 'Recording "I Love to Praise Him" at Chicago Studios',
-    category: 'recording',
-  },
-  {
-    id: 'default-5',
-    src: 'https://images.unsplash.com/photo-1529636644619-cf0d5a34e679?w=400',
-    alt: 'Sunday Morning Worship',
-    caption: 'Sunday Worship Service - Victory Temple Church',
-    category: 'worship',
-  },
-  {
-    id: 'default-6',
-    src: 'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=400',
-    alt: 'Youth Choir Training',
-    caption: 'Northwest Indiana Youth Choir Workshop 2024',
-    category: 'youth choir',
-  },
-];
+const defaultPhotos: Photo[] = localGalleryPhotos;
 
 // Default categories if we cannot load from JSON
-const defaultCategories = ['all', 'worship', 'youth choir', 'community', 'recording'];
+const defaultCategories: string[] = [
+  'all',
+  ...Array.from(new Set(localGalleryPhotos.map((photo) => photo.category))),
+];
 
 /* ──────────────────────────────────
  * Helpers
@@ -120,9 +81,9 @@ const PhotoGallery: React.FC = () => {
   const [items, setItems] = useState<Photo[]>(defaultPhotos);
 
   /* ───── Derived data ───── */
-  const categories = useMemo(() => {
+  const categories = useMemo<string[]>(() => {
     const fromData = Array.from(new Set(items.map((p) => p.category)));
-    return fromData.length > 0 ? (['all', ...fromData]) : defaultCategories;
+    return fromData.length > 0 ? ['all', ...fromData] : defaultCategories;
   }, [items]);
 
   const filteredPhotos = useMemo(

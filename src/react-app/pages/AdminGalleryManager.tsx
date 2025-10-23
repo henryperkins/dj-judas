@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LuPlus, LuTrash2, LuPencil, LuEye, LuEyeOff, LuUpload } from 'react-icons/lu';
+import { localGalleryPhotos, type GalleryCategory } from '@/react-app/data/localGalleryPhotos';
 
 interface GalleryPhoto {
   id: string;
@@ -17,23 +18,49 @@ interface GalleryPhoto {
   updated_at: string;
 }
 
+const FALLBACK_TIMESTAMP = '1970-01-01T00:00:00.000Z';
+const FALLBACK_CATEGORIES: GalleryCategory[] = ['worship', 'youth choir', 'community', 'recording'];
+
+const createFallbackPhotos = (): GalleryPhoto[] =>
+  localGalleryPhotos.map((photo, index) => ({
+    id: photo.id,
+    r2_key: `local/${photo.id}`,
+    src: photo.src,
+    alt: photo.alt,
+    caption: photo.caption,
+    category: photo.category,
+    sort_order: index + 1,
+    is_published: 1,
+    created_at: FALLBACK_TIMESTAMP,
+    updated_at: FALLBACK_TIMESTAMP,
+  }));
+
+const isLocalPhotoId = (id: string): boolean => id.startsWith('local-');
+
 const AdminGalleryManager: React.FC = () => {
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [photos, setPhotos] = useState<GalleryPhoto[]>(() => createFallbackPhotos());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+
+  const categories = useMemo<string[]>(() => {
+    const ordered: string[] = [
+      ...FALLBACK_CATEGORIES,
+      ...localGalleryPhotos.map((photo) => photo.category),
+      ...photos.map((photo) => photo.category),
+    ];
+    return Array.from(new Set(ordered));
+  }, [photos]);
 
   // Form state
   const [formData, setFormData] = useState({
     url: '',
     alt: '',
     caption: '',
-    category: 'worship',
+    category: FALLBACK_CATEGORIES[0],
     is_published: true,
   });
-
-  const categories = ['worship', 'youth choir', 'community', 'recording'];
 
   // Load photos
   const loadPhotos = async () => {
@@ -42,10 +69,17 @@ const AdminGalleryManager: React.FC = () => {
       const res = await fetch('/api/admin/gallery');
       if (!res.ok) throw new Error(`Failed to load photos: ${res.status}`);
       const data = await res.json();
-      setPhotos(data.photos || []);
+      const remotePhotos = Array.isArray(data.photos) ? data.photos : [];
+      if (remotePhotos.length > 0) {
+        setPhotos(remotePhotos);
+      } else {
+        setPhotos(createFallbackPhotos());
+      }
       setError(null);
     } catch (err) {
-      setError((err as Error).message);
+      console.error(err);
+      setPhotos(createFallbackPhotos());
+      setError('Failed to load gallery from API. Displaying local library instead.');
     } finally {
       setLoading(false);
     }
@@ -76,7 +110,7 @@ const AdminGalleryManager: React.FC = () => {
         url: '',
         alt: '',
         caption: '',
-        category: 'worship',
+        category: FALLBACK_CATEGORIES[0],
         is_published: true,
       });
     } catch (err) {
@@ -86,6 +120,16 @@ const AdminGalleryManager: React.FC = () => {
 
   // Update photo metadata
   const handleUpdate = async (id: string, updates: Partial<GalleryPhoto>) => {
+    if (isLocalPhotoId(id)) {
+      setPhotos((current) =>
+        current.map((photo) =>
+          photo.id === id ? { ...photo, ...updates } : photo
+        )
+      );
+      setEditingId(null);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/admin/gallery/${id}`, {
         method: 'PATCH',
@@ -97,6 +141,7 @@ const AdminGalleryManager: React.FC = () => {
 
       await loadPhotos();
       setEditingId(null);
+      setError(null);
     } catch (err) {
       alert((err as Error).message);
     }
@@ -106,6 +151,11 @@ const AdminGalleryManager: React.FC = () => {
   const handleDelete = async (id: string, caption: string) => {
     if (!confirm(`Delete "${caption}"?`)) return;
 
+    if (isLocalPhotoId(id)) {
+      setPhotos((current) => current.filter((photo) => photo.id !== id));
+      return;
+    }
+
     try {
       const res = await fetch(`/api/admin/gallery/${id}`, {
         method: 'DELETE',
@@ -114,6 +164,7 @@ const AdminGalleryManager: React.FC = () => {
       if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
 
       await loadPhotos();
+      setError(null);
     } catch (err) {
       alert((err as Error).message);
     }
@@ -121,10 +172,21 @@ const AdminGalleryManager: React.FC = () => {
 
   // Toggle published status
   const togglePublished = async (photo: GalleryPhoto) => {
+    if (isLocalPhotoId(photo.id)) {
+      setPhotos((current) =>
+        current.map((item) =>
+          item.id === photo.id
+            ? { ...item, is_published: item.is_published ? 0 : 1 }
+            : item
+        )
+      );
+      return;
+    }
+
     await handleUpdate(photo.id, { is_published: photo.is_published ? 0 : 1 });
   };
 
-  if (loading) {
+  if (loading && photos.length === 0) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-6xl mx-auto">
@@ -206,7 +268,12 @@ const AdminGalleryManager: React.FC = () => {
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      category: e.target.value as GalleryCategory,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-input rounded-md bg-background"
                 >
                   {categories.map((cat) => (

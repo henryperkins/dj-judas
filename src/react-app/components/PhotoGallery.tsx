@@ -21,51 +21,59 @@ import {
  * ────────────────────────────────── */
 
 interface Photo {
-  id: number;
+  id: string;
   src: string;
   alt: string;
   caption: string;
   category: string;
+  sort_order?: number;
+  is_published?: number;
+  width?: number;
+  height?: number;
+  file_size?: number;
+  r2_key?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const defaultPhotos: Photo[] = [
   {
-    id: 1,
+    id: 'default-1',
     src: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
     alt: 'Live Performance at Gary Gospel Fest',
     caption: 'Gary Gospel Fest 2024 - Main Stage Performance',
     category: 'worship',
   },
   {
-    id: 2,
+    id: 'default-2',
     src: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400',
     alt: 'Voices of Judah Choir Practice',
     caption: 'Thursday Night Rehearsal at Greater Faith Community',
     category: 'worship',
   },
   {
-    id: 3,
+    id: 'default-3',
     src: 'https://images.unsplash.com/photo-1529636798458-92182e662485?w=400',
     alt: 'Community Outreach in Gary',
     caption: 'Gary Community Outreach - Feeding the Homeless',
     category: 'community',
   },
   {
-    id: 4,
+    id: 'default-4',
     src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
     alt: 'Studio Recording Session',
     caption: 'Recording "I Love to Praise Him" at Chicago Studios',
     category: 'recording',
   },
   {
-    id: 5,
+    id: 'default-5',
     src: 'https://images.unsplash.com/photo-1529636644619-cf0d5a34e679?w=400',
     alt: 'Sunday Morning Worship',
     caption: 'Sunday Worship Service - Victory Temple Church',
     category: 'worship',
   },
   {
-    id: 6,
+    id: 'default-6',
     src: 'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=400',
     alt: 'Youth Choir Training',
     caption: 'Northwest Indiana Youth Choir Workshop 2024',
@@ -183,16 +191,16 @@ const PhotoGallery: React.FC = () => {
     touchStartX.current = touchEndX.current = null;
   };
 
-  /* ───── Data loading (fallback to JSON) ───── */
+  /* ───── Data loading from API ───── */
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch('/content/gallery.json');
+        const res = await fetch('/api/gallery');
         if (!res.ok) return;
-        const json = await res.json();
-        if (Array.isArray(json) && !cancelled) {
-          setItems(json);
+        const data = await res.json();
+        if (Array.isArray(data.photos) && !cancelled) {
+          setItems(data.photos);
         }
       } catch {
         // ignore; keep defaults

@@ -118,7 +118,7 @@ interface AnalyticsEngineDataset {
 
 // R2 Bucket binding type
 interface R2Bucket {
-  get(key: string): Promise<R2Object | null>;
+  get(key: string, options?: { range?: { offset: number; length?: number } }): Promise<R2Object | null>;
   head(key: string): Promise<R2Object | null>;
   put(key: string, value: ReadableStream | ArrayBuffer | string, options?: R2PutOptions): Promise<R2Object>;
   delete(keys: string | string[]): Promise<void>;
@@ -145,6 +145,12 @@ interface R2Object {
 interface R2PutOptions {
   httpMetadata?: R2Object['httpMetadata'];
   customMetadata?: Record<string, string>;
+  onlyIf?: {
+    etagMatches?: string;
+    etagDoesNotMatch?: string;
+    uploadedBefore?: Date;
+    uploadedAfter?: Date;
+  };
 }
 
 interface R2Objects {
@@ -1153,10 +1159,28 @@ app.post('/api/admin/products/:id/images/upload', async (c) => {
 
     const upstream = await fetch(url);
     if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    if (!upstream.body) return c.json({ error: 'no_body' }, 400);
+
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
     const key = `${(path || 'products').replace(/\/$/, '')}/${crypto.randomUUID()}`;
-    const body = await upstream.arrayBuffer();
-    await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+
+    // Extract filename from URL
+    const filename = url.split('/').pop()?.split('?')[0] || 'upload';
+
+    // ✅ FIX: Stream directly to R2 instead of loading into memory
+    const result = await bucket.put(key, upstream.body, {
+      httpMetadata: {
+        contentType: ct,
+        cacheControl: 'public, max-age=31536000'
+      },
+      customMetadata: {
+        uploadedBy: 'admin',
+        uploadedAt: new Date().toISOString(),
+        originalUrl: url,
+        originalFilename: filename,
+        source: 'product-upload'
+      }
+    });
     const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
     const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
 
@@ -1186,7 +1210,18 @@ app.post('/api/admin/products/:id/images/upload', async (c) => {
       patchStatus = patch.status;
     }
 
-    return c.json({ ok: true, publicUrl, images: next, patched: patchStatus > 0 ? patchStatus : undefined });
+    return c.json({
+      ok: true,
+      publicUrl,
+      images: next,
+      patched: patchStatus > 0 ? patchStatus : undefined,
+      r2: {
+        key: result.key,
+        etag: result.etag,
+        size: result.size,
+        uploaded: result.uploaded.toISOString()
+      }
+    });
   } catch (e) {
     return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
   }
@@ -1216,37 +1251,203 @@ app.post('/api/r2/upload', async (c) => {
   const bucket = mediaBucket || userAssets;
   if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'not_configured' }, 501);
   try {
-    const { url, path } = await c.req.json<{ url: string; path?: string }>();
+    const { url, path, preventOverwrite } = await c.req.json<{ url: string; path?: string; preventOverwrite?: boolean }>();
     if (!url) return c.json({ error: 'missing_url' }, 400);
     const upstream = await fetch(url);
     if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    if (!upstream.body) return c.json({ error: 'no_body' }, 400);
+
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
     const key = `${(path || 'uploads').replace(/\/$/, '')}/${crypto.randomUUID()}`;
-    const body = await upstream.arrayBuffer();
-    const res = await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+
+    // Extract filename from URL
+    const filename = url.split('/').pop()?.split('?')[0] || 'upload';
+
+    // ✅ FIX: Stream directly to R2 instead of loading into memory
+    const result = await bucket.put(key, upstream.body, {
+      httpMetadata: {
+        contentType: ct,
+        cacheControl: 'public, max-age=31536000'
+      },
+      customMetadata: {
+        uploadedBy: 'admin',
+        uploadedAt: new Date().toISOString(),
+        originalUrl: url,
+        originalFilename: filename,
+        source: 'r2-upload'
+      },
+      // ✅ Prevent accidental overwrites if requested
+      onlyIf: preventOverwrite ? { etagDoesNotMatch: '*' } : undefined
+    });
+
     const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
     const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
-    return c.json({ key, etag: res?.etag || null, size: body.byteLength, contentType: ct, publicUrl });
-  } catch {
-    return c.json({ error: 'bad_request' }, 400);
+
+    return c.json({
+      key: result.key,
+      etag: result.etag,
+      size: result.size,
+      contentType: ct,
+      publicUrl,
+      uploaded: result.uploaded.toISOString(),
+      customMetadata: result.customMetadata
+    });
+  } catch (error) {
+    const err = error as Error;
+    if (err.message?.includes('etag')) {
+      return c.json({ error: 'conflict', message: 'File already exists at this key' }, 409);
+    }
+    return c.json({ error: 'bad_request', message: err.message }, 400);
   }
 });
 
-app.get('/api/r2/*', async (c) => {
+// ✅ GET/HEAD: Read R2 object with Range request support
+app.on(['GET', 'HEAD'], '/api/r2/*', async (c) => {
   const key = c.req.path.replace(/^\/api\/r2\//, '');
   const mediaBucket = c.env.MEDIA_BUCKET;
   const userAssets = c.env.USER_ASSETS;
   const bucket = mediaBucket || userAssets;
+  const isHead = c.req.method === 'HEAD';
   if (!bucket || typeof bucket.get !== 'function') return c.json({ error: 'not_configured' }, 501);
+
   // If a public base is configured (or we know MEDIA_BUCKET custom domain), redirect to CDN
   const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
   if (base) {
     return Response.redirect(`${base.replace(/\/$/,'')}/${key}`, 302);
   }
-  const obj = await bucket.get(key);
+
+  // ✅ HEAD: Return metadata only
+  if (isHead) {
+    const obj = await bucket.head(key);
+    if (!obj) return new Response(null, { status: 404 });
+
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'content-type': obj.httpMetadata?.contentType || 'application/octet-stream',
+        'content-length': obj.size.toString(),
+        'etag': obj.etag,
+        'last-modified': obj.uploaded.toUTCString(),
+        'cache-control': 'public, max-age=31536000',
+        'accept-ranges': 'bytes'
+      }
+    });
+  }
+
+  // ✅ GET: Support Range requests for video/audio streaming
+  const rangeHeader = c.req.header('range');
+  let obj: R2Object | null = null;
+
+  if (rangeHeader) {
+    // Parse: "bytes=0-1023" or "bytes=1024-"
+    const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+    if (match) {
+      const offset = parseInt(match[1]);
+      const end = match[2] ? parseInt(match[2]) : undefined;
+      const length = end !== undefined ? end - offset + 1 : undefined;
+
+      obj = await bucket.get(key, { range: { offset, length } });
+
+      if (obj) {
+        const ct = obj.httpMetadata?.contentType || 'application/octet-stream';
+        const contentLength = obj.size;
+        const rangeEnd = end !== undefined ? end : offset + contentLength - 1;
+
+        return new Response(obj.body, {
+          status: 206, // Partial Content
+          headers: {
+            'content-type': ct,
+            'content-range': `bytes ${offset}-${rangeEnd}/${obj.size}`,
+            'accept-ranges': 'bytes',
+            'content-length': contentLength.toString(),
+            'cache-control': 'public, max-age=31536000'
+          }
+        });
+      }
+    }
+  }
+
+  // Full object request
+  if (!obj) {
+    obj = await bucket.get(key);
+  }
+
   if (!obj) return c.json({ error: 'not_found' }, 404);
+
   const ct = obj.httpMetadata?.contentType || 'application/octet-stream';
-  return new Response(obj.body, { headers: { 'content-type': ct, 'cache-control': 'public, max-age=31536000' } });
+  return new Response(obj.body, {
+    headers: {
+      'content-type': ct,
+      'cache-control': 'public, max-age=31536000',
+      'accept-ranges': 'bytes',
+      'etag': obj.etag,
+      'last-modified': obj.uploaded.toUTCString()
+    }
+  });
+});
+
+// ✅ DELETE: Remove R2 object (admin only)
+app.delete('/api/r2/*', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const key = c.req.path.replace(/^\/api\/r2\//, '');
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const userAssets = c.env.USER_ASSETS;
+  const bucket = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.delete !== 'function') return c.json({ error: 'not_configured' }, 501);
+
+  try {
+    // Check if object exists first
+    const obj = await bucket.head(key);
+    if (!obj) return c.json({ error: 'not_found' }, 404);
+
+    await bucket.delete(key);
+    return c.json({
+      ok: true,
+      deleted: key,
+      size: obj.size,
+      etag: obj.etag
+    });
+  } catch (error) {
+    return c.json({ error: 'delete_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// ✅ LIST: Browse R2 bucket contents (admin only)
+app.get('/api/admin/r2/list', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const userAssets = c.env.USER_ASSETS;
+  const bucket = mediaBucket || userAssets;
+  if (!bucket || typeof bucket.list !== 'function') return c.json({ error: 'not_configured' }, 501);
+
+  try {
+    const prefix = c.req.query('prefix') || undefined;
+    const cursor = c.req.query('cursor') || undefined;
+    const limitStr = c.req.query('limit');
+    const limit = limitStr ? Math.min(parseInt(limitStr), 1000) : 100;
+
+    const result = await bucket.list({ prefix, cursor, limit });
+
+    return c.json({
+      objects: result.objects.map(obj => ({
+        key: obj.key,
+        size: obj.size,
+        etag: obj.etag,
+        uploaded: obj.uploaded.toISOString(),
+        httpMetadata: obj.httpMetadata,
+        customMetadata: obj.customMetadata
+      })),
+      truncated: result.truncated,
+      cursor: result.cursor,
+      count: result.objects.length
+    });
+  } catch (error) {
+    return c.json({ error: 'list_failed', message: (error as Error).message }, 500);
+  }
 });
 
 // --- Admin: Event flyer upload to R2 and D1 update ---
@@ -1265,10 +1466,30 @@ app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
     const slug = c.req.param('slug');
     const upstream = await fetch(url);
     if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    if (!upstream.body) return c.json({ error: 'no_body' }, 400);
+
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
     const key = `events/${slug}/${crypto.randomUUID()}`;
-    const body = await upstream.arrayBuffer();
-    await bucket.put(key, body, { httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000' } });
+
+    // Extract filename from URL
+    const filename = url.split('/').pop()?.split('?')[0] || 'flyer';
+
+    // ✅ FIX: Stream directly to R2 instead of loading into memory
+    const result = await bucket.put(key, upstream.body, {
+      httpMetadata: {
+        contentType: ct,
+        cacheControl: 'public, max-age=31536000'
+      },
+      customMetadata: {
+        uploadedBy: 'admin',
+        uploadedAt: new Date().toISOString(),
+        eventSlug: slug,
+        originalUrl: url,
+        originalFilename: filename,
+        source: 'event-flyer'
+      }
+    });
+
     const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
     const publicUrl = base ? `${base.replace(/\/$/, '')}/${key}` : null;
 
@@ -1277,7 +1498,17 @@ app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
     }
     // Return updated event if available
     const { results } = await db.prepare(`SELECT * FROM events WHERE slug = ?`).bind(slug).all();
-    return c.json({ ok: true, publicUrl, event: results?.[0] || null });
+    return c.json({
+      ok: true,
+      publicUrl,
+      event: results?.[0] || null,
+      r2: {
+        key: result.key,
+        etag: result.etag,
+        size: result.size,
+        uploaded: result.uploaded.toISOString()
+      }
+    });
   } catch (e) {
     return c.json({ error: 'bad_request', message: (e as Error).message }, 400);
   }
@@ -2497,5 +2728,320 @@ app.get('/api/facebook/events', async (c) => {
   } catch (err) {
     console.error('facebook_events_handler_error', err);
     return c.json({ error: 'internal_error' }, 500);
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * GALLERY PHOTO MANAGEMENT (R2 + D1)
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+// --- Public: List all published gallery photos ---
+app.get('/api/gallery', async (c) => {
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  try {
+    const { results } = await db
+      .prepare(`
+        SELECT id, src, alt, caption, category, sort_order, width, height
+        FROM gallery_photos
+        WHERE is_published = 1
+        ORDER BY sort_order ASC, created_at DESC
+      `)
+      .all();
+
+    return c.json({ photos: results || [] });
+  } catch (error) {
+    return c.json({ error: 'query_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: List all gallery photos (including drafts) ---
+app.get('/api/admin/gallery', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  try {
+    const { results } = await db
+      .prepare(`
+        SELECT id, r2_key, src, alt, caption, category, sort_order, is_published,
+               width, height, file_size, created_at, updated_at
+        FROM gallery_photos
+        ORDER BY sort_order ASC, created_at DESC
+      `)
+      .all();
+
+    return c.json({ photos: results || [] });
+  } catch (error) {
+    return c.json({ error: 'query_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: Get single gallery photo ---
+app.get('/api/admin/gallery/:id', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  const id = c.req.param('id');
+
+  try {
+    const { results } = await db
+      .prepare(`SELECT * FROM gallery_photos WHERE id = ?`)
+      .bind(id)
+      .all();
+
+    const photo = results?.[0];
+    if (!photo) return c.json({ error: 'not_found' }, 404);
+
+    return c.json({ photo });
+  } catch (error) {
+    return c.json({ error: 'query_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: Create new gallery photo (upload to R2) ---
+app.post('/api/admin/gallery', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const bucket = mediaBucket || c.env.USER_ASSETS;
+  if (!bucket || typeof bucket.put !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
+
+  try {
+    const body = await c.req.json<{
+      url: string;
+      alt: string;
+      caption: string;
+      category: string;
+      is_published?: boolean;
+      width?: number;
+      height?: number;
+    }>();
+
+    if (!body.url || !body.alt || !body.caption || !body.category) {
+      return c.json({ error: 'missing_fields' }, 400);
+    }
+
+    // Fetch the image
+    const upstream = await fetch(body.url);
+    if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
+    if (!upstream.body) return c.json({ error: 'no_body' }, 400);
+
+    const ct = upstream.headers.get('content-type') || 'image/jpeg';
+    const id = crypto.randomUUID();
+    const r2Key = `gallery/${id}.${ct.includes('png') ? 'png' : 'jpg'}`;
+
+    // Get max sort_order
+    const { results: maxResults } = await db
+      .prepare(`SELECT COALESCE(MAX(sort_order), 0) as max_order FROM gallery_photos`)
+      .all();
+    const maxOrder = (maxResults?.[0] as { max_order: number })?.max_order || 0;
+
+    // ✅ Stream upload to R2
+    const result = await bucket.put(r2Key, upstream.body, {
+      httpMetadata: {
+        contentType: ct,
+        cacheControl: 'public, max-age=31536000'
+      },
+      customMetadata: {
+        uploadedBy: 'admin',
+        uploadedAt: new Date().toISOString(),
+        alt: body.alt,
+        category: body.category,
+        source: 'gallery-upload'
+      }
+    });
+
+    const base = (c.env.R2_PUBLIC_BASE && c.env.R2_PUBLIC_BASE.trim()) || (mediaBucket ? 'https://r2.thevoicesofjudah.com' : '');
+    const src = base ? `${base.replace(/\/$/, '')}/${r2Key}` : r2Key;
+
+    // Insert into D1
+    await db
+      .prepare(`
+        INSERT INTO gallery_photos (id, r2_key, src, alt, caption, category, sort_order, is_published, width, height, file_size, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        id,
+        r2Key,
+        src,
+        body.alt,
+        body.caption,
+        body.category,
+        maxOrder + 1,
+        body.is_published !== false ? 1 : 0,
+        body.width || null,
+        body.height || null,
+        result.size,
+        new Date().toISOString(),
+        new Date().toISOString()
+      )
+      .run();
+
+    return c.json({
+      ok: true,
+      photo: {
+        id,
+        r2_key: r2Key,
+        src,
+        alt: body.alt,
+        caption: body.caption,
+        category: body.category,
+        sort_order: maxOrder + 1,
+        is_published: body.is_published !== false ? 1 : 0,
+        width: body.width || null,
+        height: body.height || null,
+        file_size: result.size,
+        r2: {
+          etag: result.etag,
+          uploaded: result.uploaded.toISOString()
+        }
+      }
+    });
+  } catch (error) {
+    return c.json({ error: 'create_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: Update gallery photo metadata ---
+app.patch('/api/admin/gallery/:id', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  const id = c.req.param('id');
+
+  try {
+    const body = await c.req.json<{
+      alt?: string;
+      caption?: string;
+      category?: string;
+      is_published?: boolean;
+      sort_order?: number;
+    }>();
+
+    const updates: string[] = [];
+    const bindings: (string | number)[] = [];
+
+    if (body.alt !== undefined) {
+      updates.push('alt = ?');
+      bindings.push(body.alt);
+    }
+    if (body.caption !== undefined) {
+      updates.push('caption = ?');
+      bindings.push(body.caption);
+    }
+    if (body.category !== undefined) {
+      updates.push('category = ?');
+      bindings.push(body.category);
+    }
+    if (body.is_published !== undefined) {
+      updates.push('is_published = ?');
+      bindings.push(body.is_published ? 1 : 0);
+    }
+    if (body.sort_order !== undefined) {
+      updates.push('sort_order = ?');
+      bindings.push(body.sort_order);
+    }
+
+    if (updates.length === 0) {
+      return c.json({ error: 'no_updates' }, 400);
+    }
+
+    updates.push(`updated_at = ?`);
+    bindings.push(new Date().toISOString());
+    bindings.push(id);
+
+    await db
+      .prepare(`UPDATE gallery_photos SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...bindings)
+      .run();
+
+    // Fetch updated photo
+    const { results } = await db
+      .prepare(`SELECT * FROM gallery_photos WHERE id = ?`)
+      .bind(id)
+      .all();
+
+    return c.json({ ok: true, photo: results?.[0] || null });
+  } catch (error) {
+    return c.json({ error: 'update_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: Delete gallery photo (remove from R2 + D1) ---
+app.delete('/api/admin/gallery/:id', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  const mediaBucket = c.env.MEDIA_BUCKET;
+  const bucket = mediaBucket || c.env.USER_ASSETS;
+  if (!bucket || typeof bucket.delete !== 'function') return c.json({ error: 'r2_not_configured' }, 501);
+
+  const id = c.req.param('id');
+
+  try {
+    // Get photo details
+    const { results } = await db
+      .prepare(`SELECT * FROM gallery_photos WHERE id = ?`)
+      .bind(id)
+      .all();
+
+    const photo = results?.[0] as { r2_key: string } | undefined;
+    if (!photo) return c.json({ error: 'not_found' }, 404);
+
+    // Delete from R2
+    await bucket.delete(photo.r2_key);
+
+    // Delete from D1
+    await db.prepare(`DELETE FROM gallery_photos WHERE id = ?`).bind(id).run();
+
+    return c.json({ ok: true, deleted: id });
+  } catch (error) {
+    return c.json({ error: 'delete_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: Reorder gallery photos ---
+app.patch('/api/admin/gallery/reorder', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  try {
+    const body = await c.req.json<{ order: { id: string; sort_order: number }[] }>();
+
+    if (!Array.isArray(body.order)) {
+      return c.json({ error: 'invalid_order' }, 400);
+    }
+
+    // Update all in a batch
+    for (const item of body.order) {
+      await db
+        .prepare(`UPDATE gallery_photos SET sort_order = ?, updated_at = ? WHERE id = ?`)
+        .bind(item.sort_order, new Date().toISOString(), item.id)
+        .run();
+    }
+
+    return c.json({ ok: true, updated: body.order.length });
+  } catch (error) {
+    return c.json({ error: 'reorder_failed', message: (error as Error).message }, 500);
   }
 });

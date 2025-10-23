@@ -36,6 +36,15 @@ database_id = "5b2ae7e3-cc4d-4c1e-9c14-63974347443a"
 
 
 # ===== OPTIONAL ADVANCED BINDINGS =====
+# R2 Object Storage for media and user assets
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "dj-judas-media"
+
+[[r2_buckets]]
+binding = "USER_ASSETS"
+bucket_name = "user-assets"
+
 # Queue for background processing (emails, notifications)
 # [[queues.producers]]
 # binding = "EMAIL_QUEUE"

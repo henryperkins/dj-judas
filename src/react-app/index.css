@@ -77,6 +77,17 @@
   --color-brand-instagram-start: hsl(291 64% 42%);
   --color-brand-instagram-end: hsl(36 97% 63%);
 
+  /* Z-index scale - defines stacking order hierarchy */
+  --z-skip-link: 9999;        /* Skip to content link (highest - a11y critical) */
+  --z-modal: 1000;            /* Modal overlays and dialogs */
+  --z-bottom-sheet: 900;      /* Bottom sheet players (mobile) */
+  --z-mini-player: 800;       /* Mini player bars (floating) */
+  --z-dropdown: 700;          /* Dropdown menus and popovers */
+  --z-sticky-header: 600;     /* Sticky headers and navigation */
+  --z-tooltip: 500;           /* Tooltips and hints */
+  --z-elevated: 100;          /* Elevated cards and surfaces */
+  --z-base: 1;                /* Base level (default) */
+
   /* Type scale helpers (optional; use Tailwind defaults otherwise) */
   /* --text-sm, --text-base, etc. can be customized here if desired. */
 }
@@ -149,7 +160,7 @@
     clip: auto;
     clip-path: none;
     padding: 0.75rem 1.25rem;
-    z-index: 10000;
+    z-index: var(--z-skip-link, 9999);
     background: var(--color-accent);
     color: var(--color-primary-foreground);
     border-radius: var(--radius);
@@ -3615,7 +3626,7 @@ img[loading='lazy'] {
   border-top-left-radius: 1.5rem;
   border-top-right-radius: 1.5rem;
   padding: 1.5rem;
-  z-index: 1000;
+  z-index: var(--z-bottom-sheet, 900);
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
@@ -3698,6 +3709,7 @@ img[loading='lazy'] {
 .progress__slider {
   flex: 1;
   height: 48px;
+  -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
@@ -3710,6 +3722,7 @@ img[loading='lazy'] {
 }
 
 .progress__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
   appearance: none;
   width: 16px;
   height: 16px;
@@ -3717,6 +3730,28 @@ img[loading='lazy'] {
   background: var(--color-brand-spotify);
   cursor: pointer;
   margin-top: -6px;
+}
+
+/* Firefox slider styles */
+.progress__slider::-moz-range-track {
+  height: 4px;
+  background: var(--color-muted);
+  border-radius: 2px;
+  border: none;
+}
+
+.progress__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-spotify);
+  border: none;
+  cursor: pointer;
+}
+
+/* Apple Music variant */
+.apple-progress__slider::-moz-range-thumb {
+  background: var(--color-brand-apple, #FC3C44);
 }
 
 .bottom-sheet__controls {
@@ -3766,7 +3801,7 @@ img[loading='lazy'] {
   flex-wrap: wrap;
 }
 
-.action-btn {
+.bottom-sheet-action {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -3783,18 +3818,27 @@ img[loading='lazy'] {
   text-decoration: none;
 }
 
-.action-btn:hover {
+.bottom-sheet-action:hover {
   background: var(--color-secondary);
 }
 
-.action-btn--primary {
+.bottom-sheet-action--primary {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-primary-foreground);
 }
 
-.action-btn--primary:hover {
-  background: color-mix(in oklab, var(--color-primary) 85%, black 15%);
+/* Add @supports fallback for color-mix */
+.bottom-sheet-action--primary:hover {
+  background: var(--color-primary);
+  filter: brightness(0.85); /* Fallback for older browsers */
+}
+
+@supports (background: color-mix(in oklab, white, black)) {
+  .bottom-sheet-action--primary:hover {
+    background: color-mix(in oklab, var(--color-primary) 85%, black 15%);
+    filter: none;
+  }
 }
 
 /* 4.2: Instagram Cards */
@@ -3844,7 +3888,7 @@ img[loading='lazy'] {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 0.75rem 1rem;
-  z-index: 999;
+  z-index: var(--z-mini-player, 800);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 

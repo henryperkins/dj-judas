@@ -360,12 +360,12 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
       {/* Secondary actions - 48px touch targets */}
       <div className="bottom-sheet__actions">
         {!authLoaded ? (
-          <button className="action-btn" disabled>
+          <button className="bottom-sheet-action" disabled>
             <span>Checking account…</span>
           </button>
         ) : !isAuthed ? (
           <button
-            className="action-btn action-btn--primary"
+            className="bottom-sheet-action bottom-sheet-action--primary"
             onClick={handleLogin}
             aria-label="Connect Spotify account"
           >
@@ -375,7 +375,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         ) : (
           <>
             <button
-              className="action-btn"
+              className="bottom-sheet-action"
               onClick={handleSave}
               disabled={isSaving}
               aria-label="Save to library"
@@ -385,7 +385,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
             </button>
             {isArtist && (
               <button
-                className="action-btn"
+                className="bottom-sheet-action"
                 onClick={handleFollow}
                 disabled={isFollowing}
                 aria-label="Follow artist"
@@ -397,7 +397,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
           </>
         )}
         <button
-          className="action-btn"
+          className="bottom-sheet-action"
           onClick={handleShare}
           aria-label="Share"
         >
@@ -408,7 +408,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
           href={spotifyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="action-btn"
+          className="bottom-sheet-action"
           onClick={() => {
             haptics.trigger('light');
             socialMetrics.trackSocialInteraction('spotify', 'open_external', { uri: spotifyUri });

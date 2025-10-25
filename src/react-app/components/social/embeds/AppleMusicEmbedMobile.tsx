@@ -267,7 +267,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
       <div className="bottom-sheet__actions">
         {musicKitReady && isAuthorized ? (
           <button
-            className="action-btn"
+            className="bottom-sheet-action"
             onClick={handleAddToLibrary}
             disabled={actionLoading || !isOnline}
             aria-label="Add to Library"
@@ -277,7 +277,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
           </button>
         ) : musicKitReady ? (
           <button
-            className="action-btn action-btn--primary"
+            className="bottom-sheet-action bottom-sheet-action--primary"
             onClick={handleAuthorize}
             disabled={authLoading || !isOnline}
             aria-label="Authorize Apple Music"
@@ -287,7 +287,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
         ) : null}
 
         <button
-          className="action-btn"
+          className="bottom-sheet-action"
           onClick={handleOpenExternal}
           aria-label="Open in Apple Music"
         >

@@ -66,7 +66,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
       const response = await fetch(`/api/facebook/events?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch Facebook events');
 
-      const data = await response.json();
+      const data = await response.json() as { events?: FacebookEvent[] };
       if (!data?.events?.length) {
         setEvents([]);
         setError('No upcoming events');

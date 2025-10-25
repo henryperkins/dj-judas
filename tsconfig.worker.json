@@ -2,7 +2,10 @@
   "extends": "./tsconfig.node.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
-    "types": ["vite/client", "./worker-configuration.d.ts"]
+    "types": ["vite/client", "./worker-configuration.d.ts", "./src/types/rpc.d.ts"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
-  "include": ["src/worker"]
+  "include": ["src/worker", "src/types/rpc.d.ts", "worker-configuration.d.ts"]
 }

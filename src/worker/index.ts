@@ -1,5 +1,9 @@
+/// <reference types="../types/rpc.d.ts" />
+
 import { Hono } from "hono";
 import { socialMetricsApp } from './social-metrics';
+import { r2PresignedApp } from './r2-presigned';
+import { r2MultipartApp } from './r2-multipart';
 import { CacheManager } from './cache-manager';
 import { coalesceRequest } from './kv-utils';
 import { BookingSchema } from './validation';
@@ -215,6 +219,10 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Mount social metrics routes
 app.route('/', socialMetricsApp);
+
+// ✅ Mount R2 optimization routes (presigned URLs + multipart uploads)
+app.route('/', r2PresignedApp);
+app.route('/', r2MultipartApp);
 
  // Analytics timing middleware (best-effort)
 app.use('*', async (c, next) => {
@@ -612,6 +620,79 @@ function timingSafeEqual(a: string, b: string): boolean {
 	return result === 0;
 }
 
+/**
+ * ✅ R2 Security: Validate file type for uploads
+ * Prevents malicious file uploads (executables, scripts, etc.)
+ */
+const ALLOWED_UPLOAD_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'application/pdf'
+]);
+
+function validateFileType(contentType: string | null): { valid: boolean; type?: string; error?: string } {
+  if (!contentType) {
+    return { valid: false, error: 'Missing Content-Type header' };
+  }
+
+  // Extract base type (remove charset, etc.)
+  const baseType = contentType.split(';')[0].trim().toLowerCase();
+
+  if (!ALLOWED_UPLOAD_TYPES.has(baseType)) {
+    return {
+      valid: false,
+      error: `Unsupported file type: ${baseType}. Allowed: ${Array.from(ALLOWED_UPLOAD_TYPES).join(', ')}`
+    };
+  }
+
+  return { valid: true, type: baseType };
+}
+
+/**
+ * ✅ R2 Security: Rate limit uploads using existing Durable Objects
+ * Prevents abuse and unexpected costs
+ */
+async function checkUploadRateLimit(
+  c: { env: Env; req: { header: (name: string) => string | undefined } }
+): Promise<{ allowed: boolean; error?: string; remaining?: number }> {
+  const rateLimiter = c.env.RATE_LIMITER;
+  if (!rateLimiter) {
+    // If rate limiter not configured, allow (fail open for backward compatibility)
+    console.warn('RATE_LIMITER not configured - uploads not rate limited');
+    return { allowed: true };
+  }
+
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+  const limiterId = rateLimiter.idFromName(ip);
+  const limiter = rateLimiter.get(limiterId);
+
+  try {
+    // @ts-expect-error - RPC method exists at runtime (see src/types/rpc.d.ts)
+    const result = await limiter.checkLimit(ip, 100, 3600); // 100 uploads per hour
+
+    if (!result.allowed) {
+      return {
+        allowed: false,
+        error: `Rate limit exceeded. Try again in ${Math.ceil((result.resetAt - Date.now()) / 60000)} minutes.`,
+        remaining: 0
+      };
+    }
+
+    return { allowed: true, remaining: result.remaining };
+  } catch (error) {
+    console.error('Rate limit check failed:', error);
+    // Fail open - allow upload if rate limiter has errors
+    return { allowed: true };
+  }
+}
+
 // Spotify OAuth - Initiate login
 app.get('/api/spotify/login', async (c) => {
     const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
@@ -703,11 +784,9 @@ app.get('/api/spotify/callback', async (c) => {
 			if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
 				const id = ns.idFromName(sessionId);
 				const stub = ns.get(id);
-				await stub.fetch('https://user-session/set', {
-					method: 'POST',
-					headers: { 'content-type': 'application/json' },
-					body: JSON.stringify({ sessionId, data: session, ttl: 60 * 60 * 24 * 30 })
-				});
+				// Use RPC method instead of fetch
+				// @ts-expect-error - RPC methods are available at runtime (TypeScript limitation with type aliases)
+				await stub.setSession(sessionId, session, 60 * 60 * 24 * 30);
 			}
 		} catch { /* ignore */ }
 
@@ -723,31 +802,51 @@ app.get('/api/spotify/callback', async (c) => {
 
 // Session status
 app.get('/api/spotify/session', async (c) => {
-  const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
-  if (!kv) return c.json({ authenticated: false, reason: 'kv_not_configured' });
   const cookie = c.req.header('Cookie') || '';
   const match = cookie.match(/spotify_session=([^;]+)/);
   if (!match) return c.json({ authenticated: false });
 
-  const sessionData = await kv.get(`spotify:${match[1]}`);
-  if (!sessionData) return c.json({ authenticated: false });
+  // Use Durable Objects exclusively for session storage
+  const ns = c.env.USER_SESSIONS;
+  if (!ns || typeof ns.idFromName !== 'function') {
+    return c.json({ authenticated: false, reason: 'do_not_configured' });
+  }
 
-  const session = JSON.parse(sessionData) as SpotifySession;
-  if (!session.accessToken) return c.json({ authenticated: false });
+  try {
+    const sessionId = match[1];
+    const id = ns.idFromName(sessionId);
+    const stub = ns.get(id);
 
-	// Check if token expired and needs refresh
-	if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
-		if (session.refreshToken) {
-			// Token expired or expiring soon, trigger refresh
-			const refreshed = await refreshSpotifyToken(c, match[1], session);
-			if (refreshed) {
-				return c.json({ authenticated: true, expiresAt: refreshed.expiresAt });
-			}
-		}
-		return c.json({ authenticated: false, reason: 'token_expired' });
-	}
+    // @ts-expect-error - RPC methods available at runtime
+    const sessionData = await stub.getSession(sessionId);
 
-	return c.json({ authenticated: true, expiresAt: session.expiresAt });
+    if (!sessionData?.data) {
+      return c.json({ authenticated: false });
+    }
+
+    const session = sessionData.data as unknown as SpotifySession;
+    if (!session.accessToken) {
+      return c.json({ authenticated: false });
+    }
+
+    // Check if token expired and needs refresh
+    if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
+      if (session.refreshToken) {
+        // Token expired or expiring soon, trigger refresh
+        const refreshed = await refreshSpotifyToken(c, sessionId, session);
+        if (refreshed) {
+          return c.json({ authenticated: true, expiresAt: refreshed.expiresAt });
+        }
+        return c.json({ authenticated: false, reason: 'refresh_failed' });
+      }
+      return c.json({ authenticated: false, reason: 'expired' });
+    }
+
+    return c.json({ authenticated: true, expiresAt: session.expiresAt });
+  } catch (error) {
+    console.error('Session retrieval error:', error);
+    return c.json({ authenticated: false, reason: 'error' });
+  }
 });
 
 // Apple Developer Token (ES256). Cache in KV for shared access across worker instances.
@@ -835,37 +934,43 @@ async function getSessionFromCookie(c: { env: Env }, cookieHeader: string | null
 	const match = cookieHeader.match(/spotify_session=([^;]+)/);
 	if (!match) return null;
 
-	// Prefer Durable Object
+	// Use Durable Objects exclusively for session storage
 	try {
 		const ns = c.env.USER_SESSIONS;
-		if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
-			const id = ns.idFromName(match[1]);
-			const stub = ns.get(id);
-			const res = await stub.fetch('https://user-session/get', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: match[1] }) });
-			if (res.ok) {
-				const session = await res.json() as SpotifySession;
-				if (session?.accessToken) return session;
+		if (!ns || typeof ns.idFromName !== 'function') {
+			console.warn('USER_SESSIONS Durable Object not configured');
+			return null;
+		}
+
+		const sessionId = match[1];
+		const id = ns.idFromName(sessionId);
+		const stub = ns.get(id);
+
+		// @ts-expect-error - RPC methods are available at runtime
+		const sessionData = await stub.getSession(sessionId);
+
+		if (!sessionData?.data) {
+			return null;
+		}
+
+		const session = sessionData.data as unknown as SpotifySession;
+		if (!session?.accessToken) {
+			return null;
+		}
+
+		// Check if token needs refresh
+		if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
+			if (session.refreshToken) {
+				return await refreshSpotifyToken(c, sessionId, session);
 			}
+			return null;
 		}
-	} catch { /* ignore */ }
 
-	const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
-	if (!kv) return null;
-	const sessionData = await kv.get(`spotify:${match[1]}`);
-	if (!sessionData) return null;
-
-	const session = JSON.parse(sessionData) as SpotifySession;
-	if (!session.accessToken) return null;
-
-	// Check if token needs refresh
-	if (session.expiresAt && session.expiresAt < Date.now() + 60000) {
-		if (session.refreshToken) {
-			return await refreshSpotifyToken(c, match[1], session);
-		}
+		return session;
+	} catch (error) {
+		console.error('Error retrieving Spotify session:', error);
 		return null;
 	}
-
-	return session;
 }
 
 // Refresh Spotify access token
@@ -899,14 +1004,13 @@ async function refreshSpotifyToken(c: { env: Env }, sessionId: string, session: 
 		}
 		session.expiresAt = Date.now() + tokenJson.expires_in * 1000;
 
-		// Update session in KV (if available)
-		const kv = (c.env as unknown as { SESSIONS?: KVNamespace })?.SESSIONS;
-		if (kv) {
-			await kv.put(
-				`spotify:${sessionId}`,
-				JSON.stringify(session),
-				{ expirationTtl: 60 * 60 * 24 * 30 }
-			);
+		// Update session in Durable Objects
+		const ns = c.env.USER_SESSIONS;
+		if (ns && typeof ns.idFromName === 'function') {
+			const id = ns.idFromName(sessionId);
+			const stub = ns.get(id);
+			// @ts-expect-error - RPC methods available at runtime
+			await stub.setSession(sessionId, session, 60 * 60 * 24 * 30); // 30 days
 		}
 
 		console.log('Spotify token refreshed successfully');
@@ -997,10 +1101,8 @@ app.post('/api/admin/login', async (c) => {
         const key = `admin:${token.slice(0, 16)}`; // avoid full token in key
         const id = ns.idFromName(key);
         const stub = ns.get(id);
-        await stub.fetch('https://user-session/set', {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ sessionId: key, data: { active: true }, ttl: 60 * 60 * 6 })
-        });
+        // @ts-expect-error - RPC methods are available at runtime (TypeScript limitation with type aliases)
+        await stub.setSession(key, { active: true }, 60 * 60 * 6);
       }
     } catch { /* ignore */ }
     return c.json({ ok: true });
@@ -1028,10 +1130,9 @@ app.get('/api/admin/session', async (c) => {
       const key = `admin:${token.slice(0, 16)}`;
       const id = ns.idFromName(key);
       const stub = ns.get(id);
-      const res = await stub.fetch('https://user-session/get', {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sessionId: key })
-      });
-      if (res.ok) {
+      // @ts-expect-error - RPC methods are available at runtime (TypeScript limitation with type aliases)
+      const sessionData = await stub.getSession(key);
+      if (sessionData?.data) {
         return c.json({ authenticated: true });
       }
     }
@@ -1149,6 +1250,12 @@ app.post('/api/admin/products/:id/images/upload', async (c) => {
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!token) return c.json({ error: 'unauthorized' }, 401);
 
+  // ✅ Rate limiting check
+  const rateLimitCheck = await checkUploadRateLimit(c);
+  if (!rateLimitCheck.allowed) {
+    return c.json({ error: 'rate_limit_exceeded', message: rateLimitCheck.error }, 429);
+  }
+
   try {
     const { url, path } = await c.req.json<{ url: string; path?: string }>();
     if (!url) return c.json({ error: 'missing_url' }, 400);
@@ -1164,6 +1271,12 @@ app.post('/api/admin/products/:id/images/upload', async (c) => {
     if (!upstream.body) return c.json({ error: 'no_body' }, 400);
 
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+
+    // ✅ File type validation
+    const fileValidation = validateFileType(ct);
+    if (!fileValidation.valid) {
+      return c.json({ error: 'invalid_file_type', message: fileValidation.error }, 400);
+    }
     const key = `${(path || 'products').replace(/\/$/, '')}/${crypto.randomUUID()}`;
 
     // Extract filename from URL
@@ -1248,6 +1361,13 @@ app.post('/api/images/direct-upload', async (c) => {
 app.post('/api/r2/upload', async (c) => {
   const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  // ✅ Rate limiting check
+  const rateLimitCheck = await checkUploadRateLimit(c);
+  if (!rateLimitCheck.allowed) {
+    return c.json({ error: 'rate_limit_exceeded', message: rateLimitCheck.error }, 429);
+  }
+
   const mediaBucket = c.env.MEDIA_BUCKET;
   const userAssets = c.env.USER_ASSETS;
   const bucket = mediaBucket || userAssets;
@@ -1260,6 +1380,12 @@ app.post('/api/r2/upload', async (c) => {
     if (!upstream.body) return c.json({ error: 'no_body' }, 400);
 
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+
+    // ✅ File type validation
+    const fileValidation = validateFileType(ct);
+    if (!fileValidation.valid) {
+      return c.json({ error: 'invalid_file_type', message: fileValidation.error }, 400);
+    }
     const key = `${(path || 'uploads').replace(/\/$/, '')}/${crypto.randomUUID()}`;
 
     // Extract filename from URL
@@ -1456,6 +1582,13 @@ app.get('/api/admin/r2/list', async (c) => {
 app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
   const token = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!token) return c.json({ error: 'unauthorized' }, 401);
+
+  // ✅ Rate limiting check
+  const rateLimitCheck = await checkUploadRateLimit(c);
+  if (!rateLimitCheck.allowed) {
+    return c.json({ error: 'rate_limit_exceeded', message: rateLimitCheck.error }, 429);
+  }
+
   const db = c.env.DB;
   if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
   const mediaBucket = c.env.MEDIA_BUCKET;
@@ -1471,6 +1604,12 @@ app.post('/api/admin/events/:slug/flyer/upload', async (c) => {
     if (!upstream.body) return c.json({ error: 'no_body' }, 400);
 
     const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+
+    // ✅ File type validation
+    const fileValidation = validateFileType(ct);
+    if (!fileValidation.valid) {
+      return c.json({ error: 'invalid_file_type', message: fileValidation.error }, 400);
+    }
     const key = `events/${slug}/${crypto.randomUUID()}`;
 
     // Extract filename from URL
@@ -1617,16 +1756,13 @@ app.post('/api/booking', async (c) => {
       try {
         const ns = c.env.RATE_LIMITER;
         if (ns && typeof ns.idFromName === 'function' && typeof ns.get === 'function') {
-          const id = ns.idFromName('global');
+          // Shard by IP for better scalability (each IP gets its own DO)
+          const id = ns.idFromName(`ratelimit:${ip}`);
           const stub = ns.get(id);
-          const res = await stub.fetch('https://rate/check', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ ip, limit: 10, window: 60 })
-          });
-          if (res.status === 429) return false;
-          const j = await res.json().catch(() => ({ allowed: true })) as { allowed?: boolean };
-          return !!j.allowed;
+          // Use RPC method instead of fetch
+          // @ts-expect-error - RPC methods are available at runtime (TypeScript limitation with type aliases)
+          const result = await stub.checkLimit(ip, 10, 60);
+          return result.allowed;
         }
       } catch {
         // Ignore rate limiter errors, fall back to in-memory
@@ -2811,6 +2947,12 @@ app.get('/api/admin/gallery/:id', async (c) => {
 app.post('/api/admin/gallery', async (c) => {
   const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
   if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  // ✅ Rate limiting check
+  const rateLimitCheck = await checkUploadRateLimit(c);
+  if (!rateLimitCheck.allowed) {
+    return c.json({ error: 'rate_limit_exceeded', message: rateLimitCheck.error }, 429);
+  }
 
   const db = c.env.DB;
   if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);

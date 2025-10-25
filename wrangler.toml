@@ -9,6 +9,10 @@ account_id = "a77e479f6736120eadd99973dbeb705e"
 [placement]
 mode = "smart"
 
+# ✅ Tiered cache for global R2 asset delivery
+[cache]
+tiered = true
+
 [observability]
 enabled = true
 
@@ -91,6 +95,9 @@ binding = "ANALYTICS"
 # These are dev defaults - override in production via dashboard
 MEDUSA_URL = "http://localhost:9000"
 SITE_URL = "http://localhost:5173"
+# ✅ R2 Upload Token Secret (CHANGE IN PRODUCTION via dashboard or wrangler secret put)
+# Generate with: openssl rand -base64 32
+R2_UPLOAD_SECRET = "CHANGE-THIS-IN-PRODUCTION-GENERATE-WITH-openssl-rand-base64-32"
 
 # ===== ENVIRONMENT-SPECIFIC CONFIGURATIONS =====
 # [env.production]

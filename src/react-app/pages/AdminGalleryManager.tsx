@@ -68,7 +68,7 @@ const AdminGalleryManager: React.FC = () => {
       setLoading(true);
       const res = await fetch('/api/admin/gallery');
       if (!res.ok) throw new Error(`Failed to load photos: ${res.status}`);
-      const data = await res.json();
+      const data = await res.json() as { photos?: GalleryPhoto[] };
       const remotePhotos = Array.isArray(data.photos) ? data.photos : [];
       if (remotePhotos.length > 0) {
         setPhotos(remotePhotos);
@@ -100,7 +100,7 @@ const AdminGalleryManager: React.FC = () => {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json() as { message?: string };
         throw new Error(errorData.message || `Upload failed: ${res.status}`);
       }
 

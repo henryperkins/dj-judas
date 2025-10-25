@@ -67,12 +67,25 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       });
 
       const response = await fetch(`/api/social/feed?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch social feed');
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})) as { error?: string; message?: string };
+
+        // Handle configuration errors specially
+        if (response.status === 501 && errorData.error === 'not_configured') {
+          setPosts([]);
+          setError(null); // Don't show error, just hide the feed
+          setLoading(false);
+          return;
+        }
+
+        throw new Error(errorData.message || 'Failed to fetch social feed');
+      }
+
+      const data = await response.json() as { posts?: SocialPost[] };
       if (!data?.posts?.length) {
         setPosts([]);
-        setError('No posts available');
+        setError(null); // No error, just no posts
       } else {
         setPosts(data.posts);
         setError(null);
@@ -80,7 +93,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     } catch (err) {
       console.error('Social feed error:', err);
       setPosts([]);
-      setError('Failed to load social feed');
+      setError('Unable to load social feed');
     } finally {
       setLoading(false);
     }
@@ -266,6 +279,11 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     );
   }
 
+  // Hide component entirely if no posts and no error (not configured or genuinely empty)
+  if (!posts.length && !error) {
+    return null;
+  }
+
   return (
     <div className={`dynamic-social-feed layout-${layout}`}>
       {/* Header */}
@@ -289,10 +307,14 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       )}
 
       {/* Feed Content */}
-      {layout === 'grid' && renderGrid()}
-      {layout === 'masonry' && renderMasonry()}
-      {layout === 'carousel' && renderCarousel()}
-      {layout === 'stories' && renderStories()}
+      {posts.length > 0 && (
+        <>
+          {layout === 'grid' && renderGrid()}
+          {layout === 'masonry' && renderMasonry()}
+          {layout === 'carousel' && renderCarousel()}
+          {layout === 'stories' && renderStories()}
+        </>
+      )}
 
       {/* Lightbox Modal */}
       {selectedPost && (

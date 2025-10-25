@@ -9,7 +9,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts(20).then(data => {
-      setProducts(data?.products || [])
+      setProducts((data as { products?: Product[] })?.products || [])
       setLoading(false)
     })
   }, [])

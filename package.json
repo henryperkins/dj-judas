@@ -77,7 +77,20 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "r2:list": "wrangler r2 bucket list",
+    "r2:cors": "wrangler r2 bucket cors get dj-judas-media",
+    "r2:cors:set": "wrangler r2 bucket cors put dj-judas-media --file r2-cors-config.json",
+    "r2:lifecycle": "./scripts/configure-r2-lifecycle.sh",
+    "r2:lifecycle:list": "wrangler r2 bucket lifecycle list dj-judas-media",
+    "r2:objects": "wrangler r2 object list dj-judas-media --limit 20",
+    "r2:info": "wrangler r2 bucket info dj-judas-media",
+    "kv:list": "wrangler kv key list --binding=SESSIONS --limit 20",
+    "kv:analytics": "npx tsx scripts/kv-analytics.ts",
+    "kv:cleanup": "./scripts/kv-cleanup.sh",
+    "kv:get": "wrangler kv key get --binding=SESSIONS",
+    "kv:put": "wrangler kv key put --binding=SESSIONS",
+    "kv:delete": "wrangler kv key delete --binding=SESSIONS"
   },
   "type": "module"
 }

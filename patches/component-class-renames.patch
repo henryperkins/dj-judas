@@ -1,0 +1,99 @@
+/**
+ * COMPONENT PATCHES FOR .action-btn → .bottom-sheet-action RENAME
+ *
+ * Apply these changes to mobile embed components
+ * Desktop components (SpotifyEmbed.tsx, AppleMusicEmbed.tsx) remain unchanged
+ *
+ * Generated: 2025-10-25
+ */
+
+/* ============================================================================
+   FILE: src/react-app/components/social/embeds/SpotifyEmbedMobile.tsx
+   ============================================================================ */
+
+// Line 363: Replace
+<button className="action-btn" disabled>
+// With:
+<button className="bottom-sheet-action" disabled>
+
+// Line 368: Replace
+className="action-btn action-btn--primary"
+// With:
+className="bottom-sheet-action bottom-sheet-action--primary"
+
+// Line 378: Replace
+className="action-btn"
+// With:
+className="bottom-sheet-action"
+
+// Line 388: Replace
+className="action-btn"
+// With:
+className="bottom-sheet-action"
+
+// Line 400: Replace
+className="action-btn"
+// With:
+className="bottom-sheet-action"
+
+// Line 411: Replace
+className="action-btn"
+// With:
+className="bottom-sheet-action"
+
+
+/* ============================================================================
+   FILE: src/react-app/components/social/embeds/AppleMusicEmbedMobile.tsx
+   ============================================================================ */
+
+// Line 270: Replace
+className="action-btn"
+// With:
+className="bottom-sheet-action"
+
+// Line 280: Replace
+className="action-btn action-btn--primary"
+// With:
+className="bottom-sheet-action bottom-sheet-action--primary"
+
+// Line 290: Replace
+className="action-btn"
+// With:
+className="bottom-sheet-action"
+
+
+/* ============================================================================
+   SEARCH AND REPLACE COMMAND (Linux/Mac)
+   ============================================================================ */
+
+# SpotifyEmbedMobile.tsx
+sed -i 's/className="action-btn"/className="bottom-sheet-action"/g' \
+  src/react-app/components/social/embeds/SpotifyEmbedMobile.tsx
+
+sed -i 's/action-btn action-btn--primary/bottom-sheet-action bottom-sheet-action--primary/g' \
+  src/react-app/components/social/embeds/SpotifyEmbedMobile.tsx
+
+# AppleMusicEmbedMobile.tsx
+sed -i 's/className="action-btn"/className="bottom-sheet-action"/g' \
+  src/react-app/components/social/embeds/AppleMusicEmbedMobile.tsx
+
+sed -i 's/action-btn action-btn--primary/bottom-sheet-action bottom-sheet-action--primary/g' \
+  src/react-app/components/social/embeds/AppleMusicEmbedMobile.tsx
+
+
+/* ============================================================================
+   VERIFICATION
+   ============================================================================ */
+
+# After applying patches, verify with:
+grep -n "action-btn" src/react-app/components/social/embeds/SpotifyEmbedMobile.tsx
+# Should return: (no results)
+
+grep -n "action-btn" src/react-app/components/social/embeds/AppleMusicEmbedMobile.tsx
+# Should return: (no results)
+
+grep -n "bottom-sheet-action" src/react-app/components/social/embeds/SpotifyEmbedMobile.tsx
+# Should return: 6 matches
+
+grep -n "bottom-sheet-action" src/react-app/components/social/embeds/AppleMusicEmbedMobile.tsx
+# Should return: 3 matches

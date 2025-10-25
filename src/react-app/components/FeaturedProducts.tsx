@@ -7,7 +7,7 @@ export default function FeaturedProducts() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchProducts(6).then((d) => setItems(d?.products || [])).finally(() => setLoading(false))
+    fetchProducts(6).then((d) => setItems((d as { products?: Product[] })?.products || [])).finally(() => setLoading(false))
     ensureCart()
   }, [])
 

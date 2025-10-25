@@ -134,7 +134,7 @@ class AppleMusicKitManager {
     try {
       const res = await this.fetchWithRetry('/api/apple/developer-token', 3);
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
+        const errorData = await res.json().catch(() => ({})) as { message?: string };
         throw new Error(errorData.message || `Failed to fetch developer token: ${res.status}`);
       }
 

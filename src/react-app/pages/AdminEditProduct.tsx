@@ -96,7 +96,7 @@ export default function AdminEditProduct(props: { id: string }) {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url, path: imagePath || 'products' })
       })
-      const j = await res.json()
+      const j = await res.json() as { error?: string }
       if (!res.ok) throw new Error(j?.error || 'upload_failed')
       // Refresh product so images reflect server state
       const refreshed = await fetch(`/api/admin/products/${p.id}`).then(r => r.json() as Promise<ProductResponse>)

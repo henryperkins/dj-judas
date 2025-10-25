@@ -53,7 +53,7 @@ export default function AdminHome() {
               const res = await fetch(`/api/admin/events/${encodeURIComponent(slug)}/flyer/upload`, {
                 method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: flyerUrl.trim() })
               })
-              const j = await res.json()
+              const j = await res.json() as { error?: string }
               if (res.ok) { setMsg('Flyer updated'); setFlyerUrl('') } else { alert(j?.error || 'Update failed') }
             }}>Upload Flyer</button>
           </div>
@@ -71,7 +71,7 @@ export default function AdminHome() {
                   method: 'POST', headers: { 'content-type': 'application/json' },
                   body: JSON.stringify({ events, replace: true, uploadFlyersToR2: true })
                 })
-                const j = await res.json()
+                const j = await res.json() as { error?: string; imported?: number; uploadedToR2?: number }
                 if (!res.ok) throw new Error(j?.error || 'import_failed')
                 setMsg(`Imported ${j.imported} events; uploaded ${j.uploadedToR2 || 0}`)
                 setImportJson('')

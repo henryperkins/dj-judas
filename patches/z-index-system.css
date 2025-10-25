@@ -1,0 +1,128 @@
+/**
+ * Z-INDEX SYSTEM PATCH
+ * Add to src/react-app/index.css at line 79 (after brand colors, before type scale comment)
+ *
+ * This establishes a consistent z-index scale across the application
+ * preventing stacking context conflicts and making intent clear
+ *
+ * Generated: 2025-10-25
+ */
+
+/* ============================================================================
+   ADD TO :root BLOCK (after line 78, before line 80)
+   ============================================================================ */
+
+  /* Z-index scale - defines stacking order hierarchy */
+  --z-skip-link: 9999;        /* Skip to content link (highest - a11y critical) */
+  --z-modal: 1000;            /* Modal overlays and dialogs */
+  --z-bottom-sheet: 900;      /* Bottom sheet players (mobile) */
+  --z-mini-player: 800;       /* Mini player bars (floating) */
+  --z-dropdown: 700;          /* Dropdown menus and popovers */
+  --z-sticky-header: 600;     /* Sticky headers and navigation */
+  --z-tooltip: 500;           /* Tooltips and hints */
+  --z-elevated: 100;          /* Elevated cards and surfaces */
+  --z-base: 1;                /* Base level (default) */
+
+
+/* ============================================================================
+   COMPLETE :root BLOCK AFTER PATCH (for reference)
+   ============================================================================ */
+
+/*
+:root {
+  [... existing color variables ...]
+
+  --color-brand-spotify: hsl(141 73% 41%);
+  --color-brand-apple: hsl(357 97% 60%);
+  --color-brand-instagram-start: hsl(291 64% 42%);
+  --color-brand-instagram-end: hsl(36 97% 63%);
+
+  // Z-index scale - defines stacking order hierarchy
+  --z-skip-link: 9999;        // Skip to content link (highest - a11y critical)
+  --z-modal: 1000;            // Modal overlays and dialogs
+  --z-bottom-sheet: 900;      // Bottom sheet players (mobile)
+  --z-mini-player: 800;       // Mini player bars (floating)
+  --z-dropdown: 700;          // Dropdown menus and popovers
+  --z-sticky-header: 600;     // Sticky headers and navigation
+  --z-tooltip: 500;           // Tooltips and hints
+  --z-elevated: 100;          // Elevated cards and surfaces
+  --z-base: 1;                // Base level (default)
+
+  // Type scale helpers (optional; use Tailwind defaults otherwise)
+  // --text-sm, --text-base, etc. can be customized here if desired.
+}
+*/
+
+
+/* ============================================================================
+   USAGE EXAMPLES
+   ============================================================================ */
+
+/*
+// Skip link (accessibility)
+.skip-link:focus-visible {
+  z-index: var(--z-skip-link, 9999);
+}
+
+// Modal overlays
+.modal-overlay {
+  z-index: var(--z-modal, 1000);
+}
+
+// Bottom sheets (mobile players)
+.spotify-bottom-sheet,
+.apple-bottom-sheet {
+  z-index: var(--z-bottom-sheet, 900);
+}
+
+// Mini players (floating)
+.listen-mini-player {
+  z-index: var(--z-mini-player, 800);
+}
+
+// Dropdowns
+.dropdown-menu {
+  z-index: var(--z-dropdown, 700);
+}
+
+// Sticky navigation
+.mobile-bottom-nav {
+  z-index: var(--z-sticky-header, 600);
+}
+
+// Tooltips
+.tooltip {
+  z-index: var(--z-tooltip, 500);
+}
+
+// Elevated cards
+.card--elevated {
+  z-index: var(--z-elevated, 100);
+}
+*/
+
+
+/* ============================================================================
+   MIGRATION CHECKLIST
+   ============================================================================ */
+
+/*
+After adding these variables, update existing z-index declarations:
+
+✅ Line 152: .skip-link:focus-visible
+   BEFORE: z-index: 10000;
+   AFTER:  z-index: var(--z-skip-link, 9999);
+
+✅ Line 3618: .spotify-bottom-sheet, .apple-bottom-sheet, .listen-bottom-sheet
+   BEFORE: z-index: 1000;
+   AFTER:  z-index: var(--z-bottom-sheet, 900);
+
+✅ Line 3847: .listen-mini-player
+   BEFORE: z-index: 999;
+   AFTER:  z-index: var(--z-mini-player, 800);
+
+Optional future updates:
+- .mobile-bottom-nav → var(--z-sticky-header, 600)
+- .dropdown-menu → var(--z-dropdown, 700)
+- Modal components → var(--z-modal, 1000)
+*/

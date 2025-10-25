@@ -159,7 +159,7 @@ const PhotoGallery: React.FC = () => {
       try {
         const res = await fetch('/api/gallery');
         if (!res.ok) return;
-        const data = await res.json();
+        const data = await res.json() as { photos?: Photo[] };
         if (Array.isArray(data.photos) && !cancelled) {
           setItems(data.photos);
         }

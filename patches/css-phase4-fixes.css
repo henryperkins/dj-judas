@@ -1,0 +1,272 @@
+/**
+ * PHASE 4 CSS FIXES PATCH
+ * Apply these fixes to src/react-app/index.css
+ *
+ * INSTRUCTIONS:
+ * 1. Apply Critical Fixes first (required for functionality)
+ * 2. Apply Moderate Fixes (browser compatibility)
+ * 3. Apply Minor Fixes (optimization)
+ *
+ * Generated: 2025-10-25
+ */
+
+/* ============================================================================
+   CRITICAL FIX #1: Rename .action-btn to .bottom-sheet-action
+   Lines: 3769-3798
+   Issue: Class name collision with line 1026
+   ============================================================================ */
+
+/* REMOVE THESE LINES (3769-3798) and REPLACE with: */
+
+.bottom-sheet-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.bottom-sheet-action:hover {
+  background: var(--color-secondary);
+}
+
+.bottom-sheet-action--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+/* Add @supports fallback for color-mix */
+.bottom-sheet-action--primary:hover {
+  background: var(--color-primary);
+  filter: brightness(0.85); /* Fallback for older browsers */
+}
+
+@supports (background: color-mix(in oklab, white, black)) {
+  .bottom-sheet-action--primary:hover {
+    background: color-mix(in oklab, var(--color-primary) 85%, black 15%);
+    filter: none;
+  }
+}
+
+/* ============================================================================
+   CRITICAL FIX #2: Add Firefox Range Slider Styles
+   Location: After line 3720
+   Issue: Slider completely unstyled in Firefox
+   ============================================================================ */
+
+/* ADD THESE LINES after .progress__slider::-webkit-slider-thumb (line 3720) */
+
+/* Firefox slider styles */
+.progress__slider::-moz-range-track {
+  height: 4px;
+  background: var(--color-muted);
+  border-radius: 2px;
+  border: none;
+}
+
+.progress__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-spotify);
+  border: none;
+  cursor: pointer;
+}
+
+/* Apple Music variant */
+.apple-progress__slider::-moz-range-thumb {
+  background: var(--color-brand-apple, #FC3C44);
+}
+
+/* ============================================================================
+   MODERATE FIX #1: Add -webkit-appearance Vendor Prefix
+   Lines: 3701, 3713
+   Issue: Inconsistent slider appearance in Safari
+   ============================================================================ */
+
+/* REPLACE line 3701 with: */
+.progress__slider {
+  flex: 1;
+  height: 48px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* REPLACE line 3713 with: */
+.progress__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-spotify);
+  cursor: pointer;
+  margin-top: -6px;
+}
+
+/* ============================================================================
+   MODERATE FIX #2: Establish Z-Index Scale with CSS Variables
+   Lines: 152, 3618, 3847
+   Issue: Inconsistent z-index values and potential stacking conflicts
+   ============================================================================ */
+
+/* ADD THESE VARIABLES to :root (near line 75, after --color-brand-apple) */
+
+/*
+:root {
+  --z-skip-link: 9999;
+  --z-modal: 1000;
+  --z-bottom-sheet: 900;
+  --z-mini-player: 800;
+  --z-dropdown: 700;
+  --z-header: 600;
+}
+*/
+
+/* REPLACE line 152 with: */
+.skip-link:focus-visible {
+  position: fixed;
+  top: calc(1rem + var(--safe-area-inset-top));
+  left: calc(1rem + var(--safe-area-inset-left));
+  width: auto;
+  height: auto;
+  clip: auto;
+  clip-path: none;
+  padding: 0.75rem 1.25rem;
+  z-index: var(--z-skip-link, 9999);
+  background: var(--color-accent);
+  color: var(--color-primary-foreground);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+}
+
+/* REPLACE line 3618 with: */
+.spotify-bottom-sheet,
+.apple-bottom-sheet,
+.listen-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-card);
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  padding: 1.5rem;
+  z-index: var(--z-bottom-sheet, 900);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  animation: slideUpMobile 0.3s ease;
+}
+
+/* REPLACE line 3847 with: */
+.listen-mini-player {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  z-index: var(--z-mini-player, 800);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================================================
+   MINOR FIX #1: Optimize will-change Universal Selector
+   Lines: 3472-3476
+   Issue: Expensive selector affecting all elements
+   ============================================================================ */
+
+/* REPLACE lines 3472-3476 with: */
+
+/* Remove will-change after animation completes - targeted approach */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-indicator:not(.animating),
+  .pull-to-refresh-spinner:not(.animating),
+  .cart-item__swipeable:not(.animating),
+  .control-btn:not(:active),
+  .mini-player__play-btn:not(:active),
+  .bottom-sheet-action:not(:hover) {
+    will-change: auto;
+  }
+}
+
+/* ============================================================================
+   MINOR FIX #2: Rename Animation for Consistency
+   Line: 3625
+   Issue: Inconsistent naming convention
+   ============================================================================ */
+
+/* RENAME slideUpMobile to slideUp */
+
+/* REPLACE line 3625 with: */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* UPDATE line 3622 to use new name: */
+.spotify-bottom-sheet,
+.apple-bottom-sheet,
+.listen-bottom-sheet {
+  /* ... existing properties ... */
+  animation: slideUp 0.3s ease;
+}
+
+/* ============================================================================
+   ADDITIONAL ENHANCEMENTS
+   ============================================================================ */
+
+/* Add focus-visible styles for accessibility */
+.bottom-sheet-action:focus-visible,
+.control-btn:focus-visible,
+.platform-tab:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Improve reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .spotify-bottom-sheet,
+  .apple-bottom-sheet,
+  .listen-bottom-sheet {
+    animation: none;
+  }
+
+  .control-btn,
+  .mini-player__play-btn,
+  .bottom-sheet-action {
+    transition: none;
+  }
+}
+
+/* Add high contrast mode support */
+@media (prefers-contrast: high) {
+  .control-btn,
+  .bottom-sheet-action {
+    border-width: 2px;
+  }
+
+  .progress__slider::-webkit-slider-thumb,
+  .progress__slider::-moz-range-thumb {
+    border: 2px solid var(--color-foreground);
+  }
+}

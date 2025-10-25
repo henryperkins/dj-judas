@@ -55,6 +55,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
 
   // Fetch events from backend
   const fetchEvents = useCallback(async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams({
         page_id: pageId || '',

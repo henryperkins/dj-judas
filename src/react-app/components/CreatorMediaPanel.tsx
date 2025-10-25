@@ -24,6 +24,7 @@ export type CreatorMediaPanelProps = {
 
   // Video / Live
   facebookVideoHref?: string;   // public FB video/live URL
+  facebookLiveHref?: string;    // public FB live URL
   facebookPageUrl?: string;     // public page, e.g. https://www.facebook.com/<page>
 
   // Social
@@ -40,6 +41,7 @@ export default function CreatorMediaPanel({
   spotifyUrl,
   appleMusicUrl,
   facebookVideoHref,
+  facebookLiveHref,
   facebookPageUrl,
   instagramPermalink,
   socialEmbedUrl,
@@ -85,8 +87,17 @@ export default function CreatorMediaPanel({
     if (facebookVideoHref) {
       links.push({
         id: 'facebook-video',
-        label: 'Open Facebook Video',
+        label: 'Open Facebook Watch',
         url: facebookVideoHref,
+        platform: 'facebook'
+      });
+    }
+
+    if (facebookLiveHref) {
+      links.push({
+        id: 'facebook-live',
+        label: 'Open Facebook Live',
+        url: facebookLiveHref,
         platform: 'facebook'
       });
     }
@@ -110,7 +121,7 @@ export default function CreatorMediaPanel({
     }
 
     return links;
-  }, [spotifyUrl, defaultSpotifyUrl, appleMusicUrl, facebookVideoHref, facebookPageUrl, defaultFacebookPageUrl, instagramPermalink, defaultInstagramUrl])
+  }, [spotifyUrl, defaultSpotifyUrl, appleMusicUrl, facebookVideoHref, facebookLiveHref, facebookPageUrl, defaultFacebookPageUrl, instagramPermalink, defaultInstagramUrl])
 
 
   return (
@@ -165,22 +176,38 @@ export default function CreatorMediaPanel({
 
             {tab === "watch" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SectionCard title="Facebook Video / Live" hint="Public videos & live streams">
+                <SectionCard title="Facebook Watch" hint="On-demand videos">
                   {facebookVideoHref ? (
                     <LazyFacebookEmbed
-                      url={facebookVideoHref}
-                      type="video"
+                      type="watch"
+                      videoUrl={facebookVideoHref}
+                      allowfullscreen
                     />
                   ) : (
-                    <EmptyState text="Provide a Facebook video/live URL." />
+                    <EmptyState text="Provide a Facebook Watch video URL." />
+                  )}
+                </SectionCard>
+
+                <SectionCard title="Facebook Live" hint="Live broadcasts (public)">
+                  {facebookLiveHref ? (
+                    <LazyFacebookEmbed
+                      type="live"
+                      videoUrl={facebookLiveHref}
+                      allowfullscreen
+                      autoplay
+                    />
+                  ) : (
+                    <EmptyState text="Provide a Facebook Live URL." />
                   )}
                 </SectionCard>
 
                 <SectionCard title="Facebook Page" hint="Timeline embed">
                   {(facebookPageUrl || defaultFacebookPageUrl) ? (
                     <LazyFacebookEmbed
-                      url={facebookPageUrl || defaultFacebookPageUrl!}
-                      type="post"
+                      type="page"
+                      pageUrl={facebookPageUrl || defaultFacebookPageUrl!}
+                      tabs={['timeline', 'events']}
+                      adaptContainerWidth
                     />
                   ) : (
                     <EmptyState text="Provide a Facebook Page URL." />

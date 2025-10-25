@@ -29,5 +29,12 @@
   ],
   "analytics_engine_datasets": [
     { "binding": "ANALYTICS" }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+    { "binding": "MEDIA_BUCKET", "bucket_name": "dj-judas-media" },
+    { "binding": "USER_ASSETS", "bucket_name": "user-assets" }
   ]
 }

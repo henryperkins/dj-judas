@@ -28,9 +28,53 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [musicKitError, setMusicKitError] = useState<string | null>(null);
 
-  // Extract the path from Apple Music URL
-  const embedPath = url.replace('https://music.apple.com/', '');
-  const embedSrc = `https://embed.music.apple.com/${embedPath}`;
+  // SECURITY: Validate and sanitize Apple Music URL to prevent XSS
+  const validateAndBuildEmbedSrc = (musicUrl: string): string | null => {
+    try {
+      // Parse URL to validate it's a proper URL
+      const parsedUrl = new URL(musicUrl);
+
+      // Only allow music.apple.com domain
+      if (parsedUrl.hostname !== 'music.apple.com') {
+        console.error('Invalid Apple Music URL: wrong domain', parsedUrl.hostname);
+        return null;
+      }
+
+      // Extract path and validate format (should be: /us/album/... or /us/playlist/... or /us/song/...)
+      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+
+      // Path should be: [country, type, ...rest]
+      // Example: /us/album/album-name/123456
+      if (pathParts.length < 3) {
+        console.error('Invalid Apple Music URL: path too short', parsedUrl.pathname);
+        return null;
+      }
+
+      const [country, contentType] = pathParts;
+
+      // Validate country code (2 letters)
+      if (!/^[a-z]{2}$/i.test(country)) {
+        console.error('Invalid Apple Music URL: invalid country code', country);
+        return null;
+      }
+
+      // Validate content type
+      const validTypes = ['album', 'playlist', 'song', 'artist', 'music-video', 'station'];
+      if (!validTypes.includes(contentType.toLowerCase())) {
+        console.error('Invalid Apple Music URL: invalid content type', contentType);
+        return null;
+      }
+
+      // Build safe embed URL using validated components
+      const embedPath = parsedUrl.pathname + parsedUrl.search;
+      return `https://embed.music.apple.com${embedPath}`;
+    } catch (error) {
+      console.error('Failed to parse Apple Music URL:', error);
+      return null;
+    }
+  };
+
+  const embedSrc = validateAndBuildEmbedSrc(url);
 
   // Build affiliate link
   const buildAffiliateLink = (action: string) => {
@@ -162,13 +206,13 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
       )}
 
       <div className="apple-iframe-container">
-        {!isLoaded && !showFallback && (
+        {!isLoaded && !showFallback && embedSrc && (
           <div className="embed-loading" role="status" aria-live="polite">
             <div className="loading-spinner loading-spinner--large" aria-hidden="true" />
             <p>Loading Apple Music player...</p>
           </div>
         )}
-        {!showFallback && (
+        {!showFallback && embedSrc && (
           <iframe
             allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
             height={height}
@@ -186,8 +230,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
             onLoad={() => setIsLoaded(true)}
           />
         )}
-
-        {showFallback && (
+        {(!embedSrc || showFallback) && (
           <div
             className="embed-fallback"
             role="region"
@@ -195,7 +238,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
             style={{ minHeight: height }}
           >
             <LuMusic size={36} aria-hidden="true" />
-            <p>Preview unavailable here.</p>
+            <p>{!embedSrc ? 'Invalid Apple Music URL' : 'Preview unavailable here.'}</p>
             <button className="btn btn-primary" onClick={handleOpenInAppleMusic}>
               <LuExternalLink size={16} /> Open in Apple Music
             </button>
@@ -253,6 +296,11 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
             {musicKitError}
           </p>
         )}
+      </div>
+
+      {/* Required by Apple Music API Terms of Service */}
+      <div className="apple-attribution">
+        <span className="apple-attribution__text">Powered by Apple Music</span>
       </div>
     </div>
   );

@@ -88,6 +88,43 @@ class AppleMusicKitManager {
     return this.loadingPromise;
   }
 
+  /**
+   * Fetch with exponential backoff retry logic
+   */
+  private async fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const res = await fetch(url);
+
+        // If successful or client error (4xx), return immediately
+        if (res.ok || (res.status >= 400 && res.status < 500)) {
+          return res;
+        }
+
+        // Server error (5xx) - retry if not last attempt
+        if (res.status >= 500 && attempt < maxRetries - 1) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Max 5 second delay
+          console.warn(`Apple Music token fetch failed (${res.status}), retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+
+        return res;
+      } catch (error) {
+        // Network error - retry if not last attempt
+        if (attempt < maxRetries - 1) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+          console.warn(`Network error fetching Apple Music token, retrying in ${delay}ms...`, error);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error('Max retries exceeded');
+  }
+
   private async fetchDeveloperToken(): Promise<string> {
     // Check cached token
     if (this.developerToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
@@ -95,7 +132,7 @@ class AppleMusicKitManager {
     }
 
     try {
-      const res = await fetch('/api/apple/developer-token');
+      const res = await this.fetchWithRetry('/api/apple/developer-token', 3);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.message || `Failed to fetch developer token: ${res.status}`);
@@ -111,11 +148,37 @@ class AppleMusicKitManager {
         throw new Error('Developer token not configured on server');
       }
 
-      this.developerToken = data.token;
-      // Cache for 11 hours (token is valid for 12 hours)
-      this.tokenExpiry = Date.now() + 11 * 60 * 60 * 1000;
+      // SECURITY: Validate JWT structure before using
+      const parts = data.token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT token format received from server');
+      }
 
-      return data.token;
+      try {
+        // Decode JWT payload to check expiry (without verifying signature - server already signed it)
+        const payload = JSON.parse(atob(parts[1]));
+
+        if (!payload.exp || typeof payload.exp !== 'number') {
+          throw new Error('Invalid JWT: missing expiry claim');
+        }
+
+        // Check if token is expired or expiring soon (within 1 minute)
+        const expiryMs = payload.exp * 1000;
+        if (expiryMs < Date.now() + 60000) {
+          throw new Error('Token expired or expiring soon');
+        }
+
+        this.developerToken = data.token;
+        // Cache for 1h 50min (token is valid for 2 hours, cache slightly less to avoid edge cases)
+        this.tokenExpiry = expiryMs - 60000; // Use actual expiry minus 1min buffer
+
+        return data.token;
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Token expired')) {
+          throw error;
+        }
+        throw new Error('Failed to parse JWT token from server');
+      }
     } catch (error) {
       console.error('Apple Music developer token fetch error:', error);
       // Provide more user-friendly error message

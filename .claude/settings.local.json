@@ -10,7 +10,13 @@
       "Bash(docker compose:*)",
       "mcp__cloudflare-bindings__accounts_list",
       "Bash(wrangler secret:*)",
-      "Bash(npx wrangler:*)"
+      "Bash(npx wrangler:*)",
+      "Bash(export CLOUDFLARE_API_TOKEN=5Q3F6cJKuDh9CWSMPRMjQk7-HzwnPugTmzH5pvpm)",
+      "Bash(wrangler d1 list:*)",
+      "Bash(wrangler kv namespace:*)",
+      "Bash(wrangler d1 execute:*)",
+      "Bash(cat:*)",
+      "Bash(npm run deploy:*)"
     ],
     "deny": [],
     "ask": []

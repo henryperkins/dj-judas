@@ -437,12 +437,17 @@ const AdminGalleryManager: React.FC = () => {
                         <span className="px-2 py-0.5 bg-muted rounded">
                           {photo.category}
                         </span>
+                        {isLocalPhotoId(photo.id) && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                            Local Asset (Read-only)
+                          </span>
+                        )}
                         <span>Order: {photo.sort_order}</span>
                         {photo.file_size && (
                           <span>{(photo.file_size / 1024).toFixed(0)} KB</span>
                         )}
                         <span className="truncate" title={photo.r2_key}>
-                          R2: {photo.r2_key}
+                          {isLocalPhotoId(photo.id) ? 'Bundled' : `R2: ${photo.r2_key}`}
                         </span>
                       </div>
                     </>
@@ -457,20 +462,23 @@ const AdminGalleryManager: React.FC = () => {
                       photo.is_published ? 'text-green-600' : 'text-muted-foreground'
                     }`}
                     title={photo.is_published ? 'Published' : 'Draft'}
+                    disabled={isLocalPhotoId(photo.id)}
                   >
                     {photo.is_published ? <LuEye size={18} /> : <LuEyeOff size={18} />}
                   </button>
                   <button
                     onClick={() => setEditingId(photo.id)}
-                    className="p-2 rounded hover:bg-muted transition text-blue-600"
-                    title="Edit"
+                    className="p-2 rounded hover:bg-muted transition text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={isLocalPhotoId(photo.id) ? 'Local photos cannot be edited' : 'Edit'}
+                    disabled={isLocalPhotoId(photo.id)}
                   >
                     <LuPencil size={18} />
                   </button>
                   <button
                     onClick={() => handleDelete(photo.id, photo.caption)}
-                    className="p-2 rounded hover:bg-muted transition text-red-600"
-                    title="Delete"
+                    className="p-2 rounded hover:bg-muted transition text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={isLocalPhotoId(photo.id) ? 'Local photos cannot be deleted' : 'Delete'}
+                    disabled={isLocalPhotoId(photo.id)}
                   >
                     <LuTrash2 size={18} />
                   </button>

@@ -34,6 +34,10 @@ export interface DeepLink {
   icon?: React.ReactNode;
 }
 
+interface TrackedDeepLink extends DeepLink {
+  trackedUrl: string;
+}
+
 export interface ShareManagerProps {
   url?: string;
   title?: string;
@@ -125,6 +129,19 @@ const ShareManager: React.FC<ShareManagerProps> = ({
 
     return links;
   }, [deepLinks]);
+
+  const trackedDeepLinks: TrackedDeepLink[] = useMemo(
+    () =>
+      defaultDeepLinks.map((link) => ({
+        ...link,
+        trackedUrl: addUtm(link.url, {
+          source: link.platform || link.id,
+          medium: 'deeplink',
+          campaign
+        })
+      })),
+    [defaultDeepLinks, campaign]
+  );
 
   // Track initial mount
   useEffect(() => {
@@ -251,14 +268,13 @@ const ShareManager: React.FC<ShareManagerProps> = ({
   }, [markInteracted, qrVisible, campaign, shareUrl, onEvent]);
 
   // Handle deep link click
-  const handleDeepLinkClick = useCallback((link: DeepLink) => {
+  const handleDeepLinkClick = useCallback((link: DeepLink, trackedUrl: string, event?: React.MouseEvent<HTMLElement>) => {
     markInteracted();
 
-    const trackedUrl = addUtm(link.url, {
-      source: link.platform || link.id,
-      medium: 'deeplink',
-      campaign
-    });
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
 
     window.open(trackedUrl, '_blank', 'noopener,noreferrer');
 
@@ -366,19 +382,19 @@ const ShareManager: React.FC<ShareManagerProps> = ({
       )}
 
       {/* Deep Links */}
-      {showDeepLinks && defaultDeepLinks.length > 0 && (
+      {showDeepLinks && trackedDeepLinks.length > 0 && (
         <div className="share-deep-links">
           <h4 className="deep-links-heading">Listen & Follow</h4>
           <div className="deep-links-list">
-            {defaultDeepLinks.map(link => {
+            {trackedDeepLinks.map(link => {
               // Use Apple Music badge for Apple deep link
               if (link.platform === 'appleMusic') {
                 return (
                   <AppleMusicBadge
                     key={link.id}
-                    href={link.url}
+                    href={link.trackedUrl}
                     className="apple-music-badge--inline"
-                    onClick={() => handleDeepLinkClick(link)}
+                    onClick={(event) => handleDeepLinkClick(link, link.trackedUrl, event)}
                   />
                 );
               }
@@ -386,7 +402,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({
                 <button
                   key={link.id}
                   className="deep-link-btn"
-                  onClick={() => handleDeepLinkClick(link)}
+                  onClick={(event) => handleDeepLinkClick(link, link.trackedUrl, event)}
                   aria-label={link.label}
                   style={{
                     '--platform-color': link.platform

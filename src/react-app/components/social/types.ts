@@ -59,7 +59,7 @@ export interface SocialMetricsEvent {
 }
 
 export interface FacebookEmbedConfig extends EmbedConfig {
-  type: 'page' | 'video' | 'post' | 'events';
+  type: 'page' | 'video' | 'post' | 'events' | 'watch' | 'live';
   pageId?: string;
   videoId?: string;
   postId?: string;

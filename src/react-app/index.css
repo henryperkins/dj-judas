@@ -1041,6 +1041,73 @@
     @apply inline-flex items-center justify-center bg-foreground text-background border border-foreground px-6 py-3 rounded-[var(--radius)] font-semibold cursor-pointer transition hover:brightness-95;
   }
 
+  /* === Apple Music Component Styles === */
+
+  /* Apple Music Badge (now uses SVG, but keeping styles for consistency) */
+  .apple-music-badge {
+    @apply inline-block transition-opacity;
+  }
+
+  .apple-music-badge:hover {
+    @apply opacity-85;
+  }
+
+  /* Apple Art Placeholder (for loading states) */
+  .apple-art__placeholder {
+    @apply w-full h-full flex items-center justify-center text-white;
+    background: linear-gradient(135deg, #FC3C44, #FF6B6B);
+  }
+
+  /* Mini Player Icon */
+  .mini-player__icon,
+  .apple-mini-player__icon {
+    @apply w-12 h-12 flex items-center justify-center;
+    color: var(--color-brand-apple, #FC3C44);
+  }
+
+  /* Bottom Sheet Variants (for mobile) */
+  .bottom-sheet__offline-banner {
+    @apply flex items-center justify-center gap-2 px-3 py-2 mb-4 text-sm rounded-[var(--radius)];
+    background: var(--color-destructive);
+    color: var(--color-destructive-foreground);
+  }
+
+  .bottom-sheet__error {
+    @apply px-4 py-3 mb-4 text-sm text-center rounded-[var(--radius)];
+    background: var(--color-destructive-foreground);
+    color: var(--color-destructive);
+  }
+
+  .bottom-sheet__cta {
+    @apply text-center px-4 py-4 text-sm text-muted-foreground;
+  }
+
+  .bottom-sheet__cta-link {
+    @apply text-foreground underline hover:no-underline;
+  }
+
+  /* Apple-specific control colors */
+  .apple-play-btn.control-btn--primary {
+    background: var(--color-brand-apple, #FC3C44);
+  }
+
+  .apple-play-btn.control-btn--primary:hover {
+    background: var(--color-brand-apple-hover, #E8323A);
+  }
+
+  /* Apple Music attribution (required by Apple Music API guidelines) */
+  .apple-attribution {
+    @apply flex items-center justify-center gap-2 text-xs text-muted-foreground mt-3 px-2 py-1;
+  }
+
+  .apple-attribution__logo {
+    @apply h-3 opacity-60;
+  }
+
+  .apple-attribution__text {
+    @apply text-xs;
+  }
+
   /* Instagram & Facebook hubs (wrappers + embeds) */
   .instagram-embed-wrapper,
   .facebook-embed-wrapper,

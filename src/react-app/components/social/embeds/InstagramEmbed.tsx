@@ -389,7 +389,13 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
               </button>
             )}
             {appleMusicPlaylistUrl && (
-              <AppleMusicBadge href={appleMusicPlaylistUrl} />
+              <AppleMusicBadge
+                href={appleMusicPlaylistUrl}
+                onClick={(event) => {
+                  event.preventDefault();
+                  handlePlaylistClick('apple');
+                }}
+              />
             )}
           </div>
         </div>

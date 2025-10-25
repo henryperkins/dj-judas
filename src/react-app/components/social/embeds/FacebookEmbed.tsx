@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LuFacebook, LuExternalLink, LuCalendar, LuUsers, LuHeart, LuShare2, LuMusic } from 'react-icons/lu';
 import { FaSpotify, FaApple } from 'react-icons/fa';
 import { metaSDK } from '../utils/metaSdk';
@@ -12,11 +12,12 @@ interface FacebookEvent {
   ticketUrl?: string;
 }
 
-interface FacebookEmbedProps extends Partial<FacebookEmbedConfig> {
+export interface FacebookEmbedProps extends Partial<FacebookEmbedConfig> {
   // Common props
   url?: string;
   pageUrl?: string;
   videoUrl?: string;
+  liveVideoUrl?: string;
   postUrl?: string;
   className?: string;
   title?: string;
@@ -111,18 +112,19 @@ function useFacebookEmbed(
 }
 
 const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
-  type = 'page',
+  type: providedType,
   url,
   pageUrl,
   videoUrl,
+  liveVideoUrl,
   postUrl,
   className = '',
   title = 'Facebook',
-  width = type === 'video' ? 500 : 340,
-  height = type === 'video' ? 280 : 500,
+  width,
+  height,
   
   // Page props
-  tabs = 'timeline',
+  tabs,
   smallHeader = false,
   hideCover = false,
   showFacepile = true,
@@ -142,33 +144,91 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
   showEngagementStats = false,
   followers
 }) => {
-  // Determine the actual URL and type
-  const embedUrl = url || pageUrl || videoUrl || postUrl || '';
-  const embedType: 'page' | 'video' | 'post' = 
-    videoUrl || type === 'video' ? 'video' : 
-    postUrl || type === 'post' ? 'post' : 
-    'page';
-  
-  const selector = embedType === 'video' ? 'fb-video' : 
+  const requestedType: FacebookEmbedConfig['type'] =
+    providedType ??
+    (videoUrl ? 'video' : postUrl ? 'post' : (tabs === 'events' || (Array.isArray(tabs) && tabs.includes('events')) ? 'events' : 'page'));
+
+  const isVideoType = requestedType === 'video' || requestedType === 'watch' || requestedType === 'live';
+  const resolvedWidth = width ?? (isVideoType ? 500 : 340);
+  const resolvedHeight = height ?? (isVideoType ? 280 : 500);
+
+  const embedType: 'page' | 'video' | 'post' =
+    isVideoType
+      ? 'video'
+      : requestedType === 'post'
+      ? 'post'
+      : 'page';
+
+  const selector = embedType === 'video' ? 'fb-video' :
                    embedType === 'post' ? 'fb-post' : 
                    'fb-page';
+
+  const resolvedTabs = useMemo<string | string[]>(() => {
+    if (tabs) return tabs;
+    if (requestedType === 'events') return 'events';
+    return 'timeline';
+  }, [tabs, requestedType]);
+
+  const pageTabsAttr = useMemo(() => {
+    if (Array.isArray(resolvedTabs)) {
+      return resolvedTabs.filter(Boolean).join(',');
+    }
+    return resolvedTabs
+      .split(',')
+      .map((tab) => tab.trim())
+      .filter(Boolean)
+      .join(',');
+  }, [resolvedTabs]);
+
+  const pageTabsList = useMemo(() => {
+    if (Array.isArray(resolvedTabs)) {
+      return resolvedTabs.filter(Boolean);
+    }
+    return resolvedTabs
+      .split(',')
+      .map((tab) => tab.trim())
+      .filter(Boolean);
+  }, [resolvedTabs]);
+
+  const pageEmbedUrl = pageUrl || url || '';
+  const postEmbedUrl = postUrl || url || '';
+  const videoEmbedUrl =
+    requestedType === 'live'
+      ? liveVideoUrl || videoUrl || url || ''
+      : videoUrl || url || '';
+
+  const interactionVariant =
+    requestedType === 'watch' ? 'watch' :
+    requestedType === 'live' ? 'live' :
+    requestedType === 'events' ? 'events' :
+    embedType;
   
   // State for advanced features
-  const [activeTab, setActiveTab] = useState<'timeline' | 'events' | 'music'>('timeline');
+  const hubTabs = useMemo(() => {
+    const baseTabs: Array<'timeline' | 'events'> = [];
+    if (pageTabsList.includes('timeline') || pageTabsList.length === 0) baseTabs.push('timeline');
+    if (pageTabsList.includes('events')) baseTabs.push('events');
+    return baseTabs;
+  }, [pageTabsList]);
+
+  const [activeTab, setActiveTab] = useState<'timeline' | 'events' | 'music'>(
+    requestedType === 'events' ? 'events' : 'timeline'
+  );
   const [showMusicPrompt, setShowMusicPrompt] = useState(false);
   
   // Use the unified hook
-  const { ref, loaded, error } = useFacebookEmbed(selector, [embedUrl, tabs, activeTab]);
+  const sourceForEmbed = embedType === 'page' ? pageEmbedUrl : embedType === 'video' ? videoEmbedUrl : postEmbedUrl;
+  const { ref, loaded, error } = useFacebookEmbed(selector, [sourceForEmbed, pageTabsAttr, activeTab, interactionVariant]);
   
   // Track view
   useEffect(() => {
-    if (loaded) {
-      socialMetrics.trackSocialInteraction('facebook', `${embedType}_view`, {
-        url: embedUrl,
-        type: embedType
+    if (loaded && sourceForEmbed) {
+      socialMetrics.trackSocialInteraction('facebook', `${interactionVariant}_view`, {
+        url: sourceForEmbed,
+        type: interactionVariant
       });
     }
-  }, [loaded, embedUrl, embedType]);
+  }, [loaded, sourceForEmbed, interactionVariant]);
   
   // Show music prompt after viewing content
   useEffect(() => {
@@ -198,7 +258,7 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
       <div className="facebook-embed-error">
         <p>{error}</p>
         <a
-          href={embedUrl}
+          href={sourceForEmbed || pageEmbedUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-accent hover:underline"
@@ -227,7 +287,7 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
           </div>
           <div className="embed-actions">
             <a
-              href={embedUrl}
+              href={pageEmbedUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-ghost"
@@ -241,7 +301,7 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
         
         {/* Tabs */}
         <nav className="embed-tabs">
-          {(['timeline', 'events', 'music'] as const).map((t) => (
+          {[...hubTabs, ...(showMusicDiscovery ? (['music'] as const) : [])].map((t) => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
@@ -266,10 +326,10 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
             <div ref={ref} className="facebook-embed-content">
               <div
                 className="fb-page"
-                data-href={embedUrl}
-                data-tabs={activeTab === 'events' ? 'events' : 'timeline'}
-                data-width={width}
-                data-height={height}
+                data-href={pageEmbedUrl}
+                data-tabs={activeTab === 'events' ? 'events' : pageTabsAttr || 'timeline'}
+                data-width={resolvedWidth}
+                data-height={resolvedHeight}
                 data-small-header={activeTab === 'events' ? 'true' : String(smallHeader)}
                 data-adapt-container-width={String(adaptContainerWidth)}
                 data-hide-cover={activeTab === 'events' ? 'true' : String(hideCover)}
@@ -357,7 +417,7 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
           <span>{title}</span>
         </div>
         <a
-          href={embedUrl}
+          href={sourceForEmbed || pageEmbedUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-ghost"
@@ -380,9 +440,9 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
           {embedType === 'video' ? (
             <div
               className="fb-video"
-              data-href={embedUrl}
-              data-width={width}
-              data-height={height}
+              data-href={videoEmbedUrl}
+              data-width={resolvedWidth}
+              data-height={resolvedHeight}
               data-allowfullscreen={String(allowfullscreen)}
               data-autoplay={String(autoplay)}
               data-show-captions={String(showCaptions)}
@@ -391,18 +451,18 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
           ) : embedType === 'post' ? (
             <div
               className="fb-post"
-              data-href={embedUrl}
-              data-width={width}
+              data-href={postEmbedUrl}
+              data-width={resolvedWidth}
               data-show-text="true"
               data-lazy="true"
             />
           ) : (
             <div
               className="fb-page"
-              data-href={embedUrl}
-              data-tabs={Array.isArray(tabs) ? tabs.join(',') : tabs}
-              data-width={width}
-              data-height={height}
+              data-href={pageEmbedUrl}
+              data-tabs={pageTabsAttr}
+              data-width={resolvedWidth}
+              data-height={resolvedHeight}
               data-small-header={String(smallHeader)}
               data-adapt-container-width={String(adaptContainerWidth)}
               data-hide-cover={String(hideCover)}

@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect } from 'react';
 import { useSocialSDK } from '../../../hooks/useSocialSDK';
 import type { SocialSDKState } from '../../../providers/SocialProviderContext';
+import type { FacebookEmbedProps } from './FacebookEmbed';
 
 const SpotifyEmbed = lazy(() => import('./SpotifyEmbed'));
 const AppleMusicEmbed = lazy(() => import('./AppleMusicEmbed'));
@@ -66,10 +67,10 @@ export const LazyInstagramEmbed: React.FC<{ url: string }> = ({ url }) => (
   </EmbedLoader>
 );
 
-export const LazyFacebookEmbed: React.FC<{ url: string; type?: 'post' | 'video' }> = ({ url, type }) => (
+export const LazyFacebookEmbed: React.FC<FacebookEmbedProps> = (props) => (
   <EmbedLoader platform="facebook">
     <Suspense fallback={<EmbedSkeleton />}>
-      <FacebookEmbed url={url} type={type} />
+      <FacebookEmbed {...props} />
     </Suspense>
   </EmbedLoader>
 );

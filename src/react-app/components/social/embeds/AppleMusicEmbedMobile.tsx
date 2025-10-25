@@ -127,6 +127,8 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
 
   const handlePlayPause = async () => {
     haptics.trigger('medium');
+
+    // Fallback to web if MusicKit not ready or content not parsed
     if (!musicKitReady || !content) {
       window.open(buildAffiliateLink(), '_blank', 'noopener,noreferrer');
       return;
@@ -137,12 +139,41 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
         appleMusicKit.pause();
         setIsPlaying(false);
       } else {
+        // Attempt playback - MusicKit will handle subscription checks
         await appleMusicKit.play(content.id, content.type === 'songs' ? 'song' : content.type === 'albums' ? 'album' : 'playlist');
         setIsPlaying(true);
+        haptics.trigger('success');
       }
     } catch (error) {
       console.error('Playback error:', error);
       haptics.trigger('error');
+
+      // Handle subscription-related errors
+      const errorMessage = error instanceof Error ? error.message : 'Playback failed';
+      const isSubscriptionError = errorMessage.toLowerCase().includes('subscription') ||
+                                  errorMessage.toLowerCase().includes('not entitled') ||
+                                  errorMessage.toLowerCase().includes('access denied');
+
+      if (isSubscriptionError) {
+        setMusicKitError('Apple Music subscription required for playback');
+
+        // Show subscription prompt
+        setTimeout(() => {
+          const shouldSubscribe = confirm(
+            'You need an active Apple Music subscription to play this content.\n\nWould you like to subscribe?'
+          );
+          if (shouldSubscribe) {
+            window.open('https://music.apple.com/subscribe', '_blank', 'noopener,noreferrer');
+          }
+          setMusicKitError(null);
+        }, 100);
+      } else {
+        // Other playback errors
+        setMusicKitError(errorMessage);
+
+        // Clear error after 5 seconds
+        setTimeout(() => setMusicKitError(null), 5000);
+      }
     }
   };
 

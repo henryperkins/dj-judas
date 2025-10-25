@@ -797,7 +797,9 @@ app.get('/api/apple/developer-token', async (c) => {
     const privateKeyPem = privateKey.replace(/\\n/g, '\n');
     const alg = 'ES256';
     const iat = now;
-    const exp = iat + 60 * 60 * 12; // 12h validity (max 6 months allowed; keep shorter)
+    // SECURITY: 2h validity (Apple allows up to 6 months, but shorter is more secure)
+    // Reduces attack window if token is compromised via XSS or network interception
+    const exp = iat + 60 * 60 * 2; // 2h validity
     const pk = await importPKCS8(privateKeyPem, alg);
     const token = await new SignJWT({})
       .setProtectedHeader({ alg, kid: keyId })
@@ -806,11 +808,11 @@ app.get('/api/apple/developer-token', async (c) => {
       .setIssuer(teamId)
       .sign(pk);
 
-    // Cache in KV for shared access across worker instances (11 hour TTL)
+    // Cache in KV for shared access across worker instances (1h 50min TTL, just under token expiry)
     if (kv) {
       try {
         await kv.put('apple_music_token', JSON.stringify({ token, exp }), {
-          expirationTtl: 11 * 60 * 60
+          expirationTtl: 110 * 60 // 1h 50min (110 minutes)
         });
       } catch (error) {
         console.error('Failed to cache Apple token in KV:', error);
@@ -2837,9 +2839,37 @@ app.post('/api/admin/gallery', async (c) => {
     if (!upstream.ok) return c.json({ error: 'fetch_failed', status: upstream.status }, 400);
     if (!upstream.body) return c.json({ error: 'no_body' }, 400);
 
-    const ct = upstream.headers.get('content-type') || 'image/jpeg';
+    // Validate content type (only allow images)
+    const ct = upstream.headers.get('content-type') || '';
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.some(type => ct.toLowerCase().includes(type))) {
+      return c.json({
+        error: 'invalid_file_type',
+        message: `Only image files are allowed. Received: ${ct}`,
+        allowed: allowedTypes
+      }, 400);
+    }
+
+    // Validate file size (max 10MB)
+    const contentLength = upstream.headers.get('content-length');
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (contentLength && parseInt(contentLength, 10) > maxSize) {
+      return c.json({
+        error: 'file_too_large',
+        message: `File size exceeds 10MB limit. Size: ${(parseInt(contentLength, 10) / 1024 / 1024).toFixed(2)}MB`,
+        max_size_mb: 10
+      }, 400);
+    }
+
     const id = crypto.randomUUID();
-    const r2Key = `gallery/${id}.${ct.includes('png') ? 'png' : 'jpg'}`;
+    const r2Key = `gallery/${id}.${ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : ct.includes('gif') ? 'gif' : 'jpg'}`;
+
+    // TODO: Image Optimization
+    // Consider adding automatic image optimization:
+    // 1. Resize to maximum dimensions (e.g., 1920x1080 for web display)
+    // 2. Compress to reduce file size while maintaining quality
+    // 3. Generate multiple sizes/variants for responsive loading
+    // Options: Cloudflare Images, sharp library, or Workers AI image processing
 
     // Get max sort_order
     const { results: maxResults } = await db
@@ -2910,6 +2940,36 @@ app.post('/api/admin/gallery', async (c) => {
     });
   } catch (error) {
     return c.json({ error: 'create_failed', message: (error as Error).message }, 500);
+  }
+});
+
+// --- Admin: Reorder gallery photos ---
+// NOTE: This must come BEFORE /api/admin/gallery/:id to avoid route conflict
+app.patch('/api/admin/gallery/reorder', async (c) => {
+  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
+  if (!admin) return c.json({ error: 'unauthorized' }, 401);
+
+  const db = c.env.DB;
+  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
+
+  try {
+    const body = await c.req.json<{ order: { id: string; sort_order: number }[] }>();
+
+    if (!Array.isArray(body.order)) {
+      return c.json({ error: 'invalid_order' }, 400);
+    }
+
+    // Update all in a batch
+    for (const item of body.order) {
+      await db
+        .prepare(`UPDATE gallery_photos SET sort_order = ?, updated_at = ? WHERE id = ?`)
+        .bind(item.sort_order, new Date().toISOString(), item.id)
+        .run();
+    }
+
+    return c.json({ ok: true, updated: body.order.length });
+  } catch (error) {
+    return c.json({ error: 'reorder_failed', message: (error as Error).message }, 500);
   }
 });
 
@@ -3014,34 +3074,5 @@ app.delete('/api/admin/gallery/:id', async (c) => {
     return c.json({ ok: true, deleted: id });
   } catch (error) {
     return c.json({ error: 'delete_failed', message: (error as Error).message }, 500);
-  }
-});
-
-// --- Admin: Reorder gallery photos ---
-app.patch('/api/admin/gallery/reorder', async (c) => {
-  const admin = getAdminTokenFromCookie(c.req.header('Cookie') || null);
-  if (!admin) return c.json({ error: 'unauthorized' }, 401);
-
-  const db = c.env.DB;
-  if (!db || typeof db.prepare !== 'function') return c.json({ error: 'd1_not_configured' }, 501);
-
-  try {
-    const body = await c.req.json<{ order: { id: string; sort_order: number }[] }>();
-
-    if (!Array.isArray(body.order)) {
-      return c.json({ error: 'invalid_order' }, 400);
-    }
-
-    // Update all in a batch
-    for (const item of body.order) {
-      await db
-        .prepare(`UPDATE gallery_photos SET sort_order = ?, updated_at = ? WHERE id = ?`)
-        .bind(item.sort_order, new Date().toISOString(), item.id)
-        .run();
-    }
-
-    return c.json({ ok: true, updated: body.order.length });
-  } catch (error) {
-    return c.json({ error: 'reorder_failed', message: (error as Error).message }, 500);
   }
 });

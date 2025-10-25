@@ -57,6 +57,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 
   // Fetch posts from backend
   const fetchPosts = useCallback(async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams({
         platforms: platforms.join(','),

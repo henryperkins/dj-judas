@@ -366,13 +366,15 @@
     @apply text-muted-foreground text-sm;
   }
 
-  /* Dialog (overlay/content) */
+  /* Dialog (overlay/content) - using z-index scale */
   [data-slot="dialog-overlay"] {
-    @apply fixed inset-0 bg-black/50 z-[50];
+    @apply fixed inset-0 bg-black/50;
+    z-index: var(--z-modal);
   }
 
   [data-slot="dialog-content"] {
-    @apply fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card text-card-foreground border border-border rounded-[var(--radius)] w-[min(640px,calc(100%-2rem))] p-6 shadow-lg z-[51];
+    @apply fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card text-card-foreground border border-border rounded-[var(--radius)] w-[min(640px,calc(100%-2rem))] p-6 shadow-lg;
+    z-index: calc(var(--z-modal) + 1);
   }
 
   [data-slot="dialog-title"] {
@@ -737,96 +739,14 @@
     @apply text-muted-foreground text-sm;
   }
 
-  /* Photo Gallery + Lightbox (keeps class names; uses utilities) */
+  /* Photo Gallery - uses Radix Dialog (see PhotoGallery.tsx) */
   .photo-gallery {
     @apply py-16;
     content-visibility: auto;
     contain-intrinsic-size: 520px;
   }
 
-  .gallery-header {
-    @apply text-center mb-12;
-  }
-
-  .category-filters {
-    @apply flex justify-center gap-4 mb-12 flex-wrap;
-  }
-
-  .filter-btn {
-    @apply px-6 py-3 bg-muted border-2 border-transparent rounded-full text-[0.95rem] font-medium cursor-pointer transition text-foreground hover:bg-accent/10 hover:border-accent;
-  }
-
-  .filter-btn.active {
-    @apply bg-accent text-primary-foreground border-accent;
-  }
-
-  .gallery-grid {
-    @apply grid gap-4 grid-cols-[repeat(auto-fill,minmax(150px,1fr))];
-  }
-
-  .gallery-item {
-    @apply relative overflow-hidden rounded-[var(--radius)] cursor-pointer aspect-[4/3] bg-muted;
-  }
-
-  .gallery-item img {
-    @apply w-full h-full object-cover transition-transform duration-300;
-  }
-
-  .gallery-item:hover img {
-    @apply scale-110;
-  }
-
-  .photo-overlay {
-    @apply absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 translate-y-full transition-transform duration-300;
-  }
-
-  .gallery-item:hover .photo-overlay {
-    @apply translate-y-0;
-  }
-
-  @media (hover: none) {
-    .photo-overlay {
-      transform: translateY(0);
-    }
-  }
-
-  .photo-overlay p {
-    /* Stronger overlay for reliable contrast on varied images */
-    @apply text-white text-[0.95rem] font-semibold inline-block px-2 py-1 rounded-md bg-black/80;
-  }
-
-  .lightbox-overlay {
-    @apply fixed inset-0 bg-black/90 backdrop-blur-sm animate-[fadeIn_.3s_ease] z-[2000];
-  }
-
-  .lightbox-content {
-    @apply fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[90vw] max-h-[90vh] z-[2001] animate-[slideIn_.3s_ease];
-  }
-
-  .lightbox-content img {
-    @apply max-w-full max-h-[80vh] object-contain rounded-[var(--radius)];
-  }
-
-  .lightbox-nav,
-  .lightbox-close {
-    @apply absolute bg-white/10 text-white size-10 rounded-full grid place-items-center cursor-pointer transition hover:bg-white/20 z-[2002];
-  }
-
-  .lightbox-close {
-    @apply top-4 right-4;
-  }
-
-  .lightbox-prev {
-    @apply top-1/2 -translate-y-1/2 left-4;
-  }
-
-  .lightbox-next {
-    @apply top-1/2 -translate-y-1/2 right-4;
-  }
-
-  .lightbox-caption {
-    @apply text-center text-white mt-4;
-  }
+  /* Legacy lightbox/gallery classes removed - PhotoGallery uses inline Tailwind + Radix Dialog */
 
   /* Platform Launcher (inline / modal / FAB) */
   .platform-launcher {

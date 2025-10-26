@@ -51,13 +51,26 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 }) => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  const [isNotConfigured, setIsNotConfigured] = useState(false); // Circuit breaker for 501 errors
 
   // Fetch posts from backend
   const fetchPosts = useCallback(async () => {
-    setLoading(true);
+    // Circuit breaker: Don't retry if API is not configured
+    if (isNotConfigured) {
+      return;
+    }
+
+    const isInitialLoad = !hasLoaded;
+    if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     try {
       const params = new URLSearchParams({
         platforms: platforms.join(','),
@@ -71,11 +84,12 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})) as { error?: string; message?: string };
 
-        // Handle configuration errors specially
+        // Handle configuration errors specially - activate circuit breaker
         if (response.status === 501 && errorData.error === 'not_configured') {
+          setIsNotConfigured(true); // Prevent further retries
           setPosts([]);
           setError(null); // Don't show error, just hide the feed
-          setLoading(false);
+          if (isInitialLoad) setHasLoaded(true);
           return;
         }
 
@@ -95,19 +109,30 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       setPosts([]);
       setError('Unable to load social feed');
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+        setHasLoaded(true);
+      } else {
+        setRefreshing(false);
+      }
     }
-  }, [platforms, hashtags, limit, enableShoppable]);
+  }, [platforms, hashtags, limit, enableShoppable, hasLoaded, isNotConfigured]);
 
   // Initial fetch and auto-refresh
   useEffect(() => {
+    // Skip if API is not configured
+    if (isNotConfigured) {
+      return;
+    }
+
     fetchPosts();
 
-    if (autoRefresh && refreshInterval > 0) {
+    // Don't set up auto-refresh if API is not configured
+    if (autoRefresh && refreshInterval > 0 && !isNotConfigured) {
       const interval = setInterval(fetchPosts, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
-  }, [fetchPosts, autoRefresh, refreshInterval]);
+  }, [fetchPosts, autoRefresh, refreshInterval, isNotConfigured]);
 
   // Track engagement
   const handlePostInteraction = (post: SocialPost, action: 'like' | 'comment' | 'share' | 'product_click') => {
@@ -273,7 +298,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   if (loading) {
     return (
       <div className="social-feed-loading">
-        <div className="spinner"></div>
+        <div className="loading-spinner loading-spinner--large" aria-hidden />
         <p>Loading social feed...</p>
       </div>
     );
@@ -285,16 +310,22 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   }
 
   return (
-    <div className={`dynamic-social-feed layout-${layout}`}>
+    <div className={`dynamic-social-feed layout-${layout} ${refreshing ? 'is-refreshing' : ''}`}>
+      {refreshing && (
+        <div className="social-feed-refresh-overlay" aria-hidden="true">
+          <div className="loading-spinner" />
+          <span>Updating…</span>
+        </div>
+      )}
       {/* Header */}
       <div className="feed-header">
         <h3>Latest from Social</h3>
         <button
           className="btn btn-ghost"
           onClick={fetchPosts}
-          disabled={loading}
+          disabled={loading || refreshing}
         >
-          <LuRefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          <LuRefreshCw size={16} className={loading || refreshing ? 'animate-spin' : ''} />
           Refresh
         </button>
       </div>

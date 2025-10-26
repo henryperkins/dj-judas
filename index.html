@@ -9,6 +9,7 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#9d174d" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#d7427d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="description" content="DJ Lee & Voices of Judah — A gospel music ministry bringing uplifting worship through powerful vocals and live performances. Book us for services, concerts, and special events." />
   <meta name="keywords" content="gospel music, DJ Lee, Voices of Judah, worship music, Christian music, live performances, gospel concerts, church events, wedding music, funeral music" />
@@ -39,6 +40,10 @@
   <link rel="alternate" type="application/rss+xml" title="DJ Lee & Voices of Judah Events" href="/events.ics" />
 
   <title>DJ Lee & Voices of Judah - Gospel Music Ministry | Book Live Performances</title>
+  <!-- Preload critical LCP image for immediate rendering -->
+  <link rel="preload" as="image" href="/src/react-app/assets/images/logo.jpeg" fetchpriority="high">
+  <link rel="preload" as="image" href="/src/react-app/assets/images/pattern1.jpeg" fetchpriority="low">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://open.spotify.com" crossorigin>
@@ -50,6 +55,124 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <!-- Critical CSS for immediate hero rendering -->
+  <style>
+    /* Inline hero styles to prevent FOUC and optimize LCP */
+    .initial-hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f5e6d3 0%, #e8d4bf 100%);
+    }
+    .initial-hero-background {
+      position: absolute;
+      inset: 0;
+      background-image: url('/src/react-app/assets/images/pattern1.jpeg');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.15;
+    }
+    .initial-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.7), rgba(255,255,255,0.5));
+    }
+    .dark .initial-hero {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    }
+    .dark .initial-hero-overlay {
+      background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3));
+    }
+    .initial-hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      max-width: 800px;
+    }
+    .initial-hero-logo {
+      max-width: 250px;
+      width: 100%;
+      height: auto;
+      margin: 0 auto 1.5rem;
+      display: block;
+    }
+    .initial-hero-title {
+      font-family: 'Poppins', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      color: #9d174d;
+      margin: 0 0 1rem;
+      line-height: 1.2;
+    }
+    .dark .initial-hero-title {
+      color: #d7427d;
+    }
+    .initial-hero-subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: #4a4a4a;
+      margin: 0 0 2rem;
+      line-height: 1.6;
+    }
+    .dark .initial-hero-subtitle {
+      color: #d1d1d1;
+    }
+    .initial-hero-cta {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .initial-hero-btn {
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      min-width: 120px;
+    }
+    .initial-hero-btn-primary {
+      background: #9d174d;
+      color: white;
+    }
+    .initial-hero-btn-primary:hover {
+      background: #7d1240;
+    }
+    .initial-hero-btn-secondary {
+      background: transparent;
+      color: #9d174d;
+      border: 2px solid #9d174d;
+      text-decoration: none;
+      display: inline-block;
+      line-height: 1.5;
+    }
+    .initial-hero-btn-secondary:hover {
+      background: #9d174d;
+      color: white;
+    }
+    .dark .initial-hero-btn-primary {
+      background: #d7427d;
+    }
+    .dark .initial-hero-btn-primary:hover {
+      background: #b8356a;
+    }
+    .dark .initial-hero-btn-secondary {
+      color: #d7427d;
+      border-color: #d7427d;
+    }
+    .dark .initial-hero-btn-secondary:hover {
+      background: #d7427d;
+      color: white;
+    }
+  </style>
+
   <script>
     // Apply saved or system theme ASAP to avoid FOUC
     (function () {
@@ -70,7 +193,59 @@
 
 <body>
   <div id="fb-root"></div>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Initial hero section - renders immediately for optimal LCP -->
+    <section class="initial-hero" id="initial-hero">
+      <div class="initial-hero-background"></div>
+      <div class="initial-hero-overlay"></div>
+      <div class="initial-hero-content">
+        <img
+          src="/src/react-app/assets/images/logo.jpeg"
+          alt="DJ Lee & Voices of Judah"
+          class="initial-hero-logo"
+          fetchpriority="high"
+          width="250"
+          height="250"
+        />
+        <h1 class="initial-hero-title">DJ Lee & Voices of Judah</h1>
+        <p class="initial-hero-subtitle">High-energy gospel DJ and vocal ensemble for weddings, reunions, and ministry events.</p>
+        <div class="initial-hero-cta">
+          <button class="initial-hero-btn initial-hero-btn-primary" onclick="window.location.href='/book'">Book Us</button>
+          <a href="#media" class="initial-hero-btn initial-hero-btn-secondary">Listen</a>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    // Remove initial hero when React mounts to prevent duplicate content
+    (function() {
+      var checkReactMount = setInterval(function() {
+        var root = document.getElementById('root');
+        // Check if React has rendered (more than just our initial hero)
+        if (root && root.children.length > 1) {
+          var initialHero = document.getElementById('initial-hero');
+          if (initialHero) {
+            initialHero.style.opacity = '0';
+            initialHero.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(function() {
+              if (initialHero.parentNode) {
+                initialHero.parentNode.removeChild(initialHero);
+              }
+            }, 300);
+          }
+          clearInterval(checkReactMount);
+        }
+      }, 50);
+      // Fallback cleanup after 5 seconds
+      setTimeout(function() {
+        clearInterval(checkReactMount);
+        var initialHero = document.getElementById('initial-hero');
+        if (initialHero && initialHero.parentNode) {
+          initialHero.parentNode.removeChild(initialHero);
+        }
+      }, 5000);
+    })();
+  </script>
   <script>
     // SPA routing: ensure internal links with data-nav use History API
     document.addEventListener('click', function (e) {

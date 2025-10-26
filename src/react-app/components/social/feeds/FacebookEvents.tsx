@@ -52,9 +52,15 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<FacebookEvent | null>(null);
+  const [isNotConfigured, setIsNotConfigured] = useState(false); // Circuit breaker for 501 errors
 
   // Fetch events from backend
   const fetchEvents = useCallback(async () => {
+    // Circuit breaker: Don't retry if API is not configured
+    if (isNotConfigured) {
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -64,7 +70,21 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
       });
 
       const response = await fetch(`/api/facebook/events?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch Facebook events');
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})) as { error?: string; message?: string };
+
+        // Handle configuration errors specially - activate circuit breaker
+        if (response.status === 501 && errorData.error === 'not_configured') {
+          setIsNotConfigured(true); // Prevent further retries
+          setEvents([]);
+          setError(null); // Don't show error, just hide the component
+          setLoading(false);
+          return;
+        }
+
+        throw new Error(errorData.message || 'Failed to fetch Facebook events');
+      }
 
       const data = await response.json() as { events?: FacebookEvent[] };
       if (!data?.events?.length) {
@@ -81,17 +101,23 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [pageId, limit, showPastEvents]);
+  }, [pageId, limit, showPastEvents, isNotConfigured]);
 
   // Initial fetch and auto-refresh
   useEffect(() => {
+    // Skip if API is not configured
+    if (isNotConfigured) {
+      return;
+    }
+
     fetchEvents();
 
-    if (autoRefresh && refreshInterval > 0) {
+    // Don't set up auto-refresh if API is not configured
+    if (autoRefresh && refreshInterval > 0 && !isNotConfigured) {
       const interval = setInterval(fetchEvents, refreshInterval * 1000);
       return () => clearInterval(interval);
     }
-  }, [fetchEvents, autoRefresh, refreshInterval]);
+  }, [fetchEvents, autoRefresh, refreshInterval, isNotConfigured]);
 
 
   // Format date for display
@@ -348,6 +374,11 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
         <p>Loading events...</p>
       </div>
     );
+  }
+
+  // Hide component entirely if API is not configured
+  if (isNotConfigured) {
+    return null;
   }
 
   return (

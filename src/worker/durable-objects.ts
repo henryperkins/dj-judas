@@ -55,18 +55,29 @@ export class RateLimiter extends DurableObject {
     // Clean old entries for this IP
     this.sql.exec(`DELETE FROM rate_limits WHERE ip = ? AND timestamp < ?`, ip, windowStart);
 
-    // Count recent requests
-    const countResult = this.sql
-      .exec(`SELECT COUNT(*) as count FROM rate_limits WHERE ip = ? AND timestamp >= ?`, ip, windowStart)
+    // Count recent requests & capture oldest timestamp in window
+    const stats = this.sql
+      .exec(
+        `SELECT COUNT(*) as count, MIN(timestamp) as oldest
+         FROM rate_limits
+         WHERE ip = ? AND timestamp >= ?`,
+        ip,
+        windowStart
+      )
       .one();
 
-    const currentCount = (countResult?.count as number) || 0;
+    const currentCount = Number(stats?.count ?? 0);
+    const rawOldest = stats?.oldest as number | bigint | null | undefined;
+    const oldestTimestamp =
+      typeof rawOldest === "bigint" ? Number(rawOldest) : rawOldest != null ? Number(rawOldest) : null;
+    const resetBase = oldestTimestamp ?? now;
+    const resetAt = resetBase + windowSeconds * 1000;
 
     if (currentCount >= limit) {
       return {
         allowed: false,
         remaining: 0,
-        resetAt: windowStart + windowSeconds * 1000,
+        resetAt,
       };
     }
 
@@ -76,7 +87,7 @@ export class RateLimiter extends DurableObject {
     return {
       allowed: true,
       remaining: limit - currentCount - 1,
-      resetAt: windowStart + windowSeconds * 1000,
+      resetAt,
     };
   }
 
@@ -266,16 +277,24 @@ export class UserSession extends DurableObject {
    * RPC method: Delete session
    */
   async deleteSession(sessionId: string): Promise<{ deleted: boolean }> {
-    const result = this.sql.exec(`DELETE FROM sessions WHERE sessionId = ?`, sessionId);
+    const existing = this.sql
+      .exec(
+        `SELECT 1
+         FROM sessions
+         WHERE sessionId = ?
+         LIMIT 1`,
+        sessionId
+      )
+      .one();
 
-    // SQLite doesn't return affected rows easily, so check if session existed
-    const deleted = result !== undefined;
-
-    if (deleted) {
-      this.broadcastUpdate("session_deleted", { sessionId });
+    if (!existing) {
+      return { deleted: false };
     }
 
-    return { deleted };
+    this.sql.exec(`DELETE FROM sessions WHERE sessionId = ?`, sessionId);
+
+    this.broadcastUpdate("session_deleted", { sessionId });
+    return { deleted: true };
   }
 
   /**

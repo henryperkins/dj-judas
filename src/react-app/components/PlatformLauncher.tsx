@@ -92,9 +92,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
 
     if (simplified || isMobile) {
       // In simplified mode or on mobile, just open the platform
-      openPlatform(link, () => {
-        console.log(`Opening ${link.platform}`);
-      });
+      openPlatform(link);
     } else {
       // In full mode on desktop, could trigger OAuth flow
       // For now, still just open the platform

@@ -125,7 +125,7 @@ export default function CreatorMediaPanel({
 
 
   return (
-    <section className="relative mx-auto w-full max-w-5xl">
+    <section className="creator-media-panel relative mx-auto w-full max-w-5xl">
       <div className="rounded-xl border bg-card p-6 sm:p-8 text-card-foreground">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

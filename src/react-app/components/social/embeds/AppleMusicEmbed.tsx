@@ -122,7 +122,7 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
       await appleMusicKit.addToLibrary([content]);
 
       // Optional: Show success message
-      console.log('Successfully added to Apple Music library');
+      // Successfully added to library
     } catch (error) {
       console.error('Failed to add to library:', error);
       // Fallback to web on error

@@ -1133,7 +1133,7 @@
 
   /* Dynamic Social Feed */
   .dynamic-social-feed {
-    @apply py-8;
+    @apply relative py-8;
   }
 
   .feed-header {
@@ -1150,6 +1150,42 @@
 
   .social-feed-grid {
     @apply grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] sm:grid-cols-1;
+  }
+
+  .social-feed-loading {
+    @apply flex flex-col items-center justify-center gap-4 bg-card border border-border rounded-[var(--radius)] text-foreground;
+    min-height: 320px;
+  }
+
+  .social-feed-loading .loading-spinner {
+    @apply animate-spin;
+  }
+
+  .dynamic-social-feed .social-feed-refresh-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--color-card) 80%, transparent);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    pointer-events: none;
+    border: 1px solid var(--color-border);
+    opacity: 0.96;
+    transition: opacity 0.2s ease;
+  }
+
+  .dynamic-social-feed .social-feed-refresh-overlay .loading-spinner {
+    @apply animate-spin;
+  }
+
+  @supports not (background: color-mix(in oklab, white, black)) {
+    .dynamic-social-feed .social-feed-refresh-overlay {
+      background: var(--color-card);
+    }
   }
 
   .social-post-card {
@@ -3925,6 +3961,41 @@ img[loading='lazy'] {
     animation: none;
   }
 }
+
+/* Creator Media Panel overrides keep mobile players inline inside cards */
+.creator-media-panel .listen-mini-player {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  margin: 0 0 1rem;
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+.creator-media-panel .listen-bottom-sheet {
+  position: relative;
+  inset: auto;
+  max-height: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  margin: 0;
+}
+
+.creator-media-panel .listen-bottom-sheet .spotify-bottom-sheet,
+.creator-media-panel .listen-bottom-sheet .apple-bottom-sheet {
+  position: relative;
+  inset: auto;
+  max-height: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.creator-media-panel .listen-bottom-sheet .bottom-sheet__handle-container {
+  display: none;
+}
+
 
 /* 6) Print minimal overrides --------------------------------------------- */
 @media print {

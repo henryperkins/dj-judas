@@ -16,7 +16,9 @@
       "Bash(wrangler kv namespace:*)",
       "Bash(wrangler d1 execute:*)",
       "Bash(cat:*)",
-      "Bash(npm run deploy:*)"
+      "Bash(npm run deploy:*)",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__performance_start_trace"
     ],
     "deny": [],
     "ask": []

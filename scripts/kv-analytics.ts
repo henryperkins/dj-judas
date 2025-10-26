@@ -29,7 +29,7 @@ export async function fetchKVMetrics(
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const query = `
-    query GetKVMetrics($accountId: string!, $namespaceId: string!) {
+    query GetKVMetrics($accountId: String!, $namespaceId: String!) {
       viewer {
         accounts(filter: { accountTag: $accountId }) {
           kvOperationsAdaptiveGroups(

@@ -61,6 +61,9 @@ const AdminGalleryManager: React.FC = () => {
     category: FALLBACK_CATEGORIES[0],
     is_published: true,
   });
+  const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Load photos
   const loadPhotos = async () => {
@@ -89,14 +92,105 @@ const AdminGalleryManager: React.FC = () => {
     loadPhotos();
   }, []);
 
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      alert(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
+      return;
+    }
+
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`File too large. Max size: 10MB. Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      return;
+    }
+
+    setSelectedFile(file);
+    // Auto-fill alt text from filename if empty
+    if (!formData.alt && file.name) {
+      setFormData({ ...formData, alt: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') });
+    }
+  };
+
+  // Upload file directly to R2 using presigned URL
+  const uploadFileDirectly = async (file: File): Promise<string> => {
+    try {
+      setUploadProgress(10);
+
+      // Step 1: Get presigned upload URL
+      const ext = file.name.split('.').pop() || 'jpg';
+      const presignedRes = await fetch('/api/r2/presigned-upload', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: `gallery/${crypto.randomUUID()}.${ext}`,
+          contentType: file.type,
+          expiresIn: 3600,
+        }),
+      });
+
+      if (!presignedRes.ok) {
+        throw new Error(`Failed to get upload URL: ${presignedRes.status}`);
+      }
+
+      const { uploadUrl, publicUrl } = await presignedRes.json() as {
+        uploadUrl: string;
+        publicUrl: string;
+        uploadToken?: string;
+      };
+
+      setUploadProgress(30);
+
+      // Step 2: Upload file directly to R2
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error(`Upload failed: ${uploadRes.status}`);
+      }
+
+      setUploadProgress(100);
+      return publicUrl;
+    } catch (err) {
+      setUploadProgress(0);
+      throw err;
+    }
+  };
+
   // Create new photo
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let imageUrl = formData.url;
+
+      // If file mode, upload file first
+      if (uploadMode === 'file' && selectedFile) {
+        imageUrl = await uploadFileDirectly(selectedFile);
+      }
+
+      if (!imageUrl) {
+        throw new Error('No image URL or file provided');
+      }
+
       const res = await fetch('/api/admin/gallery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          url: imageUrl,
+        }),
       });
 
       if (!res.ok) {
@@ -106,6 +200,8 @@ const AdminGalleryManager: React.FC = () => {
 
       await loadPhotos();
       setShowAddForm(false);
+      setSelectedFile(null);
+      setUploadProgress(0);
       setFormData({
         url: '',
         alt: '',
@@ -115,6 +211,7 @@ const AdminGalleryManager: React.FC = () => {
       });
     } catch (err) {
       alert((err as Error).message);
+      setUploadProgress(0);
     }
   };
 
@@ -230,22 +327,87 @@ const AdminGalleryManager: React.FC = () => {
           >
             <h2 className="text-xl font-semibold mb-4">Add New Photo</h2>
 
+            {/* Upload Mode Toggle */}
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setUploadMode('url')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                  uploadMode === 'url'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/70'
+                }`}
+              >
+                From URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode('file')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                  uploadMode === 'file'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/70'
+                }`}
+              >
+                Upload File
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Conditional: URL Input or File Upload */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">
-                  Image URL <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  The image will be uploaded to R2 storage
-                </p>
+                {uploadMode === 'url' ? (
+                  <>
+                    <label className="block text-sm font-medium mb-1">
+                      Image URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={formData.url}
+                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The image will be optimized and uploaded to R2 storage
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-sm font-medium mb-1">
+                      Upload Image File <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                      required
+                      onChange={handleFileSelect}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Max 10MB • Formats: JPEG, PNG, WebP, GIF • Direct upload to R2
+                    </p>
+                    {selectedFile && (
+                      <div className="mt-2 p-2 bg-muted rounded text-sm">
+                        📁 {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
+                      </div>
+                    )}
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="mt-2">
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Uploading... {uploadProgress}%
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div>

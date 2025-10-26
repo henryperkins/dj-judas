@@ -1,10 +1,11 @@
 /**
- * Mobile-optimized Spotify Embed with bottom sheet design
- * 2025 standards: 60px controls, swipe gestures, haptic feedback
+ * Simplified Mobile Spotify Embed - Bottom sheet player (no auth)
+ * 2025 standards: 60px controls, haptic feedback, smooth animations
+ * Focus: Beautiful player + "Open in Spotify" link
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { LuPlay, LuPause, LuSkipBack, LuSkipForward, LuHeart, LuShare2, LuExternalLink, LuChevronDown, LuLogIn, LuUserPlus } from 'react-icons/lu';
+import { LuPlay, LuPause, LuSkipBack, LuSkipForward, LuShare2, LuExternalLink, LuChevronDown } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
 import { loadSpotifyEmbedAPI, type SpotifyIFrameController } from '@/react-app/utils/spotifyEmbedKit';
 import { haptics } from '@/react-app/utils/haptics';
@@ -13,10 +14,6 @@ interface SpotifyEmbedMobileProps {
   url?: string;
   uri?: string;
   autoExpand?: boolean;
-}
-
-interface SpotifySessionResponse {
-  authenticated: boolean;
 }
 
 interface SpotifyPlaybackData {
@@ -44,23 +41,15 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
   const embedRef = useRef<HTMLDivElement>(null);
   const [controller, setController] = useState<SpotifyIFrameController | null>(null);
   const [isExpanded, setIsExpanded] = useState(autoExpand);
-  const [isAuthed, setIsAuthed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [trackInfo, setTrackInfo] = useState<SpotifyPlaybackData['track_window']>(undefined);
   const [positionSec, setPositionSec] = useState(0);
   const [durationSec, setDurationSec] = useState(0);
   const [seeking, setSeeking] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveDone, setSaveDone] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followDone, setFollowDone] = useState(false);
-  const [authLoaded, setAuthLoaded] = useState(false);
 
   const spotifyId = spotifyUri.split(':').pop();
   const contentType = spotifyUri.includes('track') ? 'track' : spotifyUri.includes('album') ? 'album' : 'artist';
   const spotifyUrl = `https://open.spotify.com/${contentType}/${spotifyId}`;
-  const isArtist = contentType === 'artist';
-
 
   // Initialize Spotify Embed
   useEffect(() => {
@@ -105,7 +94,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
             if (iframe && !iframe.getAttribute('title')) {
               iframe.setAttribute('title', 'Spotify player');
             }
-          }, 0);
+          }, 100);
         });
       } catch (error) {
         console.error('Failed to load Spotify Embed API:', error);
@@ -121,42 +110,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         localController.destroy();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spotifyUri]); // NOT seeking - transient UI state should not reinit embed
-
-  // Check auth session
-  useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
-      try {
-        const res = await fetch('/api/spotify/session');
-        if (!cancelled) {
-          const data = await res.json() as SpotifySessionResponse;
-          setIsAuthed(Boolean(data.authenticated));
-        }
-      } catch {
-        if (!cancelled) setIsAuthed(false);
-      }
-      if (!cancelled) setAuthLoaded(true);
-    };
-    check();
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleLogin = useCallback(async () => {
-    try {
-      haptics.trigger('medium');
-      const res = await fetch('/api/spotify/login');
-      const data = await res.json() as { authorizeUrl?: string };
-      if (data.authorizeUrl) {
-        socialMetrics.trackSocialInteraction('spotify', 'login_start', { uri: spotifyUri });
-        window.location.href = data.authorizeUrl;
-      }
-    } catch (error) {
-      console.error('Spotify login error:', error);
-      haptics.trigger('error');
-    }
-  }, [spotifyUri]);
+  }, [spotifyUri, seeking]);
 
   const handlePlayPause = useCallback(() => {
     haptics.trigger('medium');
@@ -176,61 +130,31 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
     socialMetrics.trackSocialInteraction('spotify', 'skip_previous', { uri: spotifyUri });
   }, [controller, spotifyUri]);
 
-  const handleSave = async () => {
-    if (!spotifyId || !isAuthed) return;
-    haptics.trigger('success');
-    setIsSaving(true);
-    setSaveDone(false);
-    try {
-      const type = contentType === 'album' ? 'albums' : 'tracks';
-      const res = await fetch('/api/spotify/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [spotifyId], type })
-      });
-      if (!res.ok) throw new Error(`save_failed_${res.status}`);
-      setSaveDone(true);
-      socialMetrics.trackSocialInteraction('spotify', 'save', { uri: spotifyUri });
-    } catch (e) {
-      console.error('Spotify save error:', e);
-      haptics.trigger('error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     haptics.trigger('light');
     navigator.clipboard.writeText(spotifyUrl);
     socialMetrics.trackSocialInteraction('spotify', 'share', { uri: spotifyUri });
-  };
+  }, [spotifyUrl, spotifyUri]);
 
-  const handleFollow = async () => {
-    if (!isArtist || !spotifyId || !isAuthed) return;
-    haptics.trigger('medium');
-    setIsFollowing(true);
-    setFollowDone(false);
-    try {
-      const res = await fetch('/api/spotify/follow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistIds: [spotifyId] })
-      });
-      if (!res.ok) throw new Error(`follow_failed_${res.status}`);
-      setFollowDone(true);
-      socialMetrics.trackSocialInteraction('spotify', 'follow', { uri: spotifyUri });
-    } catch (err) {
-      console.error('Spotify follow error:', err);
-      haptics.trigger('error');
-    } finally {
-      setIsFollowing(false);
-    }
-  };
+  const handleOpenSpotify = useCallback(() => {
+    haptics.trigger('light');
+    socialMetrics.trackSocialInteraction('spotify', 'open_external', { uri: spotifyUri });
+  }, [spotifyUri]);
 
-  const handleSeek = (value: number) => {
+  const handleSeek = useCallback((value: number) => {
     controller?.seek(value * 1000);
     setSeeking(false);
-  };
+  }, [controller]);
+
+  const handleExpand = useCallback(() => {
+    haptics.trigger('light');
+    setIsExpanded(true);
+  }, []);
+
+  const handleCollapse = useCallback(() => {
+    haptics.trigger('light');
+    setIsExpanded(false);
+  }, []);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -247,16 +171,14 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
     return (
       <div
         className="spotify-mini-player"
-        onClick={() => {
-          haptics.trigger('light');
-          setIsExpanded(true);
-        }}
+        onClick={handleExpand}
         role="button"
         tabIndex={0}
         aria-label="Expand Spotify player"
+        onKeyDown={(e) => e.key === 'Enter' && handleExpand()}
       >
         <div className="mini-player__art">
-          {albumArt && <img src={albumArt} alt={trackName} />}
+          {albumArt && <img src={albumArt} alt={trackName} loading="lazy" />}
         </div>
         <div className="mini-player__info">
           <p className="mini-player__track">{trackName}</p>
@@ -283,10 +205,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
       <div className="bottom-sheet__handle-container">
         <button
           className="bottom-sheet__handle"
-          onClick={() => {
-            haptics.trigger('light');
-            setIsExpanded(false);
-          }}
+          onClick={handleCollapse}
           aria-label="Collapse player"
         >
           <LuChevronDown size={28} />
@@ -296,7 +215,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
       {/* Album art */}
       <div className="bottom-sheet__art">
         {albumArt ? (
-          <img src={albumArt} alt={trackName} />
+          <img src={albumArt} alt={trackName} loading="lazy" />
         ) : (
           <div className="bottom-sheet__art-placeholder" />
         )}
@@ -357,49 +276,12 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         </button>
       </div>
 
-      {/* Secondary actions - 48px touch targets */}
+      {/* Simple actions - 48px touch targets */}
       <div className="bottom-sheet__actions">
-        {!authLoaded ? (
-          <button className="bottom-sheet-action" disabled>
-            <span>Checking account…</span>
-          </button>
-        ) : !isAuthed ? (
-          <button
-            className="bottom-sheet-action bottom-sheet-action--primary"
-            onClick={handleLogin}
-            aria-label="Connect Spotify account"
-          >
-            <LuLogIn size={20} />
-            <span>Connect Spotify</span>
-          </button>
-        ) : (
-          <>
-            <button
-              className="bottom-sheet-action"
-              onClick={handleSave}
-              disabled={isSaving}
-              aria-label="Save to library"
-            >
-              <LuHeart size={20} fill={saveDone ? 'currentColor' : 'none'} />
-              <span>{isSaving ? 'Saving…' : saveDone ? 'Saved' : 'Save'}</span>
-            </button>
-            {isArtist && (
-              <button
-                className="bottom-sheet-action"
-                onClick={handleFollow}
-                disabled={isFollowing}
-                aria-label="Follow artist"
-              >
-                <LuUserPlus size={20} />
-                <span>{isFollowing ? 'Following…' : followDone ? 'Following' : 'Follow'}</span>
-              </button>
-            )}
-          </>
-        )}
         <button
           className="bottom-sheet-action"
           onClick={handleShare}
-          aria-label="Share"
+          aria-label="Copy link to clipboard"
         >
           <LuShare2 size={20} />
           <span>Share</span>
@@ -408,14 +290,11 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
           href={spotifyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="bottom-sheet-action"
-          onClick={() => {
-            haptics.trigger('light');
-            socialMetrics.trackSocialInteraction('spotify', 'open_external', { uri: spotifyUri });
-          }}
+          className="bottom-sheet-action bottom-sheet-action--primary"
+          onClick={handleOpenSpotify}
         >
           <LuExternalLink size={20} />
-          <span>Open</span>
+          <span>Open in Spotify</span>
         </a>
       </div>
 

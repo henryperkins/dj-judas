@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import { Dialog as UIDialog, DialogContent, DialogClose } from '@/components/ui/dialog';
@@ -102,9 +101,11 @@ const PhotoGallery: React.FC = () => {
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const prefersReducedMotion = useReducedMotion();
 
-  /* ───── Touch refs ───── */
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
+  /* ───── Memoized motion style ───── */
+  const motionStyle = useMemo(
+    () => ({ x, opacity, touchAction: 'none' as const }),
+    [x, opacity]
+  );
 
   /* ───── Helpers ───── */
   const toTitleCase = (s: string) => s.replace(/\b\w/g, (m) => m.toUpperCase());
@@ -132,24 +133,6 @@ const PhotoGallery: React.FC = () => {
     const threshold = 50;
     if (info.offset.x > threshold) prevPhoto();
     else if (info.offset.x < -threshold) nextPhoto();
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartX.current == null || touchEndX.current == null) return;
-
-    const distance = touchStartX.current - touchEndX.current;
-    if (distance > 50) nextPhoto();
-    if (distance < -50) prevPhoto();
-
-    touchStartX.current = touchEndX.current = null;
   };
 
   /* ───── Data loading from API ───── */
@@ -186,18 +169,26 @@ const PhotoGallery: React.FC = () => {
   /* ───── Reset drag + preload neighbors on change ───── */
   useEffect(() => {
     if (currentIndex == null || filteredPhotos.length === 0) return;
+
     // Reset drag offset
     x.set(0);
-    // Preload neighbors
+
+    // Preload neighbor images (with cache check and cleanup)
     const prevIdx = (currentIndex - 1 + filteredPhotos.length) % filteredPhotos.length;
     const nextIdx = (currentIndex + 1) % filteredPhotos.length;
+    const preloadImages = new Set<HTMLImageElement>();
+
     [prevIdx, nextIdx].forEach((i) => {
       const src = filteredPhotos[i]?.src;
-      if (src) {
+      // Only preload if image isn't already loaded/cached
+      if (src && !document.querySelector(`img[src="${src}"]`)) {
         const img = new Image();
         img.src = src;
+        preloadImages.add(img);
       }
     });
+
+    return () => preloadImages.clear();
   }, [currentIndex, filteredPhotos, x]);
 
   /* ───── Keyboard navigation ───── */
@@ -282,14 +273,16 @@ const PhotoGallery: React.FC = () => {
       >
         <DialogContent
           fullscreen
+          showCloseButton={false}
           overlayClassName="fixed inset-0 bg-black/80 backdrop-blur-sm"
           className="flex items-center justify-center p-4"
+          aria-label={selectedPhoto ? `Photo: ${selectedPhoto.caption}` : 'Photo lightbox'}
         >
             <DialogClose
-              aria-label="Close"
-              className="absolute top-4 right-4 text-white hover:text-red-400 focus:outline-none"
+              aria-label="Close lightbox"
+              className="absolute top-4 right-4 text-white hover:text-red-400 focus:outline-none min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center"
             >
-              <LuX size={28} />
+              <LuX className="size-6 sm:size-7" />
             </DialogClose>
 
             {selectedPhoto && (
@@ -299,20 +292,16 @@ const PhotoGallery: React.FC = () => {
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.2}
                 onDragEnd={handleDragEnd}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{ x, opacity, touchAction: 'pan-y' }}
+                style={motionStyle}
                 dragMomentum={false}
               >
                 {/* Prev button */}
                 <button
                   onClick={prevPhoto}
                   aria-label="Previous photo"
-                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"
-                  style={{ minWidth: 44, minHeight: 44 }}
+                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white min-w-[44px] min-h-[44px] sm:min-w-[56px] sm:min-h-[56px] flex items-center justify-center"
                 >
-                  <LuChevronLeft size={32} />
+                  <LuChevronLeft className="size-6 sm:size-8" />
                 </button>
 
                 {/* Actual image */}
@@ -323,7 +312,6 @@ const PhotoGallery: React.FC = () => {
                   width={800}
                   height={600}
                   alt={selectedPhoto.alt}
-                  loading="lazy"
                   decoding="async"
                   className="max-h-[90vh] object-contain"
                 />
@@ -332,10 +320,9 @@ const PhotoGallery: React.FC = () => {
                 <button
                   onClick={nextPhoto}
                   aria-label="Next photo"
-                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"
-                  style={{ minWidth: 44, minHeight: 44 }}
+                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white min-w-[44px] min-h-[44px] sm:min-w-[56px] sm:min-h-[56px] flex items-center justify-center"
                 >
-                  <LuChevronRight size={32} />
+                  <LuChevronRight className="size-6 sm:size-8" />
                 </button>
               </motion.div>
             )}

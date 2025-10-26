@@ -65,6 +65,16 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       return;
     }
 
+    // Skip fetch if required params are missing (API will return 400/501)
+    if (platforms.length === 0 || (platforms.includes('instagram') && hashtags.length === 0)) {
+      setIsNotConfigured(true);
+      setPosts([]);
+      setError(null);
+      setLoading(false);
+      setHasLoaded(true);
+      return;
+    }
+
     const isInitialLoad = !hasLoaded;
     if (isInitialLoad) {
       setLoading(true);

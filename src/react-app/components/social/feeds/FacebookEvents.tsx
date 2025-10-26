@@ -61,10 +61,19 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
       return;
     }
 
+    // Skip fetch if pageId is missing (API will return 400/501)
+    if (!pageId || pageId.trim() === '') {
+      setIsNotConfigured(true);
+      setEvents([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        page_id: pageId || '',
+        page_id: pageId,
         limit: limit.toString(),
         include_past: showPastEvents.toString()
       });

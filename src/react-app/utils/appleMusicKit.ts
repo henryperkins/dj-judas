@@ -211,10 +211,16 @@ class AppleMusicKitManager {
       });
 
       this.musicKit = win.MusicKit.getInstance();
+
+      // Only proceed if we successfully got the instance
+      if (!this.musicKit) {
+        throw new Error('Failed to get MusicKit instance');
+      }
+
       this.musicKitReady = true;
 
-      // Listen for authorization changes
-      if (win.MusicKit.Events) {
+      // Listen for authorization changes - check Events exists and musicKit is valid
+      if (win.MusicKit.Events && this.musicKit.addEventListener) {
         this.musicKit.addEventListener(
           win.MusicKit.Events.authorizationStatusDidChange,
           this.handleAuthChange.bind(this)
@@ -225,6 +231,9 @@ class AppleMusicKitManager {
       socialMetrics.trackEntry({ source: 'appleMusic', medium: 'sdk_load' });
     } catch (error) {
       console.error('Failed to configure MusicKit:', error);
+      // Clear any partial initialization state
+      this.musicKit = null;
+      this.musicKitReady = false;
       throw error;
     }
   }

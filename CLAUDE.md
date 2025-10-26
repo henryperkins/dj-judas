@@ -307,9 +307,9 @@ await fetch('/api/r2/multipart/complete', {
 
 ---
 
-## Recent Updates
+## Mobile Updates (Phases 1-4, October 2025)
 
-### Mobile Streaming & Social Components (Phase 4) - 2025-10-03
+### Phase 4: Mobile Streaming & Social Components - 2025-10-03
 
 **What Changed**:
 - ✅ Mobile-optimized streaming players (Spotify, Apple Music)
@@ -387,9 +387,7 @@ import ListenTabsMobile from './components/ListenTabsMobile'
 
 ---
 
-## Recent Updates
-
-### Mobile Modern Features (Phase 3) - 2025-10-03
+### Phase 3: Mobile Modern Features - 2025-10-03
 
 **What Changed**:
 - ✅ Pull-to-refresh for mobile lists (hook + CSS animations ready)
@@ -429,7 +427,7 @@ perfMonitor.logMetrics() // Manual check
 
 ---
 
-### Mobile UX Enhancements (Phase 2) - 2025-10-03
+### Phase 2: Mobile UX Enhancements - 2025-10-03
 
 **What Changed**:
 - ✅ Product grid horizontal card layout on mobile (<480px)
@@ -445,7 +443,7 @@ perfMonitor.logMetrics() // Manual check
 
 ---
 
-### Mobile Compliance (Phase 1) - 2025-10-03
+### Phase 1: Mobile Compliance - 2025-10-03
 
 **What Changed**:
 - ✅ WCAG 2.2 Level AA compliance for touch targets (44×44px minimum on mobile)
@@ -509,7 +507,8 @@ See `docs/PHASE1_TESTING.md` for detailed test procedures.
   - `CheckoutPage.tsx` – Address form, shipping options, order summary with live Medusa totals.
   - `SuccessPage.tsx` – Success alert and order summary styling.
 - Client cart utils
-  - `utils/cart.ts`: `ensureCart`, `addLineItem`, `fetchProducts`, `getCart`, `formatAmount`.
+  - `utils/cart-sdk.ts`: Primary implementation with `ensureCart`, `addLineItem`, `fetchProducts`, `getCart`, `formatAmount`.
+  - `utils/cart.ts`: Legacy stub that re-exports from `cart-sdk.ts` for compatibility.
 
 ### Admin Product Management
 

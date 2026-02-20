@@ -36,7 +36,7 @@
     "pg": "^8.13.0"
   },
   "devDependencies": {
-    "@medusajs/test-utils": "2.10.1",
+    "@medusajs/test-utils": "2.13.1",
     "@mikro-orm/cli": "6.4.3",
     "@swc/core": "1.5.7",
     "@swc/jest": "^0.2.36",
@@ -50,7 +50,7 @@
     "react-dom": "^18.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2",
-    "vite": "^5.2.11",
+    "vite": "^7.3.1",
     "yalc": "^1.0.0-pre.53"
   },
   "engines": {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
 
 type Price = { amount: number; currency_code: string }
 type Variant = { id: string; title?: string; sku?: string; inventory_quantity?: number; prices?: Price[] }
@@ -146,7 +147,7 @@ export default function AdminEditProduct(props: { id: string }) {
 
   return (
     <div className="container section-py admin-compact" style={{ maxWidth: 900 }}>
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/admin/products')}>← Products</button>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/admin/products')}>← Products</Button>
       <h1 className="section-title">Edit: {p.title}</h1>
 
       <div className="form-grid-2" style={{ gap: 12 }}>
@@ -174,13 +175,13 @@ export default function AdminEditProduct(props: { id: string }) {
           </select>
         </div>
       </div>
-      <button className={`btn btn-primary btn-sm mt-3 ${busy ? 'btn-loading' : ''}`} onClick={save} disabled={busy}>{!busy && 'Save'}</button>
+      <Button size="sm" className={`mt-3 ${busy ? 'btn-loading' : ''}`} onClick={save} disabled={busy}>{!busy && 'Save'}</Button>
       {msg && <div className="alert mt-2">{msg}</div>}
 
       <section className="checkout-section" style={{ marginTop: 16 }}>
         <div className="flex justify-between items-center mb-2">
           <h2 className="checkout-section__title">Variants</h2>
-          <button className="btn btn-sm" onClick={addVariant} disabled={busy}>Add Variant</button>
+          <Button size="sm" onClick={addVariant} disabled={busy}>Add Variant</Button>
         </div>
         {!p.variants?.length ? <div className="text-muted">No variants</div> : (
           <div className="stack">
@@ -205,8 +206,8 @@ export default function AdminEditProduct(props: { id: string }) {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-2">
-                  <button className="btn btn-primary btn-sm" onClick={() => updateVariant(v)}>Update</button>
-                  <button className="btn btn-outline btn-sm" onClick={() => removeVariant(v.id)}>Delete</button>
+                  <Button size="sm" onClick={() => updateVariant(v)}>Update</Button>
+                  <Button variant="outline" size="sm" onClick={() => removeVariant(v.id)}>Delete</Button>
                 </div>
               </div>
             ))}
@@ -221,7 +222,7 @@ export default function AdminEditProduct(props: { id: string }) {
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             <input className="form-input" style={{ minWidth: 280 }} placeholder="https://.../image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
             <input className="form-input" style={{ width: 160 }} placeholder="path (optional)" value={imagePath} onChange={e => setImagePath(e.target.value)} />
-            <button className="btn btn-primary" disabled={busy} onClick={attachImageFromUrl}>Add from URL</button>
+            <Button disabled={busy} onClick={attachImageFromUrl}>Add from URL</Button>
           </div>
         </div>
         <div className="form-field" style={{ gridColumn: '1 / -1' }}>
@@ -242,14 +243,14 @@ export default function AdminEditProduct(props: { id: string }) {
             <div key={idx} className="card" style={{ padding: 8 }}>
               <img src={url} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
               <div className="flex gap-2 mt-2">
-                <button className="btn btn-outline btn-sm" onClick={() => setP(cur => cur ? { ...cur, thumbnail: url } : cur)}>Set thumbnail</button>
-                <button className="btn btn-outline btn-sm" disabled={idx===0} onClick={() => setP(cur => {
+                <Button variant="outline" size="sm" onClick={() => setP(cur => cur ? { ...cur, thumbnail: url } : cur)}>Set thumbnail</Button>
+                <Button variant="outline" size="sm" disabled={idx===0} onClick={() => setP(cur => {
                   if (!cur) return cur; const imgs = [...(cur.images || [])]; const t = imgs[idx]; imgs[idx] = imgs[idx-1]; imgs[idx-1] = t; return { ...cur, images: imgs }
-                })}>Up</button>
-                <button className="btn btn-outline btn-sm" disabled={idx===(p.images?.length||1)-1} onClick={() => setP(cur => {
+                })}>Up</Button>
+                <Button variant="outline" size="sm" disabled={idx===(p.images?.length||1)-1} onClick={() => setP(cur => {
                   if (!cur) return cur; const imgs = [...(cur.images || [])]; const t = imgs[idx]; imgs[idx] = imgs[idx+1]; imgs[idx+1] = t; return { ...cur, images: imgs }
-                })}>Down</button>
-                <button className="btn btn-outline btn-sm" onClick={() => setP(cur => cur ? { ...cur, images: (cur.images || []).filter((_, i) => i !== idx) } : cur)}>Remove</button>
+                })}>Down</Button>
+                <Button variant="outline" size="sm" onClick={() => setP(cur => cur ? { ...cur, images: (cur.images || []).filter((_, i) => i !== idx) } : cur)}>Remove</Button>
               </div>
             </div>
           ))}
@@ -262,17 +263,17 @@ export default function AdminEditProduct(props: { id: string }) {
                 <div key={idx} className="card" style={{ padding: 8 }}>
                   <img src={img.url} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
                   <div className="flex gap-2 mt-2">
-                    <button className="btn btn-outline btn-sm" onClick={() => setP(cur => cur ? { ...cur, images: [...(cur.images || []), img.url] } : cur)}>Add</button>
-                    <button className="btn btn-outline btn-sm" onClick={() => setNewImages(prev => prev.filter((_, i) => i !== idx))}>Remove</button>
+                    <Button variant="outline" size="sm" onClick={() => setP(cur => cur ? { ...cur, images: [...(cur.images || []), img.url] } : cur)}>Add</Button>
+                    <Button variant="outline" size="sm" onClick={() => setNewImages(prev => prev.filter((_, i) => i !== idx))}>Remove</Button>
                   </div>
                 </div>
               ))}
             </div>
             <div className="flex gap-2 mt-2">
-              <button className="btn btn-outline" onClick={async () => {
+              <Button variant="outline" onClick={async () => {
                 for (const img of newImages) { if (img.id) { try { await fetch(`/api/images/${img.id}`, { method: 'DELETE' }) } catch { /* ignore */ } } }
                 setNewImages([])
-              }}>Delete all unused</button>
+              }}>Delete all unused</Button>
             </div>
           </>
         )}

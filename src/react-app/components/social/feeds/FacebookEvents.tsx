@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuFacebook, LuCalendar, LuMapPin, LuClock, LuUsers, LuTicket, LuExternalLink, LuRefreshCw } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
+import { Button } from '@/components/ui/button';
 
 interface FacebookEvent {
   id: string;
@@ -375,8 +376,9 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                 </p>
               )}
               {event.ticketUri && (
-                <button
-                  className="btn btn-accent btn-sm"
+                <Button
+                  variant="accent"
+                  size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEventInteraction(event, 'ticket');
@@ -384,7 +386,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   }}
                 >
                   Get Tickets
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -479,7 +481,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
         >
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button
-              className="modal-close"
+              className="event-modal-close"
               onClick={() => setSelectedEvent(null)}
             >
               ×

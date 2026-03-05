@@ -28,6 +28,7 @@ import {
   userOffsetMinutes,
 } from '@/react-app/utils/dateTime';
 import { isIOS } from '@/react-app/utils/platformDetection';
+import { Button } from '@/components/ui/button';
 
 const descriptionToParagraphs = (description?: string) => {
   if (!description) return [];
@@ -319,49 +320,43 @@ export default function EventDetailsPage({ slug }: EventDetailsPageProps) {
 
                 <div className="event-details-actions" role="group" aria-label="Event actions">
                   {event.ticketUrl && (
-                    <a
-                      className="btn btn-primary"
-                      href={event.ticketUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Tickets"
-                    >
-                      <LuExternalLink size={16} aria-hidden="true" /> Tickets
-                    </a>
+                    <Button asChild aria-label="Tickets">
+                      <a href={event.ticketUrl} target="_blank" rel="noopener noreferrer">
+                        <LuExternalLink size={16} aria-hidden="true" /> Tickets
+                      </a>
+                    </Button>
                   )}
 
                   {mapsHref && (
-                    <a
-                      className="btn btn-secondary"
-                      href={mapsHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Directions"
-                    >
-                      <LuMapPin size={16} aria-hidden="true" /> Directions
-                    </a>
+                    <Button asChild variant="secondary" aria-label="Directions">
+                      <a href={mapsHref} target="_blank" rel="noopener noreferrer">
+                        <LuMapPin size={16} aria-hidden="true" /> Directions
+                      </a>
+                    </Button>
                   )}
 
-                  <a
-                    className="btn btn-ghost"
-                    href={calendarHref}
-                    target={isIOS() ? undefined : '_blank'}
-                    rel={isIOS() ? undefined : 'noopener noreferrer'}
-                    aria-label={calendarLabel}
-                  >
-                    <LuCalendarPlus size={16} aria-hidden="true" /> {calendarLabel}
-                  </a>
+                  <Button asChild variant="ghost" aria-label={calendarLabel}>
+                    <a
+                      href={calendarHref}
+                      target={isIOS() ? undefined : '_blank'}
+                      rel={isIOS() ? undefined : 'noopener noreferrer'}
+                    >
+                      <LuCalendarPlus size={16} aria-hidden="true" /> {calendarLabel}
+                    </a>
+                  </Button>
 
                   {icsHref && !isIOS() && (
-                    <a className="btn btn-ghost" href={icsHref} aria-label="Download ICS file">
-                      <LuDownload size={16} aria-hidden="true" /> Download ICS
-                    </a>
+                    <Button asChild variant="ghost" aria-label="Download ICS file">
+                      <a href={icsHref}>
+                        <LuDownload size={16} aria-hidden="true" /> Download ICS
+                      </a>
+                    </Button>
                   )}
 
                   {eventUrl && (
-                    <button
+                    <Button
                       type="button"
-                      className="btn btn-ghost"
+                      variant="ghost"
                       onClick={async () => {
                         if (!eventUrl) return;
                         if (typeof navigator === 'undefined') {
@@ -398,13 +393,13 @@ export default function EventDetailsPage({ slug }: EventDetailsPageProps) {
                       aria-label="Share event"
                     >
                       <LuShare2 size={16} aria-hidden="true" /> Share
-                    </button>
+                    </Button>
                   )}
 
                   {eventUrl && (
-                    <button
+                    <Button
                       type="button"
-                      className="btn btn-ghost"
+                      variant="ghost"
                       onClick={async () => {
                         if (!eventUrl) return;
                         if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
@@ -422,7 +417,7 @@ export default function EventDetailsPage({ slug }: EventDetailsPageProps) {
                     >
                       <LuCopy size={16} aria-hidden="true" />
                       {copyState === 'copied' ? 'Copied' : 'Copy link'}
-                    </button>
+                    </Button>
                   )}
                 </div>
 

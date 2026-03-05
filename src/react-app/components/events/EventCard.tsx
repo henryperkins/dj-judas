@@ -3,6 +3,7 @@ import { LuMapPin, LuCalendarPlus, LuExternalLink, LuShare2, LuCopy } from 'reac
 import { useMemo, useState } from 'react';
 import { isIOS } from '../../utils/platformDetection';
 import { googleCalUrl } from '@/react-app/utils/events';
+import { Button } from '@/components/ui/button';
 import {
   eventOffsetMinutes,
   formatFullDate,
@@ -87,26 +88,34 @@ export default function EventCard({ ev }: { ev: EventItem }) {
 
       <div className="event-actions-row">
         {ev.ticketUrl && (
-          <a href={ev.ticketUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" aria-label="Tickets">
-            <LuExternalLink size={16} /> Tickets
-          </a>
+          <Button asChild aria-label="Tickets">
+            <a href={ev.ticketUrl} target="_blank" rel="noopener noreferrer">
+              <LuExternalLink size={16} /> Tickets
+            </a>
+          </Button>
         )}
-        <a href={mapsHref} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" aria-label="Directions">
-          <LuMapPin size={16} /> Directions
-        </a>
-        <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel} className="btn btn-ghost" aria-label={primaryCalLabel}>
-          <LuCalendarPlus size={16} /> {primaryCalLabel}
-        </a>
-        <a href={fbShareUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label="Share on Facebook">
-          <LuShare2 size={16} /> Share
-        </a>
-        <button onClick={copyLink} className="btn btn-ghost" aria-label="Copy event link">
-          <LuCopy size={16} /> {copied ? 'Copied!' : 'Copy Link'}
-        </button>
-        {!isIOS() && (
-          <a href={`/events/${ev.slug}.ics`} className="btn btn-ghost" aria-label="Download ICS">
-            ICS
+        <Button asChild variant="secondary" aria-label="Directions">
+          <a href={mapsHref} target="_blank" rel="noopener noreferrer">
+            <LuMapPin size={16} /> Directions
           </a>
+        </Button>
+        <Button asChild variant="ghost" aria-label={primaryCalLabel}>
+          <a href={primaryCalHref} target={primaryCalTarget} rel={primaryCalRel}>
+            <LuCalendarPlus size={16} /> {primaryCalLabel}
+          </a>
+        </Button>
+        <Button asChild variant="ghost" aria-label="Share on Facebook">
+          <a href={fbShareUrl} target="_blank" rel="noopener noreferrer">
+            <LuShare2 size={16} /> Share
+          </a>
+        </Button>
+        <Button variant="ghost" onClick={copyLink} aria-label="Copy event link">
+          <LuCopy size={16} /> {copied ? 'Copied!' : 'Copy Link'}
+        </Button>
+        {!isIOS() && (
+          <Button asChild variant="ghost" aria-label="Download ICS">
+            <a href={`/events/${ev.slug}.ics`}>ICS</a>
+          </Button>
         )}
       </div>
     </article>

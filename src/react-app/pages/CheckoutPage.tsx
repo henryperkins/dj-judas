@@ -11,6 +11,7 @@ import {
   listShippingOptions,
   createPaymentSessions,
 } from '../utils/cart-sdk'
+import { Button } from '@/components/ui/button'
 
 type Address = {
   email: string
@@ -171,7 +172,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="checkout-container">
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/')}>← Back</button>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/')}>← Back</Button>
       <h1 className="section-title">Checkout</h1>
       {!MEDUSA_URL && <p>Set VITE_MEDUSA_URL and VITE_MEDUSA_PUBLISHABLE_KEY to enable cart & shipping.</p>}
 
@@ -209,20 +210,20 @@ export default function CheckoutPage() {
                 <input id="country_code" className="form-input" autoComplete="country" value={addr.country_code} onChange={e => setAddr({ ...addr, country_code: e.target.value })} />
               </div>
             </div>
-            <button
-              className={`btn btn-primary w-full mt-3 ${busy ? 'btn-loading' : ''}`}
+            <Button
+              className={`w-full mt-3 ${busy ? 'btn-loading' : ''}`}
               onClick={saveAddress}
               disabled={busy || !cartId}
               aria-busy={busy}
             >
               {!busy && 'Save address'}
-            </button>
+            </Button>
           </section>
 
           <section className="checkout-section">
             <h2 className="checkout-section__title">Shipping Options</h2>
             <div className="stack">
-              <button className="btn btn-outline" onClick={loadOptions} disabled={!cartId}>Load options</button>
+              <Button variant="outline" onClick={loadOptions} disabled={!cartId}>Load options</Button>
               {options?.length ? options.map((o: ShippingOption) => {
                 interface ShippingMethod {
                   shipping_option_id?: string;
@@ -249,8 +250,8 @@ export default function CheckoutPage() {
           <section className="checkout-section">
             <h2 className="checkout-section__title">Payment</h2>
             <div className="payment-methods">
-              <button className="btn btn-primary" onClick={completeMedusa} disabled={!cartId}>Pay (Medusa provider)</button>
-              <button className="btn btn-outline" onClick={payWithStripe} disabled title="Stripe integration requires backend setup">Pay with Stripe (Coming Soon)</button>
+              <Button onClick={completeMedusa} disabled={!cartId}>Pay (Medusa provider)</Button>
+              <Button variant="outline" onClick={payWithStripe} disabled title="Stripe integration requires backend setup">Pay with Stripe (Coming Soon)</Button>
             </div>
           </section>
         </div>
@@ -365,7 +366,7 @@ export default function CheckoutPage() {
           <div className="text-muted" style={{ fontSize: '0.875rem' }}>Total</div>
           <div style={{ fontWeight: 700 }}>{formatAmount(cart?.total ?? 0, cart?.region?.currency_code || 'usd')}</div>
         </div>
-        <button className={`btn btn-primary ${busy ? 'btn-loading' : ''}`} onClick={completeMedusa} disabled={!cartId || busy || !cart?.items?.length} aria-busy={busy}>{!busy ? (cart?.items?.length ? 'Pay Now' : 'Cart Empty') : ''}</button>
+        <Button className={busy ? 'btn-loading' : undefined} onClick={completeMedusa} disabled={!cartId || busy || !cart?.items?.length} aria-busy={busy}>{!busy ? (cart?.items?.length ? 'Pay Now' : 'Cart Empty') : ''}</Button>
       </div>
     </div>
   </div>

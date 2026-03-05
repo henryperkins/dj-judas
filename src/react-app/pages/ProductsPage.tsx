@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchProducts, addLineItem, type Product } from '../utils/cart-sdk'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -47,9 +48,9 @@ export default function ProductsPage() {
 
   return (
     <div className="container section-py">
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/')}>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/')}>
         ← Back
-      </button>
+      </Button>
       
       <h1 className="section-title">Products</h1>
       
@@ -77,13 +78,14 @@ export default function ProductsPage() {
                 <div className="product-card__price mb-3">
                   {getPrice(product) || 'Price unavailable'}
                 </div>
-                <button 
-                  className={`btn btn-primary btn-sm ${adding === product.id ? 'btn-loading' : ''}`}
+                <Button
+                  size="sm"
+                  className={adding === product.id ? 'btn-loading' : undefined}
                   onClick={() => handleAddToCart(product)}
                   disabled={adding === product.id || !product.variants?.[0]?.id}
                 >
                   {adding === product.id ? '' : 'Add to Cart'}
-                </button>
+                </Button>
               </div>
             </div>
           ))}

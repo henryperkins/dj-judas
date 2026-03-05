@@ -164,7 +164,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               exit={{ scale: 0.9, opacity: 0 }}
             >
               <button
-                className="modal-close"
+                className="platform-modal-close"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close"
               >

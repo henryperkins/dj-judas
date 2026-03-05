@@ -4,6 +4,7 @@ import { FaSpotify, FaApple } from 'react-icons/fa';
 import { metaSDK } from '../utils/metaSdk';
 import { trackSocialClick, trackMusicAction, socialMetrics } from '../utils/socialMetrics';
 import type { FacebookEmbedConfig } from '../types';
+import { Button } from '@/components/ui/button';
 
 interface FacebookEvent {
   title: string;
@@ -346,22 +347,22 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
             <p>🎵 Stream our music catalog</p>
             <div className="music-buttons">
               {spotifyArtistId && (
-                <button 
-                  className="btn btn-spotify"
+                <Button
+                  variant="spotify"
                   onClick={() => handleMusicClick('spotify')}
                 >
                   <FaSpotify size={16} />
                   Listen on Spotify
-                </button>
+                </Button>
               )}
               {appleMusicArtistUrl && (
-                <button 
-                  className="btn btn-apple"
+                <Button
+                  variant="apple"
                   onClick={() => handleMusicClick('apple')}
                 >
                   <FaApple size={16} />
                   Listen on Apple Music
-                </button>
+                </Button>
               )}
             </div>
           </div>

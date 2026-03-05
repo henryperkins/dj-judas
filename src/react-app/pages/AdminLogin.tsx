@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
 
 interface AdminSessionResponse {
   authenticated?: boolean;
@@ -37,7 +38,7 @@ export default function AdminLogin() {
 
   return (
     <div className="container section-py admin-compact" style={{ maxWidth: 560 }}>
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/')}>← Back</button>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/')}>← Back</Button>
       <h1 className="section-title">Admin Login</h1>
       <div className="form-field">
         <label className="form-label" htmlFor="email">Email</label>
@@ -48,9 +49,14 @@ export default function AdminLogin() {
         <input id="password" className="form-input form-input-sm" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
       </div>
       {error && <div className="alert alert-error mb-2">{error}</div>}
-      <button className={`btn btn-primary btn-sm ${busy ? 'btn-loading' : ''}`} onClick={doLogin} disabled={busy || !email || !password}>
+      <Button
+        size="sm"
+        className={busy ? 'btn-loading' : undefined}
+        onClick={doLogin}
+        disabled={busy || !email || !password}
+      >
         {!busy && 'Sign In'}
-      </button>
+      </Button>
     </div>
   )
 }

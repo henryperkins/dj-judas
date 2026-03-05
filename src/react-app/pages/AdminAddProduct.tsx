@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
  
 
 type PriceRow = { currency_code: string; amount: string }
@@ -177,7 +178,7 @@ export default function AdminAddProduct() {
 
   return (
     <div className="container section-py admin-compact" style={{ maxWidth: 760 }}>
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/admin')}>← Admin</button>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/admin')}>← Admin</Button>
       <h1 className="section-title">Add Product</h1>
       <div className="form-grid-2">
         <div className="form-field" style={{ gridColumn: '1 / -1' }}>
@@ -189,7 +190,7 @@ export default function AdminAddProduct() {
           >
             <div className="flex items-center gap-3">
               <input type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
-              <button className="btn btn-outline btn-sm" onClick={aiSuggest} disabled={!thumbnail}>Suggest title & description</button>
+              <Button variant="outline" size="sm" onClick={aiSuggest} disabled={!thumbnail}>Suggest title & description</Button>
             </div>
             <div className="text-muted" style={{ marginTop: 6 }}>Drag & drop or click to upload. First image is used as thumbnail unless you choose one below.</div>
           </div>
@@ -204,12 +205,12 @@ export default function AdminAddProduct() {
                     </label>
                   </div>
                   <div className="flex gap-2 mt-2">
-                    <button className="btn btn-outline btn-sm" disabled={idx===0} onClick={() => setImages(prev => { const p=[...prev]; const t=p[idx]; p[idx]=p[idx-1]; p[idx-1]=t; return p })}>Up</button>
-                    <button className="btn btn-outline btn-sm" disabled={idx===images.length-1} onClick={() => setImages(prev => { const p=[...prev]; const t=p[idx]; p[idx]=p[idx+1]; p[idx+1]=t; return p })}>Down</button>
-                    <button className="btn btn-outline btn-sm" onClick={() => {
+                    <Button variant="outline" size="sm" disabled={idx===0} onClick={() => setImages(prev => { const p=[...prev]; const t=p[idx]; p[idx]=p[idx-1]; p[idx-1]=t; return p })}>Up</Button>
+                    <Button variant="outline" size="sm" disabled={idx===images.length-1} onClick={() => setImages(prev => { const p=[...prev]; const t=p[idx]; p[idx]=p[idx+1]; p[idx+1]=t; return p })}>Down</Button>
+                    <Button variant="outline" size="sm" onClick={() => {
                       const id = images[idx]?.id; if (id) setToDelete(prev => [...prev, id]);
                       setImages(prev => prev.filter((_, i) => i !== idx))
-                    }}>Remove</button>
+                    }}>Remove</Button>
                   </div>
                 </div>
               ))}
@@ -229,10 +230,10 @@ export default function AdminAddProduct() {
           )}
           {toDelete.length > 0 && (
             <div className="flex gap-2 mt-2">
-              <button className="btn btn-outline btn-sm" onClick={async () => {
+              <Button variant="outline" size="sm" onClick={async () => {
                 for (const id of toDelete) { try { await fetch(`/api/images/${id}`, { method: 'DELETE' }) } catch { /* ignore */ } }
                 setToDelete([])
-              }}>Delete removed uploads</button>
+              }}>Delete removed uploads</Button>
             </div>
           )}
         </div>
@@ -303,23 +304,23 @@ export default function AdminAddProduct() {
                         <input className="form-input form-input-sm" placeholder="19.99" value={pr.amount}
                           onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: p.prices.map((pp, jj) => jj===j? { ...pp, amount: e.target.value }: pp) }: p))}
                         />
-                        <button className="btn btn-outline btn-sm" onClick={() => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: p.prices.filter((_, jj) => jj!==j) }: p))}>Remove</button>
+                        <Button variant="outline" size="sm" onClick={() => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: p.prices.filter((_, jj) => jj!==j) }: p))}>Remove</Button>
                       </div>
                     ))}
-                    <button className="btn btn-sm" onClick={() => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: [...p.prices, { currency_code: 'usd', amount: '' }] }: p))}>Add Price</button>
+                    <Button size="sm" onClick={() => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: [...p.prices, { currency_code: 'usd', amount: '' }] }: p))}>Add Price</Button>
                   </div>
                 </div>
               </div>
-              {variants.length > 1 && <button className="btn btn-outline btn-sm mt-2" onClick={() => setVariants(prev => prev.filter((_, idx) => idx !== i))}>Delete Variant</button>}
+              {variants.length > 1 && <Button variant="outline" size="sm" className="mt-2" onClick={() => setVariants(prev => prev.filter((_, idx) => idx !== i))}>Delete Variant</Button>}
             </div>
           ))}
-          <button className="btn btn-sm" onClick={() => setVariants(prev => [...prev, { title: `Variant ${prev.length+1}`, prices: [{ currency_code: 'usd', amount: '' }], inventory_quantity: '' }])}>Add Variant</button>
+          <Button size="sm" onClick={() => setVariants(prev => [...prev, { title: `Variant ${prev.length+1}`, prices: [{ currency_code: 'usd', amount: '' }], inventory_quantity: '' }])}>Add Variant</Button>
         </div>
       </section>
       {msg && <div className="alert mt-3">{msg}</div>}
-      <button className={`btn btn-primary btn-sm mt-3 ${busy ? 'btn-loading' : ''}`} onClick={submit} disabled={busy || !title}>
+      <Button size="sm" className={`mt-3 ${busy ? 'btn-loading' : ''}`} onClick={submit} disabled={busy || !title}>
         {!busy && 'Create Product'}
-      </button>
+      </Button>
     </div>
   )
 }

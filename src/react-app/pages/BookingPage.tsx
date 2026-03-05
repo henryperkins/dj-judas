@@ -2,12 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { navigate } from '../utils/nav';
 import BookingForm from '../components/BookingForm';
+import { Button } from '@/components/ui/button';
 
 const BookingPage: React.FC = () => {
   return (
     <div className="booking-page">
       <header className="page-header container" style={{ padding: '1rem var(--container-padding)' }}>
-        <button className="btn btn-ghost" onClick={() => navigate('/')}>← Back</button>
+        <Button variant="ghost" onClick={() => navigate('/')}>← Back</Button>
       </header>
       <main className="container" style={{ paddingBottom: '3rem' }}>
         <motion.h1
@@ -28,4 +29,3 @@ const BookingPage: React.FC = () => {
 };
 
 export default BookingPage;
-

@@ -168,7 +168,8 @@
     text-decoration: none;
   }
 
-  a {
+  a.text-link,
+  a:not([class]):not([data-slot="button"]) {
     @apply text-accent-700 font-medium hover:underline hover:text-accent-600;
   }
 
@@ -265,7 +266,7 @@
 
   /* Buttons (base + variants) */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-semibold cursor-pointer transition px-6 py-3 text-[0.9rem] border border-transparent select-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-semibold cursor-pointer transition px-6 py-3 text-[0.9rem] border border-transparent select-none no-underline;
   }
 
   .btn:disabled {
@@ -278,6 +279,18 @@
 
   .btn-secondary {
     @apply bg-transparent text-accent border-accent hover:bg-card/90;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-accent-foreground border-accent hover:bg-accent-600;
+  }
+
+  .btn-spotify {
+    @apply bg-[var(--color-brand-spotify)] text-black border-[var(--color-brand-spotify)] hover:brightness-105;
+  }
+
+  .btn-apple {
+    @apply bg-[var(--color-brand-apple)] text-black border-[var(--color-brand-apple)] hover:brightness-105;
   }
 
   .btn-ghost {
@@ -313,7 +326,7 @@
 
   /* shadcn/ui compatibility slots */
   [data-slot="button"] {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius)] font-semibold cursor-pointer transition;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius)] font-semibold cursor-pointer transition no-underline;
   }
 
   [data-slot="button"]:focus-visible {
@@ -498,12 +511,14 @@
 
   /* Theme toggle */
   .theme-toggle {
-    @apply fixed z-[1100] inline-flex items-center justify-center w-9 h-9 rounded-full border border-border bg-card text-foreground shadow-xs top-[max(.75rem,var(--safe-area-inset-top))] right-[max(.75rem,var(--safe-area-inset-right))] hover:bg-card/90;
+    @apply fixed inline-flex items-center justify-center w-9 h-9 rounded-full border border-border bg-card text-foreground shadow-xs top-[max(.75rem,var(--safe-area-inset-top))] right-[max(.75rem,var(--safe-area-inset-right))] hover:bg-card/90;
+    z-index: var(--z-sticky-header);
   }
 
   /* Mobile bottom nav */
   .mobile-bottom-nav {
-    @apply fixed inset-x-0 bottom-0 bg-card/95 backdrop-blur border-t border-border z-[900] pb-[env(safe-area-inset-bottom,0)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:hidden;
+    @apply fixed inset-x-0 bottom-0 bg-card/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom,0)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:hidden;
+    z-index: var(--z-bottom-sheet);
   }
 
   body.mobile-nav-visible {
@@ -596,7 +611,8 @@
   }
 
   .hero-content {
-    @apply text-center text-foreground p-8 md:p-12 max-w-[800px] z-[1] bg-card rounded-[var(--radius)] border border-border;
+    @apply text-center text-foreground p-8 md:p-12 max-w-[800px] bg-card rounded-[var(--radius)] border border-border;
+    z-index: var(--z-base);
   }
 
   .hero-title {
@@ -822,11 +838,13 @@
 
   /* Modal mode */
   .platform-launcher-overlay {
-    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-[999];
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm;
+    z-index: var(--z-modal);
   }
 
   .platform-launcher-modal {
-    @apply fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-[var(--radius)] p-8 max-w-[500px] w-[90%] max-h-[80vh] overflow-y-auto z-[1000] border border-border;
+    @apply fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-[var(--radius)] p-8 max-w-[500px] w-[90%] max-h-[80vh] overflow-y-auto border border-border;
+    z-index: calc(var(--z-modal) + 1);
   }
 
   .platform-modal-grid {
@@ -837,7 +855,7 @@
     @apply flex flex-col items-center justify-center p-6 bg-card border border-border rounded-[var(--radius)] transition min-h-24 hover:border-accent hover:bg-card/90;
   }
 
-  .modal-close {
+  .platform-modal-close {
     @apply absolute top-4 right-4 bg-transparent border-0 text-muted-foreground p-2 rounded-full transition hover:bg-card/90;
   }
 
@@ -851,8 +869,9 @@
   }
 
   .platform-launcher--fab {
-    @apply fixed right-4 z-[900] transition-all;
+    @apply fixed right-4 transition-all;
     bottom: var(--fab-bottom-offset);
+    z-index: var(--z-bottom-sheet);
   }
 
   .platform-launcher__fab-trigger {
@@ -877,11 +896,13 @@
   }
 
   .platform-launcher__fab-backdrop {
-    @apply fixed inset-0 bg-black/30 backdrop-blur-sm z-[899];
+    @apply fixed inset-0 bg-black/30 backdrop-blur-sm;
+    z-index: calc(var(--z-bottom-sheet) - 1);
   }
   /* Alias for component compatibility */
   .fab-backdrop {
-    @apply fixed inset-0 bg-black/30 backdrop-blur-sm z-[899];
+    @apply fixed inset-0 bg-black/30 backdrop-blur-sm;
+    z-index: calc(var(--z-bottom-sheet) - 1);
   }
 
   /* Music hub + embeds (Spotify / Apple Music) */
@@ -1253,7 +1274,7 @@
 
   .next-event-flyer-frame img {
     position: relative;
-    z-index: 1;
+    z-index: var(--z-base);
     width: 100%;
     height: auto;
     border-radius: calc(var(--radius-lg) - 10px);
@@ -1386,7 +1407,7 @@
 
   .event-details-flyer img {
     position: relative;
-    z-index: 1;
+    z-index: var(--z-base);
     width: 100%;
     height: auto;
     border-radius: calc(var(--radius-lg) - 12px);
@@ -1872,13 +1893,14 @@
   }
 
   .timeline-marker {
-    @apply absolute -left-12 size-10 bg-accent text-white rounded-full grid place-items-center z-[2];
+    @apply absolute -left-12 size-10 bg-accent text-white rounded-full grid place-items-center;
+    z-index: calc(var(--z-base) + 1);
   }
 
   .timeline-line {
     @apply absolute -left-[1.3rem] top-10 w-[2px] bg-border;
     height: calc(100% + 2rem);
-    z-index: 1;
+    z-index: var(--z-base);
   }
 
   .timeline-date {
@@ -1926,14 +1948,15 @@
   }
 
   .event-modal {
-    @apply fixed inset-0 bg-black/80 z-[9999] grid place-items-center p-8 animate-[fadeIn_.3s_ease];
+    @apply fixed inset-0 bg-black/80 grid place-items-center p-8 animate-[fadeIn_.3s_ease];
+    z-index: var(--z-modal);
   }
 
   .modal-content {
     @apply relative max-w-[600px] w-full max-h-[90vh] overflow-y-auto bg-card rounded-[var(--radius)] border border-border;
   }
 
-  .modal-close {
+  .event-modal-close {
     @apply absolute top-4 right-4 size-10 grid place-items-center rounded-full bg-black/50 text-white text-xl cursor-pointer transition hover:bg-black/70 z-10;
   }
 
@@ -2493,7 +2516,7 @@
     position: fixed;
     bottom: calc(76px + env(safe-area-inset-bottom));
     right: calc(1rem + env(safe-area-inset-right));
-    z-index: 900;
+    z-index: var(--z-bottom-sheet);
   }
   .fab-trigger {
     width:56px; height:56px; border-radius:999px;
@@ -2534,7 +2557,7 @@
   .fab-close {
     position:absolute; top:-8px; right:-8px; width:28px; height:28px; border-radius:999px;
     background: var(--color-destructive); color:#fff; border:2px solid var(--color-card);
-    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:var(--z-base);
   }
 
   /* Modal icon polish */
@@ -2891,7 +2914,7 @@
   border-top: 2px solid var(--color-border);
   margin-inline: -1rem;
   padding: 1rem;
-  z-index: 10;
+  z-index: var(--z-elevated);
 }
 
 @media (min-width: 969px) {
@@ -3288,7 +3311,7 @@
     background: var(--color-card);
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+    z-index: var(--z-elevated);
   }
 
   .checkout-footer .btn {
@@ -3346,7 +3369,7 @@
     transform: translateY(-80px);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
-    z-index: 10;
+    z-index: var(--z-elevated);
   }
 
   .pull-to-refresh-indicator--pulling {

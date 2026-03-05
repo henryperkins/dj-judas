@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
 
 type Product = { id: string; title: string; status?: string; thumbnail?: string | null; handle?: string }
 
@@ -42,14 +43,14 @@ export default function AdminProductsList() {
 
   return (
     <div className="container section-py admin-compact">
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/admin')}>← Admin</button>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/admin')}>← Admin</Button>
       <div className="flex justify-between items-center mb-3">
         <h1 className="section-title">Products</h1>
-        <button className="btn btn-sm" onClick={() => navigate('/admin/products/new')}>New</button>
+        <Button size="sm" onClick={() => navigate('/admin/products/new')}>New</Button>
       </div>
       <div className="flex gap-2 mb-3">
         <input className="form-input form-input-sm" style={{ flex: 1 }} placeholder="Search title or handle" value={q} onChange={e => setQ(e.target.value)} />
-        <button className="btn btn-outline btn-sm" onClick={() => load(q)} disabled={loading}>{loading ? 'Searching…' : 'Search'}</button>
+        <Button variant="outline" size="sm" onClick={() => load(q)} disabled={loading}>{loading ? 'Searching…' : 'Search'}</Button>
       </div>
       <div className="product-grid">
         {items.map(p => (
@@ -59,7 +60,7 @@ export default function AdminProductsList() {
               <h3 className="product-card__title">{p.title}</h3>
               <div className="text-muted text-sm mb-2">{p.handle || p.id}</div>
               <div className="flex gap-2">
-                <button className="btn btn-primary btn-sm" onClick={() => navigate(`/admin/products/${p.id}`)}>Edit</button>
+                <Button size="sm" onClick={() => navigate(`/admin/products/${p.id}`)}>Edit</Button>
                 <span className="badge">{p.status}</span>
               </div>
             </div>

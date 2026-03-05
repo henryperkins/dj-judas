@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
 
 interface AdminSessionResponse {
   authenticated?: boolean;
@@ -30,14 +31,14 @@ export default function AdminHome() {
 
   return (
     <div className="container section-py admin-compact">
-      <button className="btn btn-ghost mb-3" onClick={() => navigate('/')}>← Back</button>
+      <Button variant="ghost" className="mb-3" onClick={() => navigate('/')}>← Back</Button>
       <div className="flex justify-between items-center mb-4">
         <h1 className="section-title">Admin</h1>
-        <button className="btn btn-outline btn-sm" onClick={logout}>Sign out</button>
+        <Button variant="outline" size="sm" onClick={logout}>Sign out</Button>
       </div>
       <div className="stack">
-        <button className="btn btn-primary btn-sm" onClick={() => navigate('/admin/products/new')}>Add Product</button>
-        <button className="btn btn-outline btn-sm" onClick={() => navigate('/admin/products')}>Manage Products</button>
+        <Button size="sm" onClick={() => navigate('/admin/products/new')}>Add Product</Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/admin/products')}>Manage Products</Button>
       </div>
 
       <section className="checkout-section" style={{ marginTop: 20 }}>
@@ -47,7 +48,7 @@ export default function AdminHome() {
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             <input className="form-input" style={{ width: 200 }} placeholder="slug" value={slug} onChange={e => setSlug(e.target.value)} />
             <input className="form-input" style={{ minWidth: 320 }} placeholder="https://.../flyer.jpg" value={flyerUrl} onChange={e => setFlyerUrl(e.target.value)} />
-            <button className="btn btn-primary" onClick={async () => {
+            <Button onClick={async () => {
               setMsg(null)
               if (!flyerUrl.trim()) { alert('Enter flyer URL'); return }
               const res = await fetch(`/api/admin/events/${encodeURIComponent(slug)}/flyer/upload`, {
@@ -55,7 +56,7 @@ export default function AdminHome() {
               })
               const j = await res.json() as { error?: string }
               if (res.ok) { setMsg('Flyer updated'); setFlyerUrl('') } else { alert(j?.error || 'Update failed') }
-            }}>Upload Flyer</button>
+            }}>Upload Flyer</Button>
           </div>
         </div>
 
@@ -63,7 +64,7 @@ export default function AdminHome() {
           <div className="text-sm text-muted" style={{ marginBottom: 6 }}>Import events (paste JSON array). Optional: upload flyers to R2 and replace existing.</div>
           <textarea className="form-input" style={{ width: '100%', minHeight: 120, marginBottom: 8 }} placeholder='[ { "id": "...", "slug": "...", "title": "...", "startDateTime": "2026-..." } ]' value={importJson} onChange={e => setImportJson(e.target.value)} />
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
-            <button className="btn btn-outline btn-sm" disabled={importBusy} onClick={async () => {
+            <Button variant="outline" size="sm" disabled={importBusy} onClick={async () => {
               setImportBusy(true); setMsg(null)
               try {
                 const events = JSON.parse(importJson || '[]')
@@ -80,7 +81,7 @@ export default function AdminHome() {
               } finally {
                 setImportBusy(false)
               }
-            }}>Import & Upload Flyers</button>
+            }}>Import & Upload Flyers</Button>
             {msg && <span className="text-sm text-muted">{msg}</span>}
           </div>
         </div>

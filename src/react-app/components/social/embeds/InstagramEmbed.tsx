@@ -4,6 +4,7 @@ import { LuInstagram, LuExternalLink, LuChevronLeft, LuChevronRight, LuMusic, Lu
 import { metaSDK, processInstagramEmbeds } from '../utils/metaSdk';
 import { socialMetrics, trackSocialClick, trackMusicAction } from '../utils/socialMetrics';
 import type { InstagramEmbedConfig } from '../types';
+import { Button } from '@/components/ui/button';
 
 interface InstagramPost {
   url: string;
@@ -382,12 +383,12 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
           <p>🎵 Discover the music from these posts</p>
           <div className="playlist-buttons">
             {spotifyPlaylistUrl && (
-              <button 
-                className="btn btn-spotify"
+              <Button
+                variant="spotify"
                 onClick={() => handlePlaylistClick('spotify')}
               >
                 Listen on Spotify
-              </button>
+              </Button>
             )}
             {appleMusicPlaylistUrl && (
               <AppleMusicBadge

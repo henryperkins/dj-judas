@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../utils/nav'
+import { Button } from '@/components/ui/button'
 
 export default function SuccessPage() {
   const [orderId, setOrderId] = useState<string | null>(null)
@@ -34,8 +35,8 @@ export default function SuccessPage() {
       )}
 
       <div className="cluster gap-2 mt-4">
-        <button className="btn btn-ghost" onClick={() => navigate('/')}>Back to home</button>
-        <button className="btn btn-primary" onClick={() => navigate('/checkout')}>Shop more</button>
+        <Button variant="ghost" onClick={() => navigate('/')}>Back to home</Button>
+        <Button onClick={() => navigate('/checkout')}>Shop more</Button>
       </div>
     </div>
   )

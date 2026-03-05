@@ -7,6 +7,9 @@ export const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground shadow-xs",
         destructive: "bg-destructive text-white shadow-xs",
+        accent: "bg-accent text-accent-foreground shadow-xs hover:bg-accent-600",
+        spotify: "bg-[var(--color-brand-spotify)] text-black shadow-xs hover:brightness-105",
+        apple: "bg-[var(--color-brand-apple)] text-black shadow-xs hover:brightness-105",
         outline: "border bg-background text-foreground shadow-xs",
         secondary: "bg-secondary text-secondary-foreground shadow-xs",
         ghost: "bg-transparent text-foreground",

@@ -190,10 +190,10 @@ export default function NextEventBanner({ imageMode = 'contain' }: NextEventBann
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!shareMessage && copyState !== 'copied') return;
+    if (!shareMessage && copyState !== 'copied' && copyState !== 'error') return;
     const timeout = window.setTimeout(() => {
       setShareMessage(null);
-      if (copyState === 'copied') setCopyState('idle');
+      if (copyState !== 'idle') setCopyState('idle');
     }, 2500);
     return () => window.clearTimeout(timeout);
   }, [copyState, shareMessage]);
@@ -396,6 +396,7 @@ export default function NextEventBanner({ imageMode = 'contain' }: NextEventBann
                     }
                   }}
                   aria-label="Copy event link"
+                  data-testid="next-event-copy-link"
                 >
                   <LuCopy size={16} aria-hidden="true" />
                   {copyState === 'copied' ? 'Copied' : 'Copy link'}
@@ -410,7 +411,7 @@ export default function NextEventBanner({ imageMode = 'contain' }: NextEventBann
             </div>
 
             {(shareMessage || copyState === 'copied' || copyState === 'error') && (
-              <p className="next-event-feedback" role="status" aria-live="polite">
+              <p className="next-event-feedback" role="status" aria-live="polite" data-testid="next-event-feedback">
                 {shareMessage ||
                   (copyState === 'copied'
                     ? 'Event link copied to clipboard'

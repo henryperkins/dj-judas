@@ -1,9 +1,23 @@
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'theme';
+const THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
 function systemPrefersDark() {
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return window.matchMedia && window.matchMedia(THEME_MEDIA_QUERY).matches;
+}
+
+function watchSystemTheme(onChange: () => void) {
+  if (!window.matchMedia) return () => {};
+  const mq = window.matchMedia(THEME_MEDIA_QUERY);
+
+  if (mq.addEventListener) {
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }
+
+  mq.addListener?.(onChange);
+  return () => mq.removeListener?.(onChange);
 }
 
 export function getStoredTheme(): ThemeMode | null {
@@ -46,12 +60,6 @@ export function setTheme(mode: ThemeMode) {
 export function initTheme() {
   const stored = getStoredTheme() || 'system';
   applyTheme(stored);
-  // React to system changes when in system mode
-  if (stored === 'system' && window.matchMedia) {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => applyTheme('system');
-    mq.addEventListener?.('change', handler);
-  }
 }
 
 // Handy React hook
@@ -59,6 +67,10 @@ import { useEffect, useState } from 'react';
 export function useTheme() {
   const [mode, setMode] = useState<ThemeMode>(() => getStoredTheme() || 'system');
   useEffect(() => { applyTheme(mode); }, [mode]);
+  useEffect(() => {
+    if (mode !== 'system') return;
+    return watchSystemTheme(() => applyTheme('system'));
+  }, [mode]);
   return {
     mode,
     setMode: (m: ThemeMode) => { setMode(m); setTheme(m); },

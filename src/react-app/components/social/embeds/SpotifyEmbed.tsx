@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { LuExternalLink, LuMusic, LuPlay, LuPause, LuShare2 } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
 import { loadSpotifyEmbedAPI, type SpotifyIFrameController } from '@/react-app/utils/spotifyEmbedKit';
+import { copyToClipboard } from '../sharing/shareUtils';
 
 interface SpotifyEmbedProps {
   url?: string;
@@ -52,6 +53,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [positionSec, setPositionSec] = useState(0);
   const [durationSec, setDurationSec] = useState(0);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const seekingRef = useRef(false);
 
   const spotifyId = spotifyUri.split(':').pop();
@@ -147,14 +149,28 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
     }
   }, [isLoaded]);
 
+  useEffect(() => {
+    if (shareStatus === 'idle') return;
+    const timeout = window.setTimeout(() => {
+      setShareStatus('idle');
+    }, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [shareStatus]);
+
   const handleSpotifyOpen = () => {
     socialMetrics.trackSocialInteraction('spotify', 'open', { uri: spotifyUri, contentType });
     window.open(spotifyUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(spotifyUrl);
-    socialMetrics.trackSocialInteraction('spotify', 'share', { uri: spotifyUri });
+  const handleShare = async () => {
+    const copied = await copyToClipboard(spotifyUrl);
+    if (copied) {
+      setShareStatus('copied');
+      socialMetrics.trackSocialInteraction('spotify', 'share', { uri: spotifyUri });
+      return;
+    }
+    setShareStatus('error');
+    socialMetrics.trackSocialInteraction('spotify', 'share_failed', { uri: spotifyUri, reason: 'clipboard_unavailable' });
   };
 
   const formatTime = (s: number) => {
@@ -248,9 +264,16 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
           className="action-btn share-btn"
           onClick={handleShare}
           aria-label="Copy link to clipboard"
+          data-testid="spotify-share-button"
         >
           <LuShare2 size={18} />
-          <span>Share</span>
+          <span>
+            {shareStatus === 'copied'
+              ? 'Copied!'
+              : shareStatus === 'error'
+                ? 'Copy failed'
+                : 'Share'}
+          </span>
         </button>
       </div>
 

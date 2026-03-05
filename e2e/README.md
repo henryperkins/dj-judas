@@ -20,6 +20,12 @@ End-to-end tests for DJ Judas application using Playwright.
 - ✅ Authorization flow
 - ✅ Error handling for missing credentials
 
+### Social / Sharing Regressions (`social-sharing.spec.ts`)
+- ✅ Dynamic social feed fetch with empty hashtags
+- ✅ Spotify share clipboard failure feedback
+- ✅ Next Event copy-error auto-clear behavior
+- ✅ Mobile keyboard expand/collapse interactions
+
 ### Checkout Flow (`checkout-flow.spec.ts`)
 - ✅ Cart creation and management
 - ✅ Shipping address validation
@@ -63,6 +69,7 @@ npm run test:e2e:report
 e2e/
 ├── spotify-oauth.spec.ts      # Spotify OAuth tests
 ├── apple-music.spec.ts         # Apple Music integration tests
+├── social-sharing.spec.ts      # Social feed and sharing regression tests
 ├── checkout-flow.spec.ts       # Medusa checkout tests
 ├── helpers/
 │   └── test-helpers.ts         # Shared test utilities
@@ -168,8 +175,9 @@ await page.route('/api/spotify/login', async route => {
 Current test coverage:
 - **Spotify Integration:** 7 test cases
 - **Apple Music Integration:** 8 test cases
+- **Social/Sharing Regressions:** 4 test cases
 - **Checkout Flow:** 9 test cases
-- **Total:** 24+ test scenarios
+- **Total:** 28+ test scenarios
 
 ## Troubleshooting
 

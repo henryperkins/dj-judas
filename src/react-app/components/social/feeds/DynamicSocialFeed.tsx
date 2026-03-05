@@ -57,6 +57,14 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [isNotConfigured, setIsNotConfigured] = useState(false); // Circuit breaker for 501 errors
+  const platformKey = platforms.join(',');
+  const hashtagKey = hashtags.join(',');
+
+  // Allow retries if requested feed filters change.
+  useEffect(() => {
+    setIsNotConfigured(false);
+    setHasLoaded(false);
+  }, [platformKey, hashtagKey]);
 
   // Fetch posts from backend
   const fetchPosts = useCallback(async () => {
@@ -65,9 +73,8 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       return;
     }
 
-    // Skip fetch if required params are missing (API will return 400/501)
-    if (platforms.length === 0 || (platforms.includes('instagram') && hashtags.length === 0)) {
-      setIsNotConfigured(true);
+    // Skip fetch if required params are missing.
+    if (platforms.length === 0) {
       setPosts([]);
       setError(null);
       setLoading(false);
@@ -168,6 +175,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
         <div
           key={post.id}
           className={`social-post-card ${post.isShoppable ? 'shoppable' : ''}`}
+          data-testid="social-post-card"
           onClick={() => onPostClick ? onPostClick(post) : setSelectedPost(post)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -333,7 +341,10 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   }
 
   return (
-    <div className={`dynamic-social-feed layout-${layout} ${refreshing ? 'is-refreshing' : ''}`}>
+    <div
+      className={`dynamic-social-feed layout-${layout} ${refreshing ? 'is-refreshing' : ''}`}
+      data-testid="dynamic-social-feed"
+    >
       {refreshing && (
         <div className="social-feed-refresh-overlay" aria-hidden="true">
           <div className="loading-spinner" />

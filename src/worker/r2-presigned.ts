@@ -7,6 +7,7 @@ interface Env {
   MEDIA_BUCKET?: R2Bucket;
   USER_ASSETS?: R2Bucket;
   R2_PUBLIC_BASE?: string;
+  R2_UPLOAD_SECRET?: string;
 }
 
 const r2PresignedApp = new Hono<{ Bindings: Env }>();
@@ -57,7 +58,7 @@ r2PresignedApp.post('/api/r2/presigned-upload', async (c) => {
     // For now, return a direct upload URL through the Worker
     // (Client will POST to this endpoint with the file)
     const uploadUrl = `/api/r2/direct-upload`;
-    const uploadToken = await generateUploadToken(c, key, expiresIn);
+    const uploadToken = await generateUploadToken(c.env, key, expiresIn);
 
     const base = c.env.R2_PUBLIC_BASE?.trim() || 'https://r2.thevoicesofjudah.com';
     const publicUrl = `${base.replace(/\/$/, '')}/${key}`;
@@ -95,7 +96,7 @@ r2PresignedApp.post('/api/r2/direct-upload', async (c) => {
   }
 
   // ✅ Validate token with HMAC signature
-  const validation = await validateUploadToken(c, uploadToken);
+  const validation = await validateUploadToken(c.env, uploadToken);
   if (!validation.valid || !validation.key) {
     return c.json({
       error: 'invalid_token',
@@ -145,8 +146,8 @@ r2PresignedApp.post('/api/r2/direct-upload', async (c) => {
  * Generate a time-limited upload token with HMAC signing
  * ✅ SECURITY: Uses Web Crypto API for cryptographically secure tokens
  */
-async function generateUploadToken(c: any, key: string, expiresIn: number): Promise<string> {
-  const SECRET = c.env.R2_UPLOAD_SECRET || 'CHANGE-THIS-IN-PRODUCTION-GENERATE-WITH-openssl-rand-base64-32';
+async function generateUploadToken(env: Env, key: string, expiresIn: number): Promise<string> {
+  const SECRET = env.R2_UPLOAD_SECRET || 'CHANGE-THIS-IN-PRODUCTION-GENERATE-WITH-openssl-rand-base64-32';
 
   const payload = {
     key,
@@ -177,7 +178,7 @@ async function generateUploadToken(c: any, key: string, expiresIn: number): Prom
  * Validate upload token with HMAC signature verification
  * ✅ SECURITY: Prevents token tampering and replay attacks
  */
-async function validateUploadToken(c: any, token: string): Promise<{ valid: boolean; key?: string; error?: string }> {
+async function validateUploadToken(env: Env, token: string): Promise<{ valid: boolean; key?: string; error?: string }> {
   const parts = token.split('.');
   if (parts.length !== 2) {
     return { valid: false, error: 'Invalid token format' };
@@ -196,7 +197,7 @@ async function validateUploadToken(c: any, token: string): Promise<{ valid: bool
     }
 
     // Verify signature
-    const SECRET = c.env.R2_UPLOAD_SECRET || 'CHANGE-THIS-IN-PRODUCTION-GENERATE-WITH-openssl-rand-base64-32';
+    const SECRET = env.R2_UPLOAD_SECRET || 'CHANGE-THIS-IN-PRODUCTION-GENERATE-WITH-openssl-rand-base64-32';
     const encoder = new TextEncoder();
 
     const cryptoKey = await crypto.subtle.importKey(

@@ -186,14 +186,13 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
   // Mini player (collapsed)
   if (!isExpanded) {
     return (
-      <div
+      <button
+        type="button"
         className="apple-mini-player"
         onClick={() => {
           haptics.trigger('light');
           setIsExpanded(true);
         }}
-        role="button"
-        tabIndex={0}
         aria-label="Expand Apple Music player"
       >
         <div className="mini-player__icon">
@@ -207,7 +206,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
         </div>
         {!isOnline && <LuWifiOff size={20} className="mini-player__status" />}
         {isOnline && <LuWifi size={20} className="mini-player__status" />}
-      </div>
+      </button>
     );
   }
 

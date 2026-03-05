@@ -29,5 +29,11 @@
     }
   },
   "include": ["src"],
-  "exclude": ["**/*.stories.ts", "**/*.stories.tsx", "**/__stories__/**", "**/.storybook/**"]
+  "exclude": [
+    "src/worker/**",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/__stories__/**",
+    "**/.storybook/**"
+  ]
 }

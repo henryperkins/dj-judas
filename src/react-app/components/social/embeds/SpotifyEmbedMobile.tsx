@@ -9,6 +9,7 @@ import { LuPlay, LuPause, LuSkipBack, LuSkipForward, LuShare2, LuExternalLink, L
 import { socialMetrics } from '../utils/socialMetrics';
 import { loadSpotifyEmbedAPI, type SpotifyIFrameController } from '@/react-app/utils/spotifyEmbedKit';
 import { haptics } from '@/react-app/utils/haptics';
+import { copyToClipboard } from '../sharing/shareUtils';
 
 interface SpotifyEmbedMobileProps {
   url?: string;
@@ -45,6 +46,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
   const [trackInfo, setTrackInfo] = useState<SpotifyPlaybackData['track_window']>(undefined);
   const [positionSec, setPositionSec] = useState(0);
   const [durationSec, setDurationSec] = useState(0);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const seekingRef = useRef(false);
 
   const spotifyId = spotifyUri.split(':').pop();
@@ -112,6 +114,14 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
     };
   }, [spotifyUri]);
 
+  useEffect(() => {
+    if (shareStatus === 'idle') return;
+    const timeout = window.setTimeout(() => {
+      setShareStatus('idle');
+    }, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [shareStatus]);
+
   const handlePlayPause = useCallback(() => {
     haptics.trigger('medium');
     controller?.togglePlay();
@@ -130,10 +140,16 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
     socialMetrics.trackSocialInteraction('spotify', 'skip_previous', { uri: spotifyUri });
   }, [controller, spotifyUri]);
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     haptics.trigger('light');
-    navigator.clipboard.writeText(spotifyUrl);
-    socialMetrics.trackSocialInteraction('spotify', 'share', { uri: spotifyUri });
+    const copied = await copyToClipboard(spotifyUrl);
+    if (copied) {
+      setShareStatus('copied');
+      socialMetrics.trackSocialInteraction('spotify', 'share', { uri: spotifyUri });
+      return;
+    }
+    setShareStatus('error');
+    socialMetrics.trackSocialInteraction('spotify', 'share_failed', { uri: spotifyUri, reason: 'clipboard_unavailable' });
   }, [spotifyUrl, spotifyUri]);
 
   const handleOpenSpotify = useCallback(() => {
@@ -175,7 +191,12 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         role="button"
         tabIndex={0}
         aria-label="Expand Spotify player"
-        onKeyDown={(e) => e.key === 'Enter' && handleExpand()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleExpand();
+          }
+        }}
       >
         <div className="mini-player__art">
           {albumArt && <img src={albumArt} alt={trackName} loading="lazy" />}
@@ -286,9 +307,16 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
           className="bottom-sheet-action"
           onClick={handleShare}
           aria-label="Copy link to clipboard"
+          data-testid="spotify-mobile-share-button"
         >
           <LuShare2 size={20} />
-          <span>Share</span>
+          <span>
+            {shareStatus === 'copied'
+              ? 'Copied!'
+              : shareStatus === 'error'
+                ? 'Copy failed'
+                : 'Share'}
+          </span>
         </button>
         <a
           href={spotifyUrl}

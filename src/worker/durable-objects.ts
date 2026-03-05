@@ -1,8 +1,6 @@
 // Enhanced Durable Objects for DJ Judas Worker
 // Using modern SQLite storage backend with proper hibernation and RPC
 
-/// <reference path="../../worker-configuration.d.ts" />
-
 import { DurableObject } from 'cloudflare:workers';
 
 /**
@@ -150,7 +148,7 @@ export class RateLimiter extends DurableObject {
         default:
           return new Response("Not Found", { status: 404 });
       }
-    } catch (error) {
+    } catch {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
   }
@@ -358,7 +356,7 @@ export class UserSession extends DurableObject {
           timestamp: Date.now(),
         })
       );
-    } catch (error) {
+    } catch {
       ws.send(JSON.stringify({ error: "Message processing failed" }));
     }
   }
@@ -459,7 +457,7 @@ export class UserSession extends DurableObject {
         default:
           return new Response("Not Found", { status: 404 });
       }
-    } catch (error) {
+    } catch {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
   }

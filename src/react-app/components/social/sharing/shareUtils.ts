@@ -96,6 +96,8 @@ export function supportsNativeShare(): boolean {
          typeof navigator.share === 'function';
 }
 
+export type NativeShareResult = 'shared' | 'cancelled' | 'failed' | 'unsupported';
+
 /**
  * Native share with fallback
  */
@@ -103,21 +105,20 @@ export async function nativeShare(data: {
   title?: string;
   text?: string;
   url?: string;
-}): Promise<boolean> {
+}): Promise<NativeShareResult> {
   if (!supportsNativeShare()) {
-    return false;
+    return 'unsupported';
   }
 
   try {
     await navigator.share(data);
-    return true;
+    return 'shared';
   } catch (error) {
     // User cancelled or error occurred
     if (error instanceof Error && error.name === 'AbortError') {
-      // User cancelled - not an error
-      return true;
+      return 'cancelled';
     }
-    return false;
+    return 'failed';
   }
 }
 
@@ -137,6 +138,6 @@ export function openSharePopup(
     url,
     title,
     `width=${width},height=${height},left=${left},top=${top},` +
-    'menubar=no,toolbar=no,resizable=yes,scrollbars=yes'
+    'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,noopener,noreferrer'
   );
 }

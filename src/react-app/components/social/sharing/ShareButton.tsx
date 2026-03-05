@@ -121,11 +121,19 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       onShare(target.id);
     }
 
-    if (target.onClick) {
-      await target.onClick(url);
-    } else {
-      window.open(target.buildUrl(url), '_blank', 'noopener,noreferrer');
+    try {
+      if (target.onClick) {
+        await target.onClick(url);
+        return;
+      }
+    } catch (error) {
+      socialMetrics.trackSocialInteraction('share_button', 'sdk_share_fallback', {
+        platform: target.id,
+        message: error instanceof Error ? error.message : 'unknown_error'
+      });
     }
+
+    window.open(target.buildUrl(url), '_blank', 'noopener,noreferrer');
   };
 
   return (

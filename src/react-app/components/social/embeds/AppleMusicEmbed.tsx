@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuMusic, LuExternalLink, LuPlus, LuPlay, LuLogIn } from 'react-icons/lu';
 import { appleMusicKit } from '@/react-app/utils/appleMusicKit';
+import { buildAppleMusicLink } from '@/react-app/utils/appleMusicUrls';
 import { socialMetrics } from '../utils/socialMetrics';
 
 interface AppleMusicEmbedProps {
@@ -78,15 +79,11 @@ const AppleMusicEmbed: React.FC<AppleMusicEmbedProps> = ({
 
   // Build affiliate link
   const buildAffiliateLink = (action: string) => {
-    const link = url;
-    const params = new URLSearchParams();
-
-    if (affiliateToken) params.append('at', affiliateToken);
-    if (campaignToken) params.append('ct', campaignToken);
-    params.append('action', action);
-
-    const queryString = params.toString();
-    return queryString ? `${link}?${queryString}` : link;
+    return buildAppleMusicLink(url, {
+      affiliateToken,
+      campaignToken,
+      action
+    });
   };
 
   const trackEngagement = (action: string, data: Record<string, unknown>) => {

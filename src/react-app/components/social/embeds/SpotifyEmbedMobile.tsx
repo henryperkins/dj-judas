@@ -45,7 +45,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
   const [trackInfo, setTrackInfo] = useState<SpotifyPlaybackData['track_window']>(undefined);
   const [positionSec, setPositionSec] = useState(0);
   const [durationSec, setDurationSec] = useState(0);
-  const [seeking, setSeeking] = useState(false);
+  const seekingRef = useRef(false);
 
   const spotifyId = spotifyUri.split(':').pop();
   const contentType = spotifyUri.includes('track') ? 'track' : spotifyUri.includes('album') ? 'album' : 'artist';
@@ -83,7 +83,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
             setTrackInfo(e.data.track_window);
             const posMs = (e.data.position ?? 0) as number;
             const durMs = (e.data.duration ?? e.data.track_window?.current_track?.duration_ms ?? 0) as number;
-            if (!seeking) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
+            if (!seekingRef.current) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
             setDurationSec(Math.max(0, Math.floor(durMs / 1000)));
           };
           EmbedController.addListener('playback_update', playbackHandler as (e: { data: unknown }) => void);
@@ -110,7 +110,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
         localController.destroy();
       }
     };
-  }, [spotifyUri, seeking]);
+  }, [spotifyUri]);
 
   const handlePlayPause = useCallback(() => {
     haptics.trigger('medium');
@@ -143,7 +143,7 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
 
   const handleSeek = useCallback((value: number) => {
     controller?.seek(value * 1000);
-    setSeeking(false);
+    seekingRef.current = false;
   }, [controller]);
 
   const handleExpand = useCallback(() => {
@@ -237,8 +237,12 @@ const SpotifyEmbedMobile: React.FC<SpotifyEmbedMobileProps> = ({
           max={Math.max(1, durationSec)}
           value={Math.min(positionSec, durationSec)}
           onChange={(e) => setPositionSec(Number(e.target.value))}
-          onMouseDown={() => setSeeking(true)}
-          onTouchStart={() => setSeeking(true)}
+          onMouseDown={() => {
+            seekingRef.current = true;
+          }}
+          onTouchStart={() => {
+            seekingRef.current = true;
+          }}
           onMouseUp={(e) => handleSeek(Number(e.currentTarget.value))}
           onTouchEnd={(e) => handleSeek(Number(e.currentTarget.value))}
           aria-valuemin={0}

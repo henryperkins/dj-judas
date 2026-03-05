@@ -167,6 +167,20 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               setSelectedEvent(event);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleEventInteraction(event, 'view');
+              if (onEventClick) {
+                onEventClick(event);
+              } else {
+                setSelectedEvent(event);
+              }
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Open event details for ${event.name}`}
         >
           {event.coverPhoto && (
             <div className="event-cover">
@@ -230,7 +244,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEventInteraction(event, 'ticket');
-                    window.open(event.ticketUri, '_blank');
+                    window.open(event.ticketUri, '_blank', 'noopener,noreferrer');
                   }}
                 >
                   <LuTicket size={14} />
@@ -272,6 +286,20 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               setSelectedEvent(event);
             }
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleEventInteraction(event, 'view');
+              if (onEventClick) {
+                onEventClick(event);
+              } else {
+                setSelectedEvent(event);
+              }
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Open event details for ${event.name}`}
         >
           <div className="event-grid-cover">
             {event.coverPhoto && <img src={event.coverPhoto} alt={event.name} />}
@@ -319,11 +347,25 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               onClick={() => {
                 handleEventInteraction(event, 'view');
                 if (onEventClick) {
-              onEventClick(event);
-            } else {
-              setSelectedEvent(event);
-            }
+                  onEventClick(event);
+                } else {
+                  setSelectedEvent(event);
+                }
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleEventInteraction(event, 'view');
+                  if (onEventClick) {
+                    onEventClick(event);
+                  } else {
+                    setSelectedEvent(event);
+                  }
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open event details for ${event.name}`}
             >
               <h4>{event.name}</h4>
               {event.place && (
@@ -338,7 +380,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEventInteraction(event, 'ticket');
-                    window.open(event.ticketUri, '_blank');
+                    window.open(event.ticketUri, '_blank', 'noopener,noreferrer');
                   }}
                 >
                   Get Tickets

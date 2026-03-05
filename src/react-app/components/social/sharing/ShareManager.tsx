@@ -171,13 +171,13 @@ const ShareManager: React.FC<ShareManagerProps> = ({
       url: shareUrl
     });
 
-    const success = await nativeShare({
+    const result = await nativeShare({
       title: shareTitle,
       text: shareDescription,
       url: shareUrl
     });
 
-    if (success) {
+    if (result === 'shared') {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 2000);
 
@@ -193,6 +193,35 @@ const ShareManager: React.FC<ShareManagerProps> = ({
           url: shareUrl
         });
       }
+      return;
+    }
+
+    if (result === 'cancelled') {
+      socialMetrics.trackSocialInteraction('share_manager', 'native_share_cancelled', {
+        campaign,
+        url: shareUrl
+      });
+      if (onEvent) {
+        onEvent({
+          type: 'share_cancelled',
+          method: 'native',
+          url: shareUrl
+        });
+      }
+      return;
+    }
+
+    socialMetrics.trackSocialInteraction('share_manager', 'native_share_failed', {
+      campaign,
+      url: shareUrl,
+      reason: result
+    });
+    if (onEvent) {
+      onEvent({
+        type: 'share_failed',
+        method: 'native',
+        url: shareUrl
+      });
     }
   }, [markInteracted, campaign, shareUrl, shareTitle, shareDescription, onEvent]);
 

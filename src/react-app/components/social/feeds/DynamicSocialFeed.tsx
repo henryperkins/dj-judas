@@ -169,6 +169,19 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
           key={post.id}
           className={`social-post-card ${post.isShoppable ? 'shoppable' : ''}`}
           onClick={() => onPostClick ? onPostClick(post) : setSelectedPost(post)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (onPostClick) {
+                onPostClick(post);
+              } else {
+                setSelectedPost(post);
+              }
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Open ${post.platform} post`}
         >
           {/* Platform Badge */}
           <div className="post-header">

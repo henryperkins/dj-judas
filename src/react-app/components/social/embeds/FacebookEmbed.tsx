@@ -105,7 +105,6 @@ function useFacebookEmbed(
     return () => {
       stillMounted.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, selector]);
 
   return { ref, loaded, error };
@@ -379,7 +378,7 @@ const FacebookEmbed: React.FC<FacebookEmbedProps> = ({
               {upcomingEvents.map((event, i) => (
                 <li
                   key={i}
-                  onClick={() => event.ticketUrl && window.open(event.ticketUrl, '_blank')}
+                  onClick={() => event.ticketUrl && window.open(event.ticketUrl, '_blank', 'noopener,noreferrer')}
                   className={event.ticketUrl ? 'clickable' : ''}
                 >
                   <time>{event.date}</time>

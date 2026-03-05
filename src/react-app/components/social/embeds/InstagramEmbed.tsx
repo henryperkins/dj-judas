@@ -89,25 +89,26 @@ const InstagramEmbed: React.FC<InstagramEmbedProps> = ({
 
   // Calculate engagement score if posts have engagement data
   useEffect(() => {
-    if (!posts || !showEngagementStats) return;
-    
+    if (!posts || posts.length === 0 || !showEngagementStats) return;
+
     const totalEngagement = posts.reduce((sum, post) => {
       if (post.engagement) {
-        return sum + (post.engagement.likes || 0) + 
-               ((post.engagement.comments || 0) * 2) + 
+        return sum + (post.engagement.likes || 0) +
+               ((post.engagement.comments || 0) * 2) +
                ((post.engagement.saves || 0) * 3);
       }
       return sum;
     }, 0);
-    
-    setEngagementScore(Math.round(totalEngagement / posts.length));
-    
+
+    const calculatedScore = Math.round(totalEngagement / posts.length);
+    setEngagementScore(calculatedScore);
+
     // Track view
     socialMetrics.trackSocialInteraction('instagram', 'feed_view', {
       postCount: posts.length,
-      engagementScore
+      engagementScore: calculatedScore
     });
-  }, [posts, showEngagementStats, engagementScore]);
+  }, [posts, showEngagementStats]);
 
   // Fetch oEmbed data
   useEffect(() => {

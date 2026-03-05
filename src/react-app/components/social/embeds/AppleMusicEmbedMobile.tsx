@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuPlay, LuPause, LuPlus, LuExternalLink, LuChevronDown, LuWifi, LuWifiOff } from 'react-icons/lu';
 import { appleMusicKit } from '@/react-app/utils/appleMusicKit';
+import { buildAppleMusicLink } from '@/react-app/utils/appleMusicUrls';
 import { socialMetrics } from '../utils/socialMetrics';
 import { haptics } from '@/react-app/utils/haptics';
 
@@ -36,13 +37,12 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
   const content = appleMusicKit.extractIdFromUrl(url);
 
   // Build affiliate link
-  const buildAffiliateLink = () => {
-    const params = new URLSearchParams();
-    if (affiliateToken) params.append('at', affiliateToken);
-    if (campaignToken) params.append('ct', campaignToken);
-    const queryString = params.toString();
-    return queryString ? `${url}?${queryString}` : url;
-  };
+  const buildAffiliateLink = (action?: string) =>
+    buildAppleMusicLink(url, {
+      affiliateToken,
+      campaignToken,
+      action
+    });
 
   // Monitor online/offline
   useEffect(() => {
@@ -103,14 +103,14 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
     socialMetrics.trackSocialInteraction('appleMusic', 'add_library', { url });
 
     if (!musicKitReady || !isOnline) {
-      window.open(buildAffiliateLink(), '_blank', 'noopener,noreferrer');
+      window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
       return;
     }
 
     setActionLoading(true);
     try {
       if (!content) {
-        window.open(buildAffiliateLink(), '_blank', 'noopener,noreferrer');
+        window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
         return;
       }
 
@@ -119,7 +119,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
     } catch (error) {
       console.error('Failed to add to library:', error);
       haptics.trigger('error');
-      window.open(buildAffiliateLink(), '_blank', 'noopener,noreferrer');
+      window.open(buildAffiliateLink('add'), '_blank', 'noopener,noreferrer');
     } finally {
       setActionLoading(false);
     }
@@ -130,7 +130,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
 
     // Fallback to web if MusicKit not ready or content not parsed
     if (!musicKitReady || !content) {
-      window.open(buildAffiliateLink(), '_blank', 'noopener,noreferrer');
+      window.open(buildAffiliateLink('open'), '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -180,7 +180,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
   const handleOpenExternal = () => {
     haptics.trigger('light');
     socialMetrics.trackSocialInteraction('appleMusic', 'open_external', { url });
-    window.open(buildAffiliateLink(), '_blank', 'noopener,noreferrer');
+    window.open(buildAffiliateLink('open'), '_blank', 'noopener,noreferrer');
   };
 
   // Mini player (collapsed)

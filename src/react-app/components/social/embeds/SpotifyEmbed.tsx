@@ -52,7 +52,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [positionSec, setPositionSec] = useState(0);
   const [durationSec, setDurationSec] = useState(0);
-  const [seeking, setSeeking] = useState(false);
+  const seekingRef = useRef(false);
 
   const spotifyId = spotifyUri.split(':').pop();
   const contentType = spotifyUri.includes('track') ? 'track' : spotifyUri.includes('album') ? 'album' : 'artist';
@@ -95,7 +95,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
 
             const posMs = (e.data.position ?? 0) as number;
             const durMs = (e.data.duration ?? e.data.track_window?.current_track?.duration_ms ?? 0) as number;
-            if (!seeking) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
+            if (!seekingRef.current) setPositionSec(Math.max(0, Math.floor(posMs / 1000)));
             setDurationSec(Math.max(0, Math.floor(durMs / 1000)));
 
             if (e.data.isPaused === false && onPlay) {
@@ -136,7 +136,7 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
         // Suppress cleanup errors
       }
     };
-  }, [spotifyUri, embedHeight, theme, onPlay, contentType, seeking]);
+  }, [spotifyUri, embedHeight, theme, onPlay, contentType]);
 
   // Set iframe title when loaded
   useEffect(() => {
@@ -216,17 +216,21 @@ const SpotifyEmbed: React.FC<SpotifyEmbedProps> = ({
                   max={Math.max(1, durationSec)}
                   value={Math.min(positionSec, durationSec)}
                   onChange={(e) => setPositionSec(Number((e.target as HTMLInputElement).value))}
-                  onMouseDown={() => setSeeking(true)}
-                  onTouchStart={() => setSeeking(true)}
+                  onMouseDown={() => {
+                    seekingRef.current = true;
+                  }}
+                  onTouchStart={() => {
+                    seekingRef.current = true;
+                  }}
                   onMouseUp={(e) => {
                     const v = Number((e.target as HTMLInputElement).value);
                     controller.seek(v * 1000);
-                    setSeeking(false);
+                    seekingRef.current = false;
                   }}
                   onTouchEnd={(e) => {
                     const v = Number((e.target as HTMLInputElement).value);
                     controller.seek(v * 1000);
-                    setSeeking(false);
+                    seekingRef.current = false;
                   }}
                   aria-valuemin={0}
                   aria-valuemax={durationSec}

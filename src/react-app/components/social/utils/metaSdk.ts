@@ -11,6 +11,7 @@ interface MetaSDKConfig {
 class MetaSDKLoader {
   private static instance: MetaSDKLoader;
   private fbLoaded = false;
+  private fbLoadingPromise: Promise<void> | null = null;
   private igLoaded = false;
   private pixelLoaded = false;
   private config: MetaSDKConfig;
@@ -40,61 +41,109 @@ class MetaSDKLoader {
   }
 
   async loadFacebookSDK(): Promise<void> {
-    if (this.fbLoaded || document.getElementById('facebook-jssdk')) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
       return;
     }
 
-    return new Promise((resolve) => {
-      window.fbAsyncInit = () => {
-        const FB = window.FB as unknown as {
-          init: (cfg: Record<string, unknown>) => void;
-          AppEvents: { logPageView: () => void };
-          Event: { subscribe: (ev: string, cb: (url: string) => void) => void };
-          XFBML?: { parse: (el?: HTMLElement) => void };
-          ui?: (cfg: Record<string, unknown>, cb: (resp: unknown) => void) => void;
-        };
-        const initCfg: Record<string, unknown> = {
-          cookie: true,
-          // Prefer explicit parsing on containers we pass in
-          // to avoid double-parsing race conditions.
-          xfbml: false,
-          version: this.config.version
-        };
-        if (this.config.appId) {
-          initCfg.appId = this.config.appId;
-        }
-        FB.init(initCfg);
+    if (this.fbLoaded || window.FB) {
+      this.fbLoaded = true;
+      return;
+    }
+    if (this.fbLoadingPromise) {
+      return this.fbLoadingPromise;
+    }
 
-        // Track page view
-        if (this.config.enableAnalytics) {
-          FB.AppEvents.logPageView();
-          socialMetrics.trackEntry({ source: 'facebook', medium: 'sdk_load' });
-        }
+    this.fbLoadingPromise = new Promise((resolve, reject) => {
+      const previousInit = window.fbAsyncInit;
+      let settled = false;
 
-        // Subscribe to social plugin events
-        FB.Event.subscribe('edge.create', (url: string) => {
-          socialMetrics.trackSocialInteraction('facebook', 'like', { url });
-        });
-
-        FB.Event.subscribe('edge.remove', (url: string) => {
-          socialMetrics.trackSocialInteraction('facebook', 'unlike', { url });
-        });
-
-        FB.Event.subscribe('message.send', (url: string) => {
-          socialMetrics.trackSocialInteraction('facebook', 'share', { url });
-        });
-
+      const finishSuccess = () => {
+        if (settled) return;
+        settled = true;
         this.fbLoaded = true;
+        this.fbLoadingPromise = null;
+        window.clearTimeout(timeoutId);
         resolve();
       };
+
+      const finishError = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        this.fbLoadingPromise = null;
+        window.clearTimeout(timeoutId);
+        reject(error);
+      };
+
+      const timeoutId = window.setTimeout(() => {
+        finishError(new Error('Timed out while loading Facebook SDK'));
+      }, 10000);
+
+      window.fbAsyncInit = () => {
+        try {
+          if (typeof previousInit === 'function') {
+            previousInit();
+          }
+
+          const FB = window.FB as unknown as {
+            init: (cfg: Record<string, unknown>) => void;
+            AppEvents: { logPageView: () => void };
+            Event: { subscribe: (ev: string, cb: (url: string) => void) => void };
+            XFBML?: { parse: (el?: HTMLElement) => void };
+            ui?: (cfg: Record<string, unknown>, cb: (resp: unknown) => void) => void;
+          };
+          const initCfg: Record<string, unknown> = {
+            cookie: true,
+            // Prefer explicit parsing on containers we pass in
+            // to avoid double-parsing race conditions.
+            xfbml: false,
+            version: this.config.version
+          };
+          if (this.config.appId) {
+            initCfg.appId = this.config.appId;
+          }
+          FB.init(initCfg);
+
+          if (this.config.enableAnalytics) {
+            FB.AppEvents.logPageView();
+            socialMetrics.trackEntry({ source: 'facebook', medium: 'sdk_load' });
+          }
+
+          FB.Event.subscribe('edge.create', (url: string) => {
+            socialMetrics.trackSocialInteraction('facebook', 'like', { url });
+          });
+          FB.Event.subscribe('edge.remove', (url: string) => {
+            socialMetrics.trackSocialInteraction('facebook', 'unlike', { url });
+          });
+          FB.Event.subscribe('message.send', (url: string) => {
+            socialMetrics.trackSocialInteraction('facebook', 'share', { url });
+          });
+
+          finishSuccess();
+        } catch (err) {
+          finishError(err instanceof Error ? err : new Error('Failed to initialize Facebook SDK'));
+        }
+      };
+
+      const existingScript = document.getElementById('facebook-jssdk') as HTMLScriptElement | null;
+      if (existingScript) {
+        existingScript.addEventListener(
+          'error',
+          () => finishError(new Error('Failed to load Facebook SDK script')),
+          { once: true }
+        );
+        return;
+      }
 
       const script = document.createElement('script');
       script.id = 'facebook-jssdk';
       script.src = 'https://connect.facebook.net/en_US/sdk.js';
       script.async = true;
       script.defer = true;
+      script.onerror = () => finishError(new Error('Failed to load Facebook SDK script'));
       document.body.appendChild(script);
     });
+
+    return this.fbLoadingPromise;
   }
 
   async loadInstagramEmbed(): Promise<void> {

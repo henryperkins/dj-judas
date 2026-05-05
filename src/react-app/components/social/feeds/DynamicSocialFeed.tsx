@@ -306,7 +306,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
                   </div>
                 )}
               </button>
-            )}
+            ))}
           </div>
         )}
       </div>

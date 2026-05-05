@@ -1934,7 +1934,7 @@
   }
 
   .event-card {
-    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition cursor-pointer hover:-translate-y-0.5 hover:shadow-lg;
+    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg;
   }
 
   .event-card.canceled {
@@ -1997,12 +1997,16 @@
     @apply flex gap-4;
   }
 
+  .event-card__open {
+    @apply mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius)] border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+  }
+
   .fb-events-grid {
     @apply grid gap-6 grid-cols-[repeat(auto-fill,minmax(280px,1fr))];
   }
 
   .event-grid-card {
-    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer;
+    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg;
   }
 
   .event-grid-cover {
@@ -2065,7 +2069,7 @@
   }
 
   .timeline-card {
-    @apply bg-card border border-border rounded-[var(--radius)] p-4 transition hover:shadow-xs cursor-pointer;
+    @apply bg-card border border-border rounded-[var(--radius)] p-4 transition hover:shadow-xs;
   }
 
   .timeline-card h4 {
@@ -2111,6 +2115,10 @@
 
   .modal-content {
     @apply relative max-w-[600px] w-full max-h-[90vh] overflow-y-auto bg-card rounded-[var(--radius)] border border-border;
+  }
+
+  .fb-event-dialog {
+    @apply max-h-[90vh] overflow-y-auto p-0;
   }
 
   .event-modal-close {

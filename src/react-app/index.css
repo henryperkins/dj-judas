@@ -2096,6 +2096,10 @@
     @apply text-[1.125rem] font-semibold text-foreground mb-2 break-words;
   }
 
+  .product-card__error {
+    @apply mb-3 rounded-[calc(var(--radius)*0.75)] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive;
+  }
+
   .product-card__actions {
     @apply flex gap-2 mt-auto sm:flex-row sm:w-auto;
   }

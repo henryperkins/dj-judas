@@ -13,6 +13,31 @@ const headers: Record<string, string> = (() => {
   return h
 })()
 
+export type AddLineItemFailureReason =
+  | 'missing_variant'
+  | 'cart_unavailable'
+  | 'store_unavailable'
+  | 'line_item_failed'
+  | 'network_error'
+
+export type AddLineItemResult =
+  | { ok: true; cartId: string }
+  | { ok: false; reason: AddLineItemFailureReason; message: string }
+
+async function readStoreError(res: Response, fallback: string): Promise<string> {
+  const data = await res.json().catch(() => null) as { message?: string; error?: string } | null
+  return data?.message || data?.error || `${fallback} (${res.status})`
+}
+
+function readClientError(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'object' && error && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message) return message
+  }
+  return fallback
+}
+
 export function getCartId(): string | null {
   return localStorage.getItem('medusa_cart_id')
 }
@@ -52,30 +77,54 @@ export async function ensureCart(): Promise<string | null> {
   return null
 }
 
-export async function addLineItem(variantId: string, quantity = 1): Promise<boolean> {
-  if (!variantId) return false
+export async function addLineItem(variantId: string, quantity = 1): Promise<AddLineItemResult> {
+  if (!variantId) {
+    return { ok: false, reason: 'missing_variant', message: 'This product is not available for purchase.' }
+  }
 
   try {
     const cartId = await ensureCart()
-    if (!cartId) return false
+    if (!cartId) {
+      return { ok: false, reason: 'cart_unavailable', message: 'Unable to start a cart. Please refresh and try again.' }
+    }
 
     /* SDK path */
     if (sdk) {
-      await sdk.store.cart.createLineItem(cartId, { variant_id: variantId, quantity })
-      return true
+      try {
+        await sdk.store.cart.createLineItem(cartId, { variant_id: variantId, quantity })
+        return { ok: true, cartId }
+      } catch (error) {
+        return {
+          ok: false,
+          reason: 'line_item_failed',
+          message: readClientError(error, 'Unable to add this item to your cart')
+        }
+      }
     }
 
     /* Fetch fallback */
-    if (!MEDUSA_URL) return false
+    if (!MEDUSA_URL) {
+      return { ok: false, reason: 'store_unavailable', message: 'Store checkout is not configured yet.' }
+    }
+
     const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/line-items`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ variant_id: variantId, quantity })
     })
-    return res.ok
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        reason: 'line_item_failed',
+        message: await readStoreError(res, 'Unable to add this item to your cart')
+      }
+    }
+
+    return { ok: true, cartId }
   } catch (error) {
     console.error('Failed to add line item:', error)
-    return false
+    return { ok: false, reason: 'network_error', message: 'Unable to add this item right now. Please try again.' }
   }
 }
 

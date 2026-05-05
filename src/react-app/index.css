@@ -887,24 +887,26 @@
     @apply absolute top-4 right-4 bg-transparent border-0 text-muted-foreground p-2 rounded-full transition hover:bg-card/90;
   }
 
-  /* FAB */
-  :root {
-    --fab-bottom-offset: 2rem;
-  }
-
-  body.mobile-nav-visible {
-    --fab-bottom-offset: 5rem;
-  }
-
   .platform-launcher--fab {
     @apply fixed right-4 transition-all;
-    bottom: var(--fab-bottom-offset);
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    right: calc(1rem + env(safe-area-inset-right));
     z-index: var(--z-bottom-sheet);
   }
 
   .platform-launcher__fab-trigger {
-    @apply size-12 rounded-full border-0 cursor-pointer grid place-items-center text-white shadow-lg transition;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .3s ease;
   }
 
   .platform-launcher__fab-trigger:hover {
@@ -912,23 +914,95 @@
   }
 
   .platform-launcher__fab-menu {
-    @apply absolute -top-3 right-0 translate-y-[-100%] w-[250px] bg-card rounded-2xl p-4 shadow-lg border border-border;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: color-mix(in oklab, var(--color-card) 98%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    border-radius: 28px;
+    padding: .75rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
+    min-width: 64px;
   }
 
   .platform-launcher__fab-platforms {
-    @apply flex flex-col gap-2;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
   }
 
   .platform-launcher__fab-button {
-    @apply flex items-center px-4 py-3 bg-transparent border border-border rounded-lg transition text-[0.9rem] text-foreground hover:bg-[var(--platform-color)] hover:border-[var(--platform-color)] hover:text-white -translate-x-0 hover:-translate-x-1;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: var(--platform-color);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    position: relative;
+  }
+
+  .platform-launcher__fab-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+  }
+
+  .platform-launcher__fab-button:active {
+    transform: scale(.95);
+  }
+
+  .platform-launcher__fab-icon {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .2));
+  }
+
+  .platform-launcher__fab-tooltip {
+    position: absolute;
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--color-card);
+    color: var(--color-foreground);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: .25rem .5rem;
+    font-size: .8rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    translate: 4px 0;
+    transition: opacity .15s ease, translate .15s ease;
+  }
+
+  .platform-launcher__fab-button:focus-visible .platform-launcher__fab-tooltip,
+  .platform-launcher__fab-button:hover .platform-launcher__fab-tooltip {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .platform-launcher__fab-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--color-destructive);
+    color: #fff;
+    border: 2px solid var(--color-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: var(--z-base);
   }
 
   .platform-launcher__fab-backdrop {
-    @apply fixed inset-0 bg-black/30 backdrop-blur-sm;
-    z-index: calc(var(--z-bottom-sheet) - 1);
-  }
-  /* Alias for component compatibility */
-  .fab-backdrop {
     @apply fixed inset-0 bg-black/30 backdrop-blur-sm;
     z-index: calc(var(--z-bottom-sheet) - 1);
   }
@@ -1125,6 +1199,44 @@
     .social-feed-grid {
       @apply grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))];
     }
+  }
+
+  .social-feed-masonry {
+    columns: 1;
+    column-gap: 1rem;
+  }
+
+  .social-feed-masonry .social-post-card {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .social-feed-masonry {
+      columns: 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .social-feed-masonry {
+      columns: 3;
+    }
+  }
+
+  .social-feed-carousel {
+    @apply grid gap-4;
+  }
+
+  .social-feed-carousel__viewport {
+    @apply mx-auto w-full max-w-md;
+  }
+
+  .social-feed-carousel__controls {
+    @apply flex items-center justify-center gap-3;
+  }
+
+  .social-feed-carousel__count {
+    @apply text-sm font-medium text-muted-foreground;
   }
 
   .social-feed-loading {
@@ -1860,7 +1972,7 @@
   }
 
   .event-card {
-    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition cursor-pointer hover:-translate-y-0.5 hover:shadow-lg;
+    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg;
   }
 
   .event-card.canceled {
@@ -1923,12 +2035,16 @@
     @apply flex gap-4;
   }
 
+  .event-card__open {
+    @apply mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius)] border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+  }
+
   .fb-events-grid {
     @apply grid gap-6 grid-cols-[repeat(auto-fill,minmax(280px,1fr))];
   }
 
   .event-grid-card {
-    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg cursor-pointer;
+    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg;
   }
 
   .event-grid-cover {
@@ -1991,7 +2107,7 @@
   }
 
   .timeline-card {
-    @apply bg-card border border-border rounded-[var(--radius)] p-4 transition hover:shadow-xs cursor-pointer;
+    @apply bg-card border border-border rounded-[var(--radius)] p-4 transition hover:shadow-xs;
   }
 
   .timeline-card h4 {
@@ -2037,6 +2153,10 @@
 
   .modal-content {
     @apply relative max-w-[600px] w-full max-h-[90vh] overflow-y-auto bg-card rounded-[var(--radius)] border border-border;
+  }
+
+  .fb-event-dialog {
+    @apply max-h-[90vh] overflow-y-auto p-0;
   }
 
   .event-modal-close {
@@ -2094,6 +2214,10 @@
 
   .product-card__title {
     @apply text-[1.125rem] font-semibold text-foreground mb-2 break-words;
+  }
+
+  .product-card__error {
+    @apply mb-3 rounded-[calc(var(--radius)*0.75)] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive;
   }
 
   .product-card__actions {
@@ -2348,6 +2472,10 @@
     @apply grid gap-4 md:grid-cols-2;
   }
 
+  .form-grid .full-width {
+    grid-column: 1 / -1;
+  }
+
   .form-group {
     @apply mb-4;
   }
@@ -2599,78 +2727,29 @@
     color: var(--platform-foreground, white);
   }
 
-  /* Floating FAB refinements (separate class family from existing BEM) */
-  .platform-launcher-fab {
-    position: fixed;
-    bottom: calc(76px + env(safe-area-inset-bottom));
-    right: calc(1rem + env(safe-area-inset-right));
-    z-index: var(--z-bottom-sheet);
-  }
-  .fab-trigger {
-    width:56px; height:56px; border-radius:999px;
-    background: var(--color-accent); color:#fff; border:none;
-    box-shadow: 0 4px 12px rgba(0,0,0,.25);
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer; transition: all .3s ease;
-  }
-  .fab-menu {
-    position:absolute; bottom:0; right:0;
-    background: color-mix(in oklab, var(--color-card) 98%, transparent);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-radius: 28px; padding: .75rem; box-shadow: 0 8px 32px rgba(0,0,0,.2);
-    min-width:64px;
-  }
-  .fab-platforms { display:flex; flex-direction:column; gap:.5rem; }
-  .fab-platform-btn {
-    width:48px; height:48px; border-radius:999px; background: var(--platform-color);
-    border:none; color:#fff; display:flex; align-items:center; justify-content:center;
-    cursor:pointer; transition: all .2s ease; position:relative;
-  }
-  .fab-platform-btn:hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(0,0,0,.2); }
-  .fab-platform-btn:active { transform: scale(.95); }
-  .fab-platform-icon-svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.2)); }
-
-  /* Tooltip label for FAB items */
-  .fab-platform-btn .fab-platform-tooltip {
-    position:absolute; right: calc(100% + 8px); top:50%;
-    transform: translateY(-50%);
-    background: var(--color-card); color: var(--color-foreground);
-    border:1px solid var(--color-border); border-radius:999px;
-    padding:.25rem .5rem; font-size:.8rem; white-space:nowrap; pointer-events:none;
-    opacity:0; translate: 4px 0; transition: opacity .15s ease, translate .15s ease;
-  }
-  .fab-platform-btn:focus-visible .fab-platform-tooltip,
-  .fab-platform-btn:hover .fab-platform-tooltip { opacity:1; translate: 0 0; }
-
-  .fab-close {
-    position:absolute; top:-8px; right:-8px; width:28px; height:28px; border-radius:999px;
-    background: var(--color-destructive); color:#fff; border:2px solid var(--color-card);
-    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:var(--z-base);
-  }
-
   /* Modal icon polish */
   .platform-modal-icon-svg { color:#fff; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
 
   /* Dark-mode tweaks */
-  .dark .fab-menu { background: color-mix(in oklab, var(--color-card) 95%, transparent); }
+  .dark .platform-launcher__fab-menu { background: color-mix(in oklab, var(--color-card) 95%, transparent); }
   .dark .platform-launcher-inline.icons-only .platform-card { background: var(--color-secondary); }
   .dark .platform-launcher-inline.icons-only .platform-card:hover { background: var(--color-card); }
 
   /* Responsive tweaks */
   @media (max-width: 480px) {
-    .platform-launcher-fab { bottom: calc(70px + env(safe-area-inset-bottom));
+    .platform-launcher--fab { bottom: calc(70px + env(safe-area-inset-bottom));
       right: calc(0.75rem + env(safe-area-inset-right)); }
-    .fab-trigger { width:52px; height:52px; }
-    .fab-platform-btn { width:44px; height:44px; }
+    .platform-launcher__fab-trigger { width:52px; height:52px; }
+    .platform-launcher__fab-button { width:44px; height:44px; }
   }
 
   /* Reduced motion / high contrast */
   @media (prefers-reduced-motion: reduce) {
-    .platform-card, .fab-trigger, .fab-platform-btn, .platform-modal-button { transition: none; }
+    .platform-card, .platform-launcher__fab-trigger, .platform-launcher__fab-button, .platform-modal-button { transition: none; }
   }
   @media (prefers-contrast: high) {
     .platform-launcher-inline.icons-only .platform-card { border-width: 3px; }
-    .fab-platform-btn { outline: 2px solid #fff; outline-offset: 2px; }
+    .platform-launcher__fab-button { outline: 2px solid #fff; outline-offset: 2px; }
   }
 
   /* =====================================================

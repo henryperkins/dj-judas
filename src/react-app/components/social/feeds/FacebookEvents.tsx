@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { LuFacebook, LuCalendar, LuMapPin, LuClock, LuUsers, LuTicket, LuExternalLink, LuRefreshCw } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 
 interface FacebookEvent {
   id: string;
@@ -153,35 +154,22 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
     });
   };
 
+  const openEventDetails = (event: FacebookEvent) => {
+    handleEventInteraction(event, 'view');
+    if (onEventClick) {
+      onEventClick(event);
+      return;
+    }
+    setSelectedEvent(event);
+  };
+
   // Render list layout
   const renderList = () => (
     <div className="fb-events-list">
       {events.map((event) => (
-        <div
+        <article
           key={event.id}
           className={`event-card ${event.isCanceled ? 'canceled' : ''}`}
-          onClick={() => {
-            handleEventInteraction(event, 'view');
-            if (onEventClick) {
-              onEventClick(event);
-            } else {
-              setSelectedEvent(event);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleEventInteraction(event, 'view');
-              if (onEventClick) {
-                onEventClick(event);
-              } else {
-                setSelectedEvent(event);
-              }
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label={`Open event details for ${event.name}`}
         >
           {event.coverPhoto && (
             <div className="event-cover">
@@ -239,8 +227,17 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
             </div>
 
             <div className="event-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => openEventDetails(event)}
+                aria-label={`Open event details for ${event.name}`}
+              >
+                Details
+              </button>
               {event.ticketUri && (
                 <button
+                  type="button"
                   className="btn btn-primary btn-sm"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -267,7 +264,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
               </a>
             </div>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   );
@@ -276,31 +273,9 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
   const renderGrid = () => (
     <div className="fb-events-grid">
       {events.map((event) => (
-        <div
+        <article
           key={event.id}
           className={`event-grid-card ${event.isCanceled ? 'canceled' : ''}`}
-          onClick={() => {
-            handleEventInteraction(event, 'view');
-            if (onEventClick) {
-              onEventClick(event);
-            } else {
-              setSelectedEvent(event);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleEventInteraction(event, 'view');
-              if (onEventClick) {
-                onEventClick(event);
-              } else {
-                setSelectedEvent(event);
-              }
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label={`Open event details for ${event.name}`}
         >
           <div className="event-grid-cover">
             {event.coverPhoto && <img src={event.coverPhoto} alt={event.name} />}
@@ -323,8 +298,16 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
             <div className="event-grid-stats">
               <span>{event.attendingCount || 0} going</span>
             </div>
+            <button
+              type="button"
+              className="event-card__open"
+              onClick={() => openEventDetails(event)}
+              aria-label={`Open event details for ${event.name}`}
+            >
+              View details
+            </button>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   );
@@ -345,28 +328,6 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
             </div>
             <div
               className={`timeline-card ${event.isCanceled ? 'canceled' : ''}`}
-              onClick={() => {
-                handleEventInteraction(event, 'view');
-                if (onEventClick) {
-                  onEventClick(event);
-                } else {
-                  setSelectedEvent(event);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleEventInteraction(event, 'view');
-                  if (onEventClick) {
-                    onEventClick(event);
-                  } else {
-                    setSelectedEvent(event);
-                  }
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Open event details for ${event.name}`}
             >
               <h4>{event.name}</h4>
               {event.place && (
@@ -375,6 +336,14 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   {event.place.name}
                 </p>
               )}
+              <button
+                type="button"
+                className="event-card__open"
+                onClick={() => openEventDetails(event)}
+                aria-label={`Open event details for ${event.name}`}
+              >
+                View details
+              </button>
               {event.ticketUri && (
                 <Button
                   variant="accent"
@@ -474,19 +443,12 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
       )}
 
       {/* Event Detail Modal */}
-      {selectedEvent && (
-        <div
-          className="event-modal"
-          onClick={() => setSelectedEvent(null)}
-        >
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button
-              className="event-modal-close"
-              onClick={() => setSelectedEvent(null)}
-            >
-              ×
-            </button>
-
+      <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        {selectedEvent && (
+          <DialogContent className="modal-content fb-event-dialog" showCloseButton={false}>
+            <DialogClose className="event-modal-close" aria-label="Close event details">
+              <span aria-hidden="true">x</span>
+            </DialogClose>
             {selectedEvent.coverPhoto && (
               <img
                 src={selectedEvent.coverPhoto}
@@ -496,11 +458,14 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
             )}
 
             <div className="modal-body">
-              <h2>{selectedEvent.name}</h2>
+              <DialogTitle>{selectedEvent.name}</DialogTitle>
+              <DialogDescription className="sr-only">
+                Facebook event details, date, location, and actions.
+              </DialogDescription>
 
               <div className="modal-meta">
                 <div>
-                  <LuClock size={16} />
+                  <LuClock size={16} aria-hidden="true" />
                   {formatEventDate(selectedEvent.startTime)}
                   {selectedEvent.endTime && (
                     <> - {formatEventDate(selectedEvent.endTime)}</>
@@ -509,7 +474,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
 
                 {selectedEvent.place && (
                   <div>
-                    <LuMapPin size={16} />
+                    <LuMapPin size={16} aria-hidden="true" />
                     {selectedEvent.place.name}
                     {selectedEvent.place.location && (
                       <div className="address">
@@ -534,7 +499,7 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                     className="btn btn-primary"
                     onClick={() => handleEventInteraction(selectedEvent, 'ticket')}
                   >
-                    <LuTicket size={16} />
+                    <LuTicket size={16} aria-hidden="true" />
                     Get Tickets
                   </a>
                 )}
@@ -545,14 +510,14 @@ const FacebookEvents: React.FC<FacebookEventsProps> = ({
                   className="btn btn-ghost"
                   onClick={() => handleEventInteraction(selectedEvent, 'rsvp')}
                 >
-                  <LuFacebook size={16} />
+                  <LuFacebook size={16} aria-hidden="true" />
                   View on Facebook
                 </a>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 };

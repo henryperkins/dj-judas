@@ -5,11 +5,44 @@ import { navigate } from '../utils/nav'
 export default function FeaturedProducts() {
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [addingId, setAddingId] = useState<string | null>(null)
+  const [errorByProductId, setErrorByProductId] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetchProducts(6).then((d) => setItems((d as { products?: Product[] })?.products || [])).finally(() => setLoading(false))
     ensureCart()
   }, [])
+
+  const addFeaturedProduct = async (product: Product) => {
+    const variantId = product.variants?.[0]?.id
+    if (!variantId) {
+      setErrorByProductId(prev => ({
+        ...prev,
+        [product.id]: 'This product is not available for purchase.'
+      }))
+      return
+    }
+
+    setAddingId(product.id)
+    setErrorByProductId(prev => {
+      const next = { ...prev }
+      delete next[product.id]
+      return next
+    })
+
+    const result = await addLineItem(variantId, 1)
+    setAddingId(null)
+
+    if (result.ok) {
+      navigate('/checkout')
+      return
+    }
+
+    setErrorByProductId(prev => ({
+      ...prev,
+      [product.id]: result.message
+    }))
+  }
 
   if (loading) return null
   if (!items.length) return null
@@ -25,15 +58,21 @@ export default function FeaturedProducts() {
             )}
             <div className="product-card__content">
               <h3 className="product-card__title">{p.title}</h3>
+              {errorByProductId[p.id] && (
+                <div className="product-card__error" role="alert">
+                  {errorByProductId[p.id]}
+                </div>
+              )}
               <div className="product-card__actions">
                 <button className="btn btn-outline btn-sm" onClick={() => navigate('/products')}>View All</button>
-                <button className="btn btn-primary btn-sm" onClick={async () => {
-                  const v = p.variants?.[0]?.id
-                  if (v) {
-                    const ok = await addLineItem(v, 1)
-                    if (ok) navigate('/checkout')
-                  }
-                }}>Add to cart</button>
+                <button
+                  className={`btn btn-primary btn-sm ${addingId === p.id ? 'btn-loading' : ''}`}
+                  onClick={() => addFeaturedProduct(p)}
+                  disabled={addingId === p.id || !p.variants?.[0]?.id}
+                  aria-busy={addingId === p.id}
+                >
+                  {addingId === p.id ? '' : p.variants?.[0]?.id ? 'Add to cart' : 'Unavailable'}
+                </button>
               </div>
             </div>
           </div>

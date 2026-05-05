@@ -7,6 +7,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState<string | null>(null)
+  const [errorByProductId, setErrorByProductId] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetchProducts(20).then(data => {
@@ -17,15 +18,33 @@ export default function ProductsPage() {
 
   const handleAddToCart = async (product: Product) => {
     const variantId = product.variants?.[0]?.id
-    if (!variantId) return
+    if (!variantId) {
+      setErrorByProductId(prev => ({
+        ...prev,
+        [product.id]: 'This product is not available for purchase.'
+      }))
+      return
+    }
     
     setAdding(product.id)
-    const success = await addLineItem(variantId, 1)
+    setErrorByProductId(prev => {
+      const next = { ...prev }
+      delete next[product.id]
+      return next
+    })
+
+    const result = await addLineItem(variantId, 1)
     setAdding(null)
     
-    if (success) {
+    if (result.ok) {
       navigate('/checkout')
+      return
     }
+
+    setErrorByProductId(prev => ({
+      ...prev,
+      [product.id]: result.message
+    }))
   }
 
   const getPrice = (product: Product) => {
@@ -81,13 +100,18 @@ export default function ProductsPage() {
                 <div className="product-card__price mb-3">
                   {getPrice(product) || 'Price unavailable'}
                 </div>
+                {errorByProductId[product.id] && (
+                  <div className="product-card__error" role="alert">
+                    {errorByProductId[product.id]}
+                  </div>
+                )}
                 <Button
                   size="sm"
                   className={adding === product.id ? 'btn-loading' : undefined}
                   onClick={() => handleAddToCart(product)}
                   disabled={adding === product.id || !product.variants?.[0]?.id}
                 >
-                  {adding === product.id ? '' : 'Add to Cart'}
+                  {adding === product.id ? '' : product.variants?.[0]?.id ? 'Add to Cart' : 'Unavailable'}
                 </Button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PlatformIcon, PLATFORM_COLORS, ACTION_ICONS } from './icons/PlatformIcons';
 import {
@@ -30,6 +30,10 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [platforms, setPlatforms] = useState<PlatformLink[]>([]);
   const shouldReduceMotion = useReducedMotion();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const shouldRestoreFocusRef = useRef(false);
 
   useEffect(() => {
     const ids = ['spotify','appleMusic','facebook','instagram'] as const;
@@ -79,6 +83,75 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
       window.removeEventListener(TOGGLE_EVENT, toggleHandler as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || mode !== 'floating') return;
+
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
+    const focusTimeout = window.setTimeout(() => closeRef.current?.focus(), 50);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        shouldRestoreFocusRef.current = true;
+        setIsOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const focusable = menuRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable?.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(focusTimeout);
+      document.removeEventListener('keydown', handleKeyDown);
+      if (document.activeElement === document.body) {
+        previousFocus?.focus();
+      }
+    };
+  }, [isOpen, mode]);
+
+  useEffect(() => {
+    if (isOpen || mode !== 'floating' || !shouldRestoreFocusRef.current) return;
+
+    const focusTrigger = () => {
+      if (!triggerRef.current) return;
+      triggerRef.current.focus();
+      shouldRestoreFocusRef.current = false;
+    };
+    const frame = window.requestAnimationFrame(focusTrigger);
+    const focusTimeout = window.setTimeout(focusTrigger, 350);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(focusTimeout);
+    };
+  }, [isOpen, mode]);
+
+  const setTriggerRef = (node: HTMLButtonElement | null) => {
+    triggerRef.current = node;
+    if (!node || !shouldRestoreFocusRef.current) return;
+    window.requestAnimationFrame(() => {
+      node.focus();
+      shouldRestoreFocusRef.current = false;
+    });
+  };
 
   const getPlatformColor = (platform: string): string => {
     return PLATFORM_COLORS[platform.toLowerCase() as keyof typeof PLATFORM_COLORS] || PLATFORM_COLORS.default;
@@ -210,14 +283,15 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
   return (
     <>
       <motion.div
-        className={`platform-launcher-fab ${className} ${isOpen ? 'open' : ''}`}
+        className={`platform-launcher platform-launcher--fab ${className} ${isOpen ? 'platform-launcher--open' : ''}`}
         initial={false}
       >
         <AnimatePresence mode="wait">
           {!isOpen ? (
             <motion.button
+              ref={setTriggerRef}
               key="fab-closed"
-              className="fab-trigger"
+              className="platform-launcher__fab-trigger"
               onClick={() => setIsOpen(true)}
               initial={shouldReduceMotion ? false : { scale: 0 }}
               animate={{ scale: 1 }}
@@ -233,27 +307,36 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
             </motion.button>
           ) : (
             <motion.div
+              ref={menuRef}
               key="fab-open"
-              className="fab-menu"
+              className="platform-launcher__fab-menu"
               initial={shouldReduceMotion ? false : { scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={shouldReduceMotion ? undefined : { scale: 0, opacity: 0 }}
               transition={shouldReduceMotion ? { duration: 0 } : undefined}
+              onAnimationComplete={() => closeRef.current?.focus()}
               id="platform-fab-menu"
-              role="menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Streaming and social platforms"
             >
               <button
-                className="fab-close"
-                onClick={() => setIsOpen(false)}
+                ref={closeRef}
+                className="platform-launcher__fab-close"
+                autoFocus
+                onClick={() => {
+                  shouldRestoreFocusRef.current = true;
+                  setIsOpen(false);
+                }}
                 aria-label="Close platform menu"
               >
                 <CloseIcon size={20} />
               </button>
-              <div className="fab-platforms">
+              <div className="platform-launcher__fab-platforms">
                 {platforms.map((link, index) => (
                   <motion.button
                     key={link.platform}
-                    className="fab-platform-btn"
+                    className="platform-launcher__fab-button"
                     onClick={() => handlePlatformClick(link)}
                     initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
                     animate={{
@@ -266,16 +349,15 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
                     aria-label={link.label.replace('Listen on ', '').replace('Follow on ', '')}
-                    role="menuitem"
                   >
                     <PlatformIcon
                       platform={link.platform}
                       size={28}
-                      className="fab-platform-icon-svg"
+                      className="platform-launcher__fab-icon"
                       color="white"
                     />
                     {/* Tooltip shown on hover/focus for labels */}
-                    <span className="fab-platform-tooltip">
+                    <span className="platform-launcher__fab-tooltip">
                       {link.label.replace('Listen on ', '').replace('Follow on ', '')}
                     </span>
                   </motion.button>

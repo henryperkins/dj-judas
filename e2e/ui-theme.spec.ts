@@ -104,7 +104,144 @@ async function mockCheckoutCart(page: import('@playwright/test').Page) {
   });
 }
 
+async function mockProductsWithAddFailure(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    localStorage.removeItem('medusa_cart_id');
+  });
+
+  await page.route(`${MEDUSA_URL}/store/products**`, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        products: [
+          {
+            id: 'prod_error_test',
+            title: 'Cart Error Test Product',
+            description: 'Used to prove add-to-cart errors are visible.',
+            thumbnail: '',
+            variants: [{ id: 'variant_error_test' }],
+          },
+          {
+            id: 'prod_no_variant_test',
+            title: 'No Variant Test Product',
+            description: 'Used to prove unavailable products are disabled.',
+            thumbnail: '',
+            variants: [],
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.route(`${MEDUSA_URL}/store/carts`, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ cart: { id: 'cart_error_test' } }),
+    });
+  });
+
+  await page.route(`${MEDUSA_URL}/store/carts/cart_error_test/line-items`, async route => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Line item rejected by test server' }),
+    });
+  });
+}
+
 test.describe('UI theme review regressions', () => {
+  test('products page shows add-to-cart failures and disables products without variants', async ({ page }) => {
+    await mockProductsWithAddFailure(page);
+
+    await page.goto('/products', { waitUntil: 'domcontentloaded' });
+    await waitForNetworkIdle(page).catch(() => undefined);
+
+    const product = page.locator('.product-card').filter({ hasText: 'Cart Error Test Product' });
+    await expect(product.getByRole('button', { name: 'Add to Cart' })).toBeVisible();
+    await product.getByRole('button', { name: 'Add to Cart' }).click();
+    await expect(product.getByRole('alert')).toContainText('Line item rejected by test server');
+
+    const unavailable = page.locator('.product-card').filter({ hasText: 'No Variant Test Product' });
+    await expect(unavailable.getByRole('button', { name: 'Unavailable' })).toBeDisabled();
+  });
+
+  test('featured products show add-to-cart errors without navigating away', async ({ page }) => {
+    await mockProductsWithAddFailure(page);
+    await mockOptionalIntegrationsAsUnavailable(page);
+    await mockEvents(page);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitForNetworkIdle(page).catch(() => undefined);
+
+    const product = page.locator('.product-card').filter({ hasText: 'Cart Error Test Product' }).first();
+    await product.getByRole('button', { name: 'Add to cart' }).click();
+    await expect(product.getByRole('alert')).toContainText('Line item rejected by test server');
+    await expect(page).not.toHaveURL(/\/checkout/);
+  });
+
+  test('platform FAB opens with dialog semantics, moves focus, and closes with Escape', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await mockOptionalIntegrationsAsUnavailable(page);
+    await mockEvents(page);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitForNetworkIdle(page).catch(() => undefined);
+
+    await page.getByRole('button', { name: 'Open platform menu' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Streaming and social platforms' });
+    await expect(dialog).toBeVisible();
+    await expect(page.locator(':focus')).toHaveAttribute('aria-label', /Close platform menu|Spotify|Apple Music|Facebook|Instagram/);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Open platform menu' })).toBeFocused();
+  });
+
+  test('creator media panel exposes real tab semantics', async ({ page }) => {
+    await mockOptionalIntegrationsAsUnavailable(page);
+    await mockEvents(page);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitForNetworkIdle(page).catch(() => undefined);
+    await page.evaluate(() => document.getElementById('media')?.scrollIntoView({ block: 'center' }));
+
+    const tablist = page.getByRole('tablist', { name: 'Media sections' });
+    await expect(tablist).toBeVisible();
+
+    await tablist.getByRole('tab', { name: 'Watch' }).click();
+    await expect(tablist.getByRole('tab', { name: 'Watch' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: 'Watch' })).toBeVisible();
+  });
+
+  test('booking location and message fields span the full desktop form width', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto('/book', { waitUntil: 'domcontentloaded' });
+
+    const gridBox = await page.locator('.booking-form .form-grid').boundingBox();
+    const locationBox = await page.locator('#location').locator('xpath=..').boundingBox();
+    const messageBox = await page.locator('#message').locator('xpath=..').boundingBox();
+
+    expect(gridBox).not.toBeNull();
+    expect(locationBox).not.toBeNull();
+    expect(messageBox).not.toBeNull();
+    expect(Math.round(locationBox!.width)).toBeGreaterThan(Math.round(gridBox!.width * 0.85));
+    expect(Math.round(messageBox!.width)).toBeGreaterThan(Math.round(gridBox!.width * 0.85));
+  });
+
+  test('platform launcher uses only canonical BEM FAB classes', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await mockOptionalIntegrationsAsUnavailable(page);
+    await mockEvents(page);
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitForNetworkIdle(page).catch(() => undefined);
+
+    await expect(page.locator('.platform-launcher--fab')).toBeVisible();
+    await expect(page.locator('.platform-launcher-fab, .fab-trigger, .fab-menu, .fab-platform-btn')).toHaveCount(0);
+  });
+
   test('product empty state text has readable contrast', async ({ page }) => {
     await page.goto('/products', { waitUntil: 'domcontentloaded' });
     await waitForNetworkIdle(page).catch(() => undefined);

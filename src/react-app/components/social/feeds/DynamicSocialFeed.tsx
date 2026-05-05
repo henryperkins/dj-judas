@@ -57,6 +57,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [isNotConfigured, setIsNotConfigured] = useState(false); // Circuit breaker for 501 errors
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -213,6 +214,12 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     };
   }, [closeLightbox, selectedPost]);
 
+  useEffect(() => {
+    if (carouselIndex >= posts.length) {
+      setCarouselIndex(0);
+    }
+  }, [carouselIndex, posts.length]);
+
   const handleLightboxKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
 
@@ -233,149 +240,166 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     }
   };
 
+  const renderPostCard = (post: SocialPost) => (
+    <article
+      key={post.id}
+      className={`social-post-card ${post.isShoppable ? 'shoppable' : ''}`}
+      data-testid="social-post-card"
+    >
+      <div className="post-header">
+        <span className={`platform-badge ${post.platform}`}>
+          {post.platform === 'instagram' ? <LuInstagram size={14} /> : <LuFacebook size={14} />}
+          {post.platform}
+        </span>
+        {post.isShoppable && (
+          <span className="shoppable-badge">
+            <LuShoppingBag size={14} />
+            Shop
+          </span>
+        )}
+      </div>
+
+      <div className="post-media">
+        <button
+          type="button"
+          className="post-media-open"
+          onClick={() => openPost(post)}
+          aria-label={`Open ${post.platform} post`}
+        >
+          <img
+            src={post.thumbnailUrl || post.mediaUrl}
+            alt={post.caption.substring(0, 50)}
+            loading="lazy"
+          />
+
+          {(post.type === 'video' || post.type === 'reel') && (
+            <span className="media-type-indicator" aria-hidden="true">▶</span>
+          )}
+        </button>
+
+        {post.isShoppable && post.products && (
+          <div className="product-tags">
+            {post.products.map((product) => (
+              <button
+                type="button"
+                key={product.id}
+                className={`product-tag ${hoveredProduct === product.id ? 'active' : ''}`}
+                style={{ left: `${product.x}%`, top: `${product.y}%` }}
+                aria-label={`View ${product.title} for $${product.price}`}
+                onMouseEnter={() => setHoveredProduct(product.id)}
+                onMouseLeave={() => setHoveredProduct(null)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePostInteraction(post, 'product_click');
+                  window.location.href = product.productUrl;
+                }}
+              >
+                <LuShoppingBag size={16} aria-hidden />
+                <span className="sr-only">{`View ${product.title} for $${product.price}`}</span>
+                {hoveredProduct === product.id && (
+                  <div className="product-tooltip">
+                    {product.imageUrl && <img src={product.imageUrl} alt={product.title} />}
+                    <div className="product-info">
+                      <p className="product-title">{product.title}</p>
+                      <p className="product-price">${product.price}</p>
+                    </div>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="post-engagement">
+        <button
+          type="button"
+          className="engagement-btn"
+          aria-label={`Like ${post.platform} post${post.likes != null ? ` (${post.likes.toLocaleString()} likes)` : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePostInteraction(post, 'like');
+          }}
+        >
+          <LuHeart size={16} />
+          <span>{post.likes?.toLocaleString()}</span>
+        </button>
+        <button
+          type="button"
+          className="engagement-btn"
+          aria-label={`Comment on ${post.platform} post${post.comments != null ? ` (${post.comments.toLocaleString()} comments)` : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePostInteraction(post, 'comment');
+          }}
+        >
+          <LuMessageCircle size={16} />
+          <span>{post.comments?.toLocaleString()}</span>
+        </button>
+        <button
+          type="button"
+          className="engagement-btn"
+          aria-label={`Share ${post.platform} post${post.shares != null ? ` (${post.shares.toLocaleString()} shares)` : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePostInteraction(post, 'share');
+          }}
+        >
+          <LuShare2 size={16} />
+          <span>{post.shares?.toLocaleString()}</span>
+        </button>
+      </div>
+
+      <div className="post-caption">
+        <p>{post.caption.substring(0, 100)}...</p>
+        <button type="button" className="post-open-link" onClick={() => openPost(post)}>
+          View post
+        </button>
+      </div>
+    </article>
+  );
+
   // Render based on layout
   const renderGrid = () => (
     <div className="social-feed-grid">
-      {posts.map((post) => (
-        <article
-          key={post.id}
-          className={`social-post-card ${post.isShoppable ? 'shoppable' : ''}`}
-          data-testid="social-post-card"
-        >
-          {/* Platform Badge */}
-          <div className="post-header">
-            <span className={`platform-badge ${post.platform}`}>
-              {post.platform === 'instagram' ? <LuInstagram size={14} /> : <LuFacebook size={14} />}
-              {post.platform}
-            </span>
-            {post.isShoppable && (
-              <span className="shoppable-badge">
-                <LuShoppingBag size={14} />
-                Shop
-              </span>
-            )}
-          </div>
-
-          {/* Media */}
-          <div className="post-media">
-            <button
-              type="button"
-              className="post-media-open"
-              onClick={() => openPost(post)}
-              aria-label={`Open ${post.platform} post`}
-            >
-              <img
-                src={post.thumbnailUrl || post.mediaUrl}
-                alt={post.caption.substring(0, 50)}
-                loading="lazy"
-              />
-
-              {/* Video/Reel Indicator */}
-              {(post.type === 'video' || post.type === 'reel') && (
-                <span className="media-type-indicator" aria-hidden="true">▶</span>
-              )}
-            </button>
-
-            {/* Product Tags */}
-            {post.isShoppable && post.products && (
-              <div className="product-tags">
-                {post.products.map((product) => (
-                  <button
-                    type="button"
-                    key={product.id}
-                    className={`product-tag ${hoveredProduct === product.id ? 'active' : ''}`}
-                    style={{ left: `${product.x}%`, top: `${product.y}%` }}
-                    aria-label={`View ${product.title} for $${product.price}`}
-                    onMouseEnter={() => setHoveredProduct(product.id)}
-                    onMouseLeave={() => setHoveredProduct(null)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePostInteraction(post, 'product_click');
-                      window.location.href = product.productUrl;
-                    }}
-                  >
-                    <LuShoppingBag size={16} aria-hidden />
-                    <span className="sr-only">{`View ${product.title} for $${product.price}`}</span>
-                    {hoveredProduct === product.id && (
-                      <div className="product-tooltip">
-                        {product.imageUrl && <img src={product.imageUrl} alt={product.title} />}
-                        <div className="product-info">
-                          <p className="product-title">{product.title}</p>
-                          <p className="product-price">${product.price}</p>
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Engagement */}
-          <div className="post-engagement">
-            <button
-              type="button"
-              className="engagement-btn"
-              aria-label={`Like ${post.platform} post${post.likes != null ? ` (${post.likes.toLocaleString()} likes)` : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePostInteraction(post, 'like');
-              }}
-            >
-              <LuHeart size={16} />
-              <span>{post.likes?.toLocaleString()}</span>
-            </button>
-            <button
-              type="button"
-              className="engagement-btn"
-              aria-label={`Comment on ${post.platform} post${post.comments != null ? ` (${post.comments.toLocaleString()} comments)` : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePostInteraction(post, 'comment');
-              }}
-            >
-              <LuMessageCircle size={16} />
-              <span>{post.comments?.toLocaleString()}</span>
-            </button>
-            <button
-              type="button"
-              className="engagement-btn"
-              aria-label={`Share ${post.platform} post${post.shares != null ? ` (${post.shares.toLocaleString()} shares)` : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePostInteraction(post, 'share');
-              }}
-            >
-              <LuShare2 size={16} />
-              <span>{post.shares?.toLocaleString()}</span>
-            </button>
-          </div>
-
-          {/* Caption Preview */}
-          <div className="post-caption">
-            <p>{post.caption.substring(0, 100)}...</p>
-            <button type="button" className="post-open-link" onClick={() => openPost(post)}>
-              View post
-            </button>
-          </div>
-        </article>
-      ))}
+      {posts.map(renderPostCard)}
     </div>
   );
 
   const renderMasonry = () => (
     <div className="social-feed-masonry">
-      {/* Masonry layout implementation */}
-      {renderGrid()} {/* Simplified for now */}
+      {posts.map(renderPostCard)}
     </div>
   );
 
-  const renderCarousel = () => (
-    <div className="social-feed-carousel">
-      {/* Carousel implementation */}
-      {renderGrid()} {/* Simplified for now */}
-    </div>
-  );
+  const renderCarousel = () => {
+    const activePost = posts[carouselIndex];
+    if (!activePost) return null;
+
+    const previous = () => setCarouselIndex(index => (index - 1 + posts.length) % posts.length);
+    const next = () => setCarouselIndex(index => (index + 1) % posts.length);
+
+    return (
+      <div className="social-feed-carousel" aria-roledescription="carousel" aria-label="Latest social posts">
+        <div className="social-feed-carousel__viewport" aria-live="polite">
+          {renderPostCard(activePost)}
+        </div>
+        {posts.length > 1 && (
+          <div className="social-feed-carousel__controls">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={previous} aria-label="Previous social post">
+              Previous
+            </button>
+            <span className="social-feed-carousel__count">
+              {carouselIndex + 1} / {posts.length}
+            </span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={next} aria-label="Next social post">
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderStories = () => (
     <div className="social-feed-stories">

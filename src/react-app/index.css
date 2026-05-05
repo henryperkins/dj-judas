@@ -2426,6 +2426,10 @@
     @apply grid gap-4 md:grid-cols-2;
   }
 
+  .form-grid .full-width {
+    grid-column: 1 / -1;
+  }
+
   .form-group {
     @apply mb-4;
   }

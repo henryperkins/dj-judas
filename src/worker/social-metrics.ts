@@ -18,6 +18,7 @@ interface Env {
   FB_PAGE_TOKEN?: string;
   FB_APP_ID?: string;
   FB_APP_SECRET?: string;
+  GRAPH_API_VERSION?: string;
   GA_PROPERTY_ID?: string;
   GA_SERVICE_ACCOUNT?: string;
   APPLE_DEVELOPER_TOKEN?: string;
@@ -37,8 +38,10 @@ interface SocialMetrics {
   conversionRate: number;
 }
 
-const graphBase = () => {
-  const version = 'v22.0';
+const DEFAULT_GRAPH_VERSION = 'v22.0';
+
+const graphBase = (env: Env) => {
+  const version = env.GRAPH_API_VERSION || DEFAULT_GRAPH_VERSION;
   return `https://graph.facebook.com/${version}`;
 };
 
@@ -83,20 +86,19 @@ async function getInstagramMetrics(env: Env): Promise<{ followers: number; media
   if (!token || !igUserId) return null;
 
   try {
-    const fieldsUrl = new URL(`${graphBase()}/${igUserId}`);
+    const authHeaders = { 'Authorization': `Bearer ${token}` };
+    const fieldsUrl = new URL(`${graphBase(env)}/${igUserId}`);
     fieldsUrl.searchParams.set('fields', 'followers_count,media_count,name');
-    fieldsUrl.searchParams.set('access_token', token);
 
-    const fieldsRes = await fetch(fieldsUrl.toString());
+    const fieldsRes = await fetch(fieldsUrl.toString(), { headers: authHeaders });
     if (!fieldsRes.ok) throw new Error('Failed to fetch IG profile');
     const profileData = await fieldsRes.json() as { followers_count: number; media_count: number };
 
-    const insightsUrl = new URL(`${graphBase()}/${igUserId}/insights`);
+    const insightsUrl = new URL(`${graphBase(env)}/${igUserId}/insights`);
     insightsUrl.searchParams.set('metric', 'impressions,reach,profile_views');
     insightsUrl.searchParams.set('period', 'day');
-    insightsUrl.searchParams.set('access_token', token);
 
-    const insightsRes = await fetch(insightsUrl.toString());
+    const insightsRes = await fetch(insightsUrl.toString(), { headers: authHeaders });
     let engagementRate = 8.5;
 
     if (insightsRes.ok) {
@@ -126,11 +128,12 @@ async function getFacebookMetrics(env: Env): Promise<{ followers: number; engage
   if (!token || !pageId) return null;
 
   try {
-    const url = new URL(`${graphBase()}/${pageId}`);
+    const url = new URL(`${graphBase(env)}/${pageId}`);
     url.searchParams.set('fields', 'fan_count,engagement');
-    url.searchParams.set('access_token', token);
 
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (!res.ok) throw new Error('Failed to fetch FB page');
     const data = await res.json() as { fan_count: number; engagement?: { count: number } };
 

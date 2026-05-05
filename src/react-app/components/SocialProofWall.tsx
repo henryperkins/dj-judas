@@ -7,6 +7,7 @@ import {
 } from './icons/PlatformIcons';
 import { socialMetrics } from './social/utils/socialMetrics';
 import { FaStar, FaMapMarkerAlt } from 'react-icons/fa';
+import { getPlatformWebLink } from '../config/platforms';
 
 const {
   users: UsersIcon,
@@ -59,6 +60,8 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
   const [totalReach, setTotalReach] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
   const [liveMetrics, setLiveMetrics] = useState<LiveMetric[]>([]);
+  const spotifyUrl = getPlatformWebLink('spotify') || 'https://open.spotify.com/artist/5WICYLl8MXvOY2x3mkoSqK';
+  const appleMusicUrl = getPlatformWebLink('appleMusic') || 'https://music.apple.com/us/artist/dj-lee/18270857';
 
   const platforms: PlatformMetric[] = useMemo(
     () => [
@@ -69,7 +72,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
         engagement: 45.2,
         growth: 12,
         color: PLATFORM_COLORS.spotify,
-        url: 'https://open.spotify.com/artist/4ZxOuNHhpyOj3MOSE23KxR',
+        url: spotifyUrl,
       },
       {
         platform: 'Apple Music',
@@ -78,7 +81,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
         engagement: 38.5,
         growth: 8,
         color: PLATFORM_COLORS.appleMusic,
-        url: 'https://music.apple.com/us/artist/dj-lee-voices-of-judah/1540816224',
+        url: appleMusicUrl,
       },
       {
         platform: 'Facebook',
@@ -99,7 +102,7 @@ const SocialProofWall: React.FC<SocialProofWallProps> = ({
         url: 'https://www.instagram.com/iam_djlee',
       },
     ],
-    [spotifyMonthlyListeners, appleMusicPlays, facebookFollowers, instagramFollowers]
+    [spotifyMonthlyListeners, appleMusicPlays, facebookFollowers, instagramFollowers, spotifyUrl, appleMusicUrl]
   );
 
   useEffect(() => {

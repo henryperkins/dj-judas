@@ -16,6 +16,11 @@ export const isMobileDevice = (): boolean => {
   return mobileRegex.test(userAgent.toLowerCase()) || window.innerWidth < 768;
 };
 
+export const isMobileViewport = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 767px)').matches;
+};
+
 export const isIOS = (): boolean => {
   if (typeof window === 'undefined') return false;
 
@@ -50,20 +55,46 @@ export const getPlatformUrl = (link: PlatformLink): string => {
   const shouldUseDeepLink = isMobileDevice() && link.deepLink && hasNativeApp(link.platform);
 
   if (shouldUseDeepLink && link.deepLink) {
-    // For iOS, we'll use a fallback mechanism
-    if (isIOS()) {
-      // Try deep link first, fallback to web
-      setTimeout(() => {
-        window.location.href = link.webLink;
-      }, 2500);
-      return link.deepLink;
-    }
-
-    // For Android, deep links usually work directly
     return link.deepLink;
   }
 
   return link.webLink;
+};
+
+const openWithWebFallback = (deepLink: string, webLink: string): void => {
+  let fallbackCancelled = false;
+
+  const cleanup = () => {
+    fallbackCancelled = true;
+    if (fallbackTimer !== undefined) {
+      window.clearTimeout(fallbackTimer);
+    }
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('pagehide', cleanup);
+    window.removeEventListener('blur', cleanup);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      cleanup();
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('pagehide', cleanup, { once: true });
+  window.addEventListener('blur', cleanup, { once: true });
+
+  const fallbackTimer = window.setTimeout(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('pagehide', cleanup);
+    window.removeEventListener('blur', cleanup);
+
+    if (!fallbackCancelled && document.visibilityState === 'visible') {
+      window.location.href = webLink;
+    }
+  }, 1800);
+
+  window.location.href = deepLink;
 };
 
 export const openPlatform = (link: PlatformLink, trackingCallback?: () => void): void => {
@@ -74,13 +105,7 @@ export const openPlatform = (link: PlatformLink, trackingCallback?: () => void):
   const url = getPlatformUrl(link);
 
   if (isMobileDevice() && link.deepLink) {
-    // For mobile with deep links, try to open in new context
-    const newWindow = window.open(url, '_blank');
-
-    // Fallback if deep link fails
-    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-      window.location.href = link.webLink;
-    }
+    openWithWebFallback(url, link.webLink);
   } else {
     // Desktop or no deep link - open in new tab
     window.open(url, '_blank', 'noopener,noreferrer');

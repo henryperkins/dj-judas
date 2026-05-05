@@ -1,6 +1,6 @@
 /// <reference types="../types/rpc.d.ts" />
 
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { socialMetricsApp } from './social-metrics';
 import { r2PresignedApp } from './r2-presigned';
 import { r2MultipartApp } from './r2-multipart';
@@ -35,7 +35,10 @@ interface SocialPost {
     id: string;
     title: string;
     price: number;
-    url: string;
+    imageUrl: string;
+    productUrl: string;
+    x: number;
+    y: number;
   }>;
 }
 
@@ -177,7 +180,7 @@ interface Env {
   FB_PAGE_TOKEN?: string; // Facebook Page access token
   FB_APP_ID?: string; // For App Access Token (oEmbed Read)
   FB_APP_SECRET?: string; // For App Access Token (oEmbed Read)
-  GRAPH_API_VERSION?: string; // e.g., 'v21.0'
+  GRAPH_API_VERSION?: string; // e.g., 'v22.0'
   RESEND_API_KEY?: string;
   RESEND_FROM?: string; // e.g., 'Ministry <no-reply@yourdomain>'
   RESEND_TO?: string;   // destination inbox
@@ -232,7 +235,6 @@ app.use('*', async (c, next) => {
       // Preload logo image
       '</assets/logo-7ACBzA0r.jpeg>; rel=preload; as=image',
       // Preconnect to streaming services (Spotify, Apple Music)
-      'https://sdk.scdn.co; rel=preconnect',
       'https://js-cdn.music.apple.com; rel=preconnect',
       'https://api.spotify.com; rel=preconnect',
       'https://amp-api.music.apple.com; rel=preconnect',
@@ -310,7 +312,7 @@ app.use('*', async (c, next) => {
   const cspDirectives = [
     "default-src 'self'",
     // Scripts: Allow self + inline (for React) + streaming SDKs + social SDKs + analytics
-    "script-src 'self' 'unsafe-inline' https://sdk.scdn.co https://js-cdn.music.apple.com https://connect.facebook.net https://www.instagram.com https://static.cloudflareinsights.com",
+    "script-src 'self' 'unsafe-inline' https://open.spotify.com https://js-cdn.music.apple.com https://connect.facebook.net https://www.instagram.com https://platform.twitter.com https://www.tiktok.com https://www.youtube.com https://www.youtube-nocookie.com https://static.cloudflareinsights.com",
     // Styles: Allow self + inline (for CSS-in-JS and Tailwind)
     "style-src 'self' 'unsafe-inline'",
     // Images: Allow all HTTPS + data URIs + blob for camera/uploads (covers FB/IG CDNs)
@@ -318,11 +320,11 @@ app.use('*', async (c, next) => {
     // Fonts: Allow self + data URIs
     "font-src 'self' data:",
     // Connect: API calls to streaming services + social APIs + Cloudflare analytics
-    "connect-src 'self' https://api.spotify.com https://amp-api.music.apple.com https://graph.facebook.com https://www.instagram.com https://cloudflareinsights.com" + (c.env.R2_PUBLIC_BASE ? ` ${c.env.R2_PUBLIC_BASE}` : ''),
+    "connect-src 'self' https://api.spotify.com https://amp-api.music.apple.com https://graph.facebook.com https://www.facebook.com https://connect.facebook.net https://www.instagram.com https://platform.twitter.com https://syndication.twitter.com https://cdn.syndication.twimg.com https://cloudflareinsights.com" + (c.env.R2_PUBLIC_BASE ? ` ${c.env.R2_PUBLIC_BASE}` : ''),
     // Media: Allow all HTTPS + blob for local playback
     "media-src 'self' https: blob:",
     // Frames: Streaming + social embeds
-    "frame-src https://open.spotify.com https://embed.music.apple.com https://www.facebook.com https://www.instagram.com",
+    "frame-src https://open.spotify.com https://embed.music.apple.com https://www.facebook.com https://www.instagram.com https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://platform.twitter.com https://syndication.twitter.com https://twitter.com https://x.com",
     // Prevent clickjacking
     "frame-ancestors 'none'",
     // Upgrade insecure requests (HTTP → HTTPS)
@@ -663,12 +665,157 @@ async function signAdminPayload(secret: string, payload: string): Promise<string
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
-	if (a.length !== b.length) return false;
-	let result = 0;
-	for (let i = 0; i < a.length; i++) {
-		result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-	}
-	return result === 0;
+		if (a.length !== b.length) return false;
+		let result = 0;
+		for (let i = 0; i < a.length; i++) {
+			result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+		}
+		return result === 0;
+}
+
+function base64UrlToString(value: string): string | null {
+  try {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=');
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+async function signHmacSha256Base64Url(secret: string, payload: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  return bytesToBase64Url(new Uint8Array(signature));
+}
+
+async function sha256Hex(payload: string): Promise<string> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
+  const bytes = new Uint8Array(hash);
+  let hex = '';
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+async function verifyFacebookSignedRequest(signedRequest: string, appSecret: string): Promise<Record<string, unknown> | null> {
+  const [encodedSignature, encodedPayload] = signedRequest.split('.', 2);
+  if (!encodedSignature || !encodedPayload) return null;
+
+  const payloadText = base64UrlToString(encodedPayload);
+  if (!payloadText) return null;
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(payloadText) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+
+  if (payload.algorithm !== 'HMAC-SHA256') {
+    return null;
+  }
+
+  const expected = await signHmacSha256Base64Url(appSecret, encodedPayload);
+  if (!timingSafeEqual(encodedSignature, expected)) {
+    return null;
+  }
+
+  return payload;
+}
+
+const PUBLIC_INSTAGRAM_MEDIA_FIELDS = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username,like_count,comments_count';
+const PUBLIC_INSTAGRAM_INSIGHT_METRICS = new Set(['impressions', 'reach', 'profile_views']);
+const PUBLIC_INSTAGRAM_INSIGHT_PERIODS = new Set(['day', 'week', 'days_28']);
+
+function clampInteger(value: string | undefined, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseInt(value || '', 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(parsed, min), max);
+}
+
+function getConfiguredInstagramUserId(c: Context<{ Bindings: Env }>): string | null {
+  return c.env.IG_USER_ID || null;
+}
+
+function getPublicInstagramMetrics(value: string | undefined): string {
+  const requested = (value || 'impressions,reach,profile_views')
+    .split(',')
+    .map((metric) => metric.trim())
+    .filter((metric) => PUBLIC_INSTAGRAM_INSIGHT_METRICS.has(metric));
+
+  return (requested.length > 0 ? requested : ['impressions', 'reach', 'profile_views']).join(',');
+}
+
+function getPublicInstagramPeriod(value: string | undefined): string {
+  return value && PUBLIC_INSTAGRAM_INSIGHT_PERIODS.has(value) ? value : 'day';
+}
+
+function sanitizePublicGraphError(error: unknown): string {
+  if (error && typeof error === 'object' && 'error' in error) {
+    const graphError = (error as { error?: { code?: unknown; type?: unknown } }).error;
+    const code = graphError?.code ? ` code ${String(graphError.code)}` : '';
+    const type = graphError?.type ? ` (${String(graphError.type)})` : '';
+    return `Graph API request failed${code}${type}`;
+  }
+
+  return 'Graph API request failed';
+}
+
+async function verifyAdminSignedRequest(c: Context<{ Bindings: Env }>): Promise<Response | null> {
+  const secret = c.env.ADMIN_SHARED_SECRET;
+  if (!secret) {
+    console.error('ADMIN_SHARED_SECRET not configured for diagnostic route');
+    return c.json({ error: 'admin_secret_missing', message: 'ADMIN_SHARED_SECRET is not configured' }, 500);
+  }
+
+  const signature = (c.req.header('X-Admin-Signature') || '').trim().toLowerCase();
+  const timestampHeader = (c.req.header('X-Timestamp') || '').trim();
+  if (!signature || !timestampHeader) {
+    return c.json({ error: 'admin_signature_required', message: 'Missing X-Admin-Signature or X-Timestamp header' }, 401);
+  }
+
+  const timestamp = Number(timestampHeader);
+  if (!Number.isFinite(timestamp)) {
+    return c.json({ error: 'invalid_timestamp', message: 'X-Timestamp must be a UNIX epoch milliseconds value' }, 401);
+  }
+
+  if (Math.abs(Date.now() - timestamp) > 5 * 60 * 1000) {
+    return c.json({ error: 'timestamp_out_of_range', message: 'Timestamp is older than 5 minutes' }, 401);
+  }
+
+  try {
+    const expected = await signAdminPayload(secret, `${timestampHeader}.`);
+    if (!timingSafeEqual(signature, expected)) {
+      return c.json({ error: 'invalid_signature', message: 'Signature verification failed' }, 401);
+    }
+  } catch (error) {
+    console.error('Failed to verify admin signature', error);
+    return c.json({ error: 'signature_verification_failed' }, 500);
+  }
+
+  return null;
 }
 
 /**
@@ -818,8 +965,7 @@ app.get('/api/apple/developer-token', async (c) => {
     console.error('Failed to generate Apple Music developer token:', error);
     return c.json({
       error: 'token_generation_failed',
-      message: 'Failed to generate Apple Music developer token. Please check your private key format.',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Failed to generate Apple Music developer token. Please check server configuration.'
     }, 500);
   }
 });
@@ -1723,16 +1869,79 @@ This is an automated confirmation email. Please do not reply directly to this me
 // --- Instagram oEmbed proxy with KV cache ---
 type OEmbedJSON = Record<string, unknown>;
 
-app.get('/api/instagram/oembed', async (c) => {
+interface InstagramUrlInfo {
+  canonicalUrl: string;
+  username: string;
+}
+
+const INSTAGRAM_HOSTS = new Set(['instagram.com', 'www.instagram.com']);
+
+function normalizeInstagramUrl(value: string | undefined): InstagramUrlInfo | null {
+  if (!value) return null;
+
   try {
-    const url = c.req.query('url');
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' || !INSTAGRAM_HOSTS.has(parsed.hostname.toLowerCase())) {
+      return null;
+    }
+
+    parsed.hash = '';
+    const username = parsed.pathname
+      .split('/')
+      .filter(Boolean)
+      .find((segment) => /^[A-Za-z0-9._]+$/.test(segment)) || 'iam_djlee';
+
+    return {
+      canonicalUrl: parsed.toString(),
+      username
+    };
+  } catch {
+    return null;
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildInstagramFallback(info: InstagramUrlInfo): OEmbedJSON {
+  const safeUrl = escapeHtml(info.canonicalUrl);
+  const safeUsername = escapeHtml(info.username);
+
+  return {
+    fallback: true,
+    html: `<div class="instagram-fallback"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">View on Instagram @${safeUsername}</a></div>`,
+    author_name: info.username,
+    author_url: `https://www.instagram.com/${encodeURIComponent(info.username)}/`,
+    provider_name: 'Instagram',
+    provider_url: 'https://www.instagram.com',
+    type: 'rich',
+    version: '1.0'
+  };
+}
+
+app.get('/api/instagram/oembed', async (c) => {
+  let instagramUrl: InstagramUrlInfo | null = null;
+
+  try {
+    instagramUrl = normalizeInstagramUrl(c.req.query('url'));
     const maxwidth = c.req.query('maxwidth');
     const omitscript = c.req.query('omitscript');
     const hidecaption = c.req.query('hidecaption');
 
-    if (!url) {
-      return c.json({ error: 'URL parameter is required' }, 400);
+    if (!instagramUrl) {
+      return c.json({
+        error: 'Invalid Instagram URL',
+        message: 'A public https://www.instagram.com/ URL is required.'
+      }, 400);
     }
+
+    const url = instagramUrl.canonicalUrl;
 
     // Multi-tier cache key
     const cacheKey = `ig:${url}:${maxwidth || ''}:${omitscript || ''}:${hidecaption || ''}`;
@@ -1775,98 +1984,27 @@ app.get('/api/instagram/oembed', async (c) => {
         }
       } catch (graphError) {
         console.error('Instagram Graph API error:', graphError);
-        // Fall through to public API
+        // Fall through to structured fallback
       }
     }
 
-    // Fallback to Instagram's public oEmbed endpoint
-    const oembedUrl = new URL('https://api.instagram.com/oembed');
-    oembedUrl.searchParams.append('url', url);
-    if (maxwidth) oembedUrl.searchParams.append('maxwidth', maxwidth);
-    if (omitscript !== undefined) oembedUrl.searchParams.append('omitscript', omitscript);
-    if (hidecaption !== undefined) oembedUrl.searchParams.append('hidecaption', hidecaption);
-
-    // Add headers to mimic a browser request
-    const response = await fetch(oembedUrl.toString(), {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': c.req.header('Referer') || 'https://dj-judas.com/'
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Instagram oEmbed API error:', response.status, errorText);
-
-      // If Instagram API fails, return a structured fallback response
-      if (response.status === 404 || response.status === 400) {
-        return c.json({
-          error: 'Invalid Instagram URL',
-          message: 'The Instagram post could not be found. It may be private or deleted.'
-        }, 404);
-      }
-
-      // For rate limiting or server errors, provide a fallback embed structure
-      if (response.status >= 500 || response.status === 429) {
-        // Extract username from URL if possible
-        const match = url.match(/instagram\.com\/([^/]+)/);
-        const username = match ? match[1] : 'iam_djlee';
-
-        // Return a minimal fallback structure that the frontend can handle
-        return c.json({
-          fallback: true,
-          html: `<div class="instagram-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">View on Instagram @${username}</a></div>`,
-          author_name: username,
-          author_url: `https://www.instagram.com/${username}/`,
-          provider_name: 'Instagram',
-          provider_url: 'https://www.instagram.com',
-          type: 'rich',
-          version: '1.0'
-        }, 200, {
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=300' // Cache fallback for 5 minutes
-        });
-      }
-
-      const status = response.status as 400 | 401 | 403 | 404 | 500 | 502 | 503;
-      return c.json({
-        error: 'Failed to fetch Instagram embed',
-        status: response.status,
-        details: errorText
-      }, status);
-    }
-
-    const data = await response.json() as OEmbedJSON;
-
-    // Cache successful response in both tiers for 1 hour
-    await cache.set(edgeKey, data, 3600);
-
-    return c.json(data, 200, {
+    return c.json(buildInstagramFallback(instagramUrl), 200, {
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'public, max-age=300',
       'X-Cache': 'MISS'
     });
 
   } catch (error) {
     console.error('Instagram oEmbed handler error:', error);
 
-    // Last resort fallback
-    const url = c.req.query('url') || '';
-    const match = url.match(/instagram\.com\/([^/]+)/);
-    const username = match ? match[1] : 'iam_djlee';
+    if (!instagramUrl) {
+      return c.json({
+        error: 'Failed to fetch Instagram embed',
+        message: 'Instagram embed is unavailable'
+      }, 500);
+    }
 
-    return c.json({
-      fallback: true,
-      html: `<div class="instagram-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">View on Instagram @${username}</a></div>`,
-      author_name: username,
-      author_url: `https://www.instagram.com/${username}/`,
-      provider_name: 'Instagram',
-      provider_url: 'https://www.instagram.com',
-      type: 'rich',
-      version: '1.0'
-    }, 200, {
+    return c.json(buildInstagramFallback(instagramUrl), 200, {
       'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'public, max-age=300'
     });
@@ -1884,10 +2022,16 @@ app.get('/api/instagram/media', async (c) => {
   }
 
   try {
-    // Instagram Business Account ID (this should be fetched from token or configured)
-    const igUserId = c.req.query('user_id') || c.env.IG_USER_ID || 'me';
-    const limit = c.req.query('limit') || '12';
-    const fields = c.req.query('fields') || 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username';
+    const igUserId = getConfiguredInstagramUserId(c);
+    if (!igUserId) {
+      return c.json({
+        error: 'not_configured',
+        message: 'Instagram Business account ID is not configured'
+      }, 501);
+    }
+
+    const limit = clampInteger(c.req.query('limit'), 12, 1, 50);
+    const fields = PUBLIC_INSTAGRAM_MEDIA_FIELDS;
 
     // L1 + L2 cache
     const cache = new CacheManager(c.env.SESSIONS);
@@ -1904,16 +2048,15 @@ app.get('/api/instagram/media', async (c) => {
     // Fetch from Instagram Graph API
     const graphUrl = new URL(`${graphBase(c.env)}/${igUserId}/media`);
     graphUrl.searchParams.append('fields', fields);
-    graphUrl.searchParams.append('limit', limit);
+    graphUrl.searchParams.append('limit', String(limit));
     const response = await fetch(graphUrl.toString(), { headers: { Authorization: `Bearer ${igToken}` } });
     if (!response.ok) {
-      const error = await response.json() as { error: { message: string } };
+      const error = await response.json().catch(() => null);
       console.error('Instagram Graph API error:', error);
       return c.json({
         error: 'api_error',
-        message: error.error?.message || 'Failed to fetch Instagram media',
-        details: error
-      }, 500);
+        message: sanitizePublicGraphError(error)
+      }, 502);
     }
 
     const data = await response.json() as { data: [] };
@@ -1936,15 +2079,17 @@ app.get('/api/instagram/media', async (c) => {
 // --- Dynamic Social Feed API ---
 app.get('/api/social/feed', async (c) => {
   try {
-    const platforms = c.req.query('platforms')?.split(',') || ['instagram', 'facebook'];
+    const platforms = (c.req.query('platforms')?.split(',') || ['instagram', 'facebook'])
+      .map((platform) => platform.trim())
+      .filter(Boolean);
     const hashtags: string[] = c.req.query('hashtags')?.split(',').filter(Boolean) || [];
-    const limit = parseInt(c.req.query('limit') || '12');
+    const limit = clampInteger(c.req.query('limit'), 12, 1, 50);
     const shoppable = c.req.query('shoppable') === 'true';
 
     // Configuration guard: return 501 if none of the requested platforms are configured
     const wantsIg = platforms.includes('instagram');
     const wantsFb = platforms.includes('facebook');
-    const igConfigured = !!c.env.IG_OEMBED_TOKEN;
+    const igConfigured = !!(c.env.IG_OEMBED_TOKEN && c.env.IG_USER_ID);
     const fbConfigured = !!(c.env.FB_PAGE_ID && (c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN));
     const anyRequestedConfigured = (wantsIg && igConfigured) || (wantsFb && fbConfigured);
     if (!anyRequestedConfigured) {
@@ -1957,13 +2102,12 @@ app.get('/api/social/feed', async (c) => {
     // Fetch Instagram posts if requested
     if (platforms.includes('instagram')) {
       const igToken = c.env.IG_OEMBED_TOKEN;
-      if (igToken) {
+      const igUserId = getConfiguredInstagramUserId(c);
+      if (igToken && igUserId) {
         try {
-          // Get Instagram Business Account ID
-          const igUserId = c.req.query('ig_user_id') || '17841400000000000'; // Placeholder
-          const fields = 'id,media_type,media_url,thumbnail_url,permalink,caption,timestamp,like_count,comments_count';
+          const fields = PUBLIC_INSTAGRAM_MEDIA_FIELDS;
 
-          const graphUrl = new URL(`${graphBase(c.env)}/${igUserId || c.env.IG_USER_ID || 'me'}/media`);
+          const graphUrl = new URL(`${graphBase(c.env)}/${igUserId}/media`);
           graphUrl.searchParams.append('fields', fields);
           graphUrl.searchParams.append('limit', limit.toString());
           const response = await fetch(graphUrl.toString(), {
@@ -2014,9 +2158,16 @@ app.get('/api/social/feed', async (c) => {
               }
             }
           }
+          if (!response.ok) {
+            const error = await response.json().catch(() => null);
+            console.error('Instagram social feed API error:', error);
+            errors.push({ platform: 'instagram', error: sanitizePublicGraphError(error) });
+          }
         } catch (err) {
           errors.push({ platform: 'instagram', error: (err as Error).message });
         }
+      } else {
+        errors.push({ platform: 'instagram', error: 'Instagram Business account is not configured' });
       }
     }
 
@@ -2077,6 +2228,10 @@ app.get('/api/social/feed', async (c) => {
                 }
               }
             }
+          } else {
+            const error = await response.json().catch(() => null);
+            console.error('Facebook social feed API error:', error);
+            errors.push({ platform: 'facebook', error: sanitizePublicGraphError(error) });
           }
         } catch (err) {
           errors.push({ platform: 'facebook', error: (err as Error).message });
@@ -2107,11 +2262,14 @@ app.get('/api/social/feed', async (c) => {
         return typeof cents === 'number' ? Math.round(cents) / 100 : 39.99;
       };
 
-      const toTagged = (p: MedusaProduct) => ({
+      const toTagged = (p: MedusaProduct, index: number) => ({
         id: p.id,
         title: p.title,
         price: pickPrice(p),
-        url: p.handle ? `/products#${p.handle}` : '/products'
+        imageUrl: p.thumbnail || '',
+        productUrl: p.handle ? `/products#${p.handle}` : '/products',
+        x: index === 0 ? 35 : 65,
+        y: index === 0 ? 45 : 58
       });
 
   const shoppablePosts = posts.slice(0, Math.min(3, posts.length));
@@ -2123,7 +2281,7 @@ app.get('/api/social/feed', async (c) => {
       const chosen = (matched.length > 0 ? matched : medusaProducts).slice(0, 2);
       if (chosen.length > 0) {
         post.isShoppable = true;
-        post.products = chosen.map((p) => toTagged(p));
+        post.products = chosen.map((p, index) => toTagged(p, index));
       }
     }
   }
@@ -2160,9 +2318,16 @@ app.get('/api/instagram/insights', async (c) => {
   }
 
   try {
-    const igUserId = c.req.query('user_id') || c.env.IG_USER_ID || 'me';
-    const metrics = c.req.query('metrics') || 'impressions,reach,profile_views';
-    const period = c.req.query('period') || 'day';
+    const igUserId = getConfiguredInstagramUserId(c);
+    if (!igUserId) {
+      return c.json({
+        error: 'not_configured',
+        message: 'Instagram Business account ID is not configured'
+      }, 501);
+    }
+
+    const metrics = getPublicInstagramMetrics(c.req.query('metrics'));
+    const period = getPublicInstagramPeriod(c.req.query('period'));
 
     // Check cache
     const cacheKey = `ig_insights:${igUserId}:${metrics}:${period}`;
@@ -2180,17 +2345,16 @@ app.get('/api/instagram/insights', async (c) => {
   graphUrl.searchParams.append('metric', metrics);
   graphUrl.searchParams.append('period', period);
 
-  const response = await fetch(graphUrl.toString(), {
+    const response = await fetch(graphUrl.toString(), {
     headers: { Authorization: `Bearer ${igToken}` }
   });
     if (!response.ok) {
-      const error = await response.json() as { error: { message: string } };
+      const error = await response.json().catch(() => null);
       console.error('Instagram Insights API error:', error);
       return c.json({
         error: 'api_error',
-        message: error.error?.message || 'Failed to fetch Instagram insights',
-        details: error
-      }, 500);
+        message: sanitizePublicGraphError(error)
+      }, 502);
     }
 
     const data = await response.json() as { data: [] };
@@ -2218,6 +2382,9 @@ app.get('/api/instagram/insights', async (c) => {
 
 // Helper: get IG Business account id/username for the token
 app.get('/api/instagram/me', async (c) => {
+  const authError = await verifyAdminSignedRequest(c);
+  if (authError) return authError;
+
   const token = (await getAppAccessToken(c.env)) || c.env.IG_OEMBED_TOKEN;
   if (!token) return c.json({ error: 'not_configured', message: 'Missing FB_APP_ID/FB_APP_SECRET or IG_OEMBED_TOKEN' }, 501);
   try {
@@ -2237,6 +2404,9 @@ app.get('/api/instagram/me', async (c) => {
 // Resolve IG Business Account ID linked to a Facebook Page
 // Requires a Page Access Token with pages_show_list / pages_read_engagement
 app.get('/api/instagram/linked-account', async (c) => {
+  const authError = await verifyAdminSignedRequest(c);
+  if (authError) return authError;
+
   const pageId = c.req.query('page_id') || c.env.FB_PAGE_ID;
   const token = c.env.FB_PAGE_TOKEN || c.env.IG_OEMBED_TOKEN; // page token preferred
   if (!pageId || !token) {
@@ -2602,6 +2772,74 @@ app.get('/events/*', async (c) => {
   }
 });
 
+app.post('/api/facebook/data-deletion', async (c) => {
+  const appSecret = c.env.FB_APP_SECRET;
+  if (!appSecret) {
+    return c.json({ error: 'not_configured', message: 'FB_APP_SECRET is not configured' }, 501);
+  }
+
+  try {
+    const bodyText = await c.req.text();
+    const signedRequest = new URLSearchParams(bodyText).get('signed_request');
+    if (!signedRequest) {
+      return c.json({ error: 'signed_request_required' }, 400);
+    }
+
+    const payload = await verifyFacebookSignedRequest(signedRequest, appSecret);
+    if (!payload) {
+      return c.json({ error: 'invalid_signed_request' }, 400);
+    }
+
+    const userId = typeof payload.user_id === 'string' ? payload.user_id : 'unknown';
+    const issuedAt = typeof payload.issued_at === 'number' ? payload.issued_at : Date.now();
+    const confirmationCode = (await sha256Hex(`facebook-data-deletion:${userId}:${issuedAt}`)).slice(0, 32);
+    const statusUrl = new URL('/api/facebook/data-deletion/status', c.req.url);
+    statusUrl.searchParams.set('code', confirmationCode);
+
+    try {
+      await c.env.SESSIONS.put(
+        `facebook_data_deletion:${confirmationCode}`,
+        JSON.stringify({ status: 'completed', requestedAt: new Date().toISOString() }),
+        { expirationTtl: 60 * 60 * 24 * 90 }
+      );
+    } catch {
+      // Status URL still returns a completed response if KV is unavailable.
+    }
+
+    return c.json({
+      url: statusUrl.toString(),
+      confirmation_code: confirmationCode
+    });
+  } catch (error) {
+    console.error('facebook_data_deletion_error', error);
+    return c.json({ error: 'internal_error' }, 500);
+  }
+});
+
+app.get('/api/facebook/data-deletion/status', async (c) => {
+  const code = c.req.query('code');
+  if (!code || !/^[a-f0-9]{32}$/.test(code)) {
+    return c.json({ error: 'invalid_confirmation_code' }, 400);
+  }
+
+  let requestedAt: string | undefined;
+  try {
+    const stored = await c.env.SESSIONS.get(`facebook_data_deletion:${code}`);
+    if (stored) {
+      requestedAt = (JSON.parse(stored) as { requestedAt?: string }).requestedAt;
+    }
+  } catch {
+    // Ignore KV read errors; deletion is stateless because this app does not store Facebook user data.
+  }
+
+  return c.json({
+    confirmation_code: code,
+    status: 'completed',
+    requestedAt,
+    message: 'No Facebook user data is stored by this application.'
+  });
+});
+
 // Facebook Events proxy (Graph API) with graceful fallback
 app.get('/api/facebook/events', async (c) => {
   try {
@@ -2654,7 +2892,7 @@ app.get('/api/facebook/events', async (c) => {
     if (!fbRes.ok) {
       const error = await fbRes.json().catch(() => ({}));
       console.error('Facebook Events API error:', error);
-      return c.json({ error: 'facebook_api_error', details: error }, 502);
+      return c.json({ error: 'facebook_api_error', message: sanitizePublicGraphError(error) }, 502);
     }
 
     const payload = await fbRes.json() as { data?: FacebookEvent[] };

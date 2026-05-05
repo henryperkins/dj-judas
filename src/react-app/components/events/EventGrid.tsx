@@ -3,7 +3,7 @@ import EventCard from './EventCard';
 import EventCalendar from './EventCalendar';
 import { EventItem } from './EventTypes';
 import { LuCalendar, LuList } from 'react-icons/lu';
-import { isMobileDevice } from '../../utils/platformDetection';
+import { isMobileViewport } from '../../utils/platformDetection';
 
 interface EventsApiResponse {
   upcoming: EventItem[];
@@ -17,7 +17,7 @@ export default function EventGrid() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>(() => {
     const saved = localStorage.getItem('eventViewMode');
-    return (saved === 'calendar' && !isMobileDevice()) ? 'calendar' : 'list';
+    return (saved === 'calendar' && !isMobileViewport()) ? 'calendar' : 'list';
   });
 
   useEffect(() => {
@@ -71,15 +71,40 @@ export default function EventGrid() {
     localStorage.setItem('eventViewMode', mode);
   };
 
-  if (loading) return <div className="events-section"><p>Loading events…</p></div>;
-  if (error) return <div className="events-section"><p>{error}</p></div>;
+  if (loading) {
+    return (
+      <section id="events" className="events-section" aria-busy="true">
+        <div className="container">
+          <h2 className="section-title">Upcoming Events</h2>
+          <div className="empty-state">
+            <p className="empty-state__title">Loading events...</p>
+            <p className="empty-state__description">Checking the latest event schedule.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="events" className="events-section">
+        <div className="container">
+          <h2 className="section-title">Upcoming Events</h2>
+          <div className="empty-state">
+            <p className="empty-state__title">Events could not load</p>
+            <p className="empty-state__description">Please check back soon for the next date.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="events" className="events-section">
       <div className="container">
         <div className="events-header">
           <h2 className="section-title">Upcoming Events</h2>
-          {upcoming.length > 0 && !isMobileDevice() && (
+          {upcoming.length > 0 && !isMobileViewport() && (
             <div className="view-toggle">
               <button 
                 className={`btn ${viewMode === 'list' ? 'btn-secondary' : 'btn-ghost'}`}
@@ -100,7 +125,10 @@ export default function EventGrid() {
         </div>
         
         {upcoming.length === 0 ? (
-          <p>No upcoming events yet. Check back soon!</p>
+          <div className="empty-state">
+            <p className="empty-state__title">No upcoming events yet</p>
+            <p className="empty-state__description">Check back soon for the next date.</p>
+          </div>
         ) : viewMode === 'calendar' ? (
           <EventCalendar events={[...upcoming, ...past]} />
         ) : (

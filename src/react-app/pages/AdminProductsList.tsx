@@ -38,7 +38,7 @@ export default function AdminProductsList() {
     })
   }, [])
 
-  if (auth === null) return <div className="container section-py"><div className="text-muted">Checking session…</div></div>
+  if (auth === null) return <div className="container section-py"><div className="text-muted-foreground">Checking session…</div></div>
   if (!auth) { navigate('/admin/login'); return null }
 
   return (
@@ -58,7 +58,7 @@ export default function AdminProductsList() {
             {p.thumbnail && <img src={p.thumbnail} alt={p.title} className="product-card__image" />}
             <div className="product-card__content">
               <h3 className="product-card__title">{p.title}</h3>
-              <div className="text-muted text-sm mb-2">{p.handle || p.id}</div>
+              <div className="text-muted-foreground text-sm mb-2">{p.handle || p.id}</div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => navigate(`/admin/products/${p.id}`)}>Edit</Button>
                 <span className="badge">{p.status}</span>

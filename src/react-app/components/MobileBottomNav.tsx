@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, KeyboardEvent, useCallback } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart, LuUsers } from 'react-icons/lu';
 import { navigate } from '../utils/nav';
-import { isMobileDevice } from '@/react-app/utils/platformDetection';
+import { isMobileViewport } from '@/react-app/utils/platformDetection';
 
 
 export interface NavItem {
@@ -34,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'listen',
     icon: LuMusic,
     label: 'Listen',
+    sectionId: 'media',
     action: () => { } // Will be overridden by onPlatformLauncherOpen
   },
   {
@@ -58,6 +59,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'book',
     icon: LuTicket,
     label: 'Book',
+    sectionId: 'booking',
     action: () => navigate('/book')
   }
 ];
@@ -71,14 +73,15 @@ export function MobileBottomNav({
 }: MobileBottomNavProps) {
   const [currentActive, setCurrentActive] = useState(activeItem);
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobile, setIsMobile] = useState(() => isMobileDevice());
+  const [isMobile, setIsMobile] = useState(() => isMobileViewport());
   const listRef = useRef<HTMLUListElement | null>(null);
+  const lastScrollYRef = useRef(0);
+  const scrollEndTimerRef = useRef<number | null>(null);
 
   const navItems = customItems || NAV_ITEMS;
 
   const checkMobile = useCallback(() => {
-    const mobile = isMobileDevice();
+    const mobile = isMobileViewport();
     setIsMobile(mobile);
     setIsVisible(mobile || showOnDesktop);
   }, [showOnDesktop]);
@@ -96,18 +99,27 @@ export function MobileBottomNav({
       const currentScrollY = window.scrollY;
 
       // Hide on scroll down, show on scroll up
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+      if (currentScrollY > lastScrollYRef.current && currentScrollY > 100) {
         setIsVisible(false);
       } else {
         setIsVisible(true);
       }
 
-      setLastScrollY(currentScrollY);
+      lastScrollYRef.current = currentScrollY;
+      if (scrollEndTimerRef.current) {
+        window.clearTimeout(scrollEndTimerRef.current);
+      }
+      scrollEndTimerRef.current = window.setTimeout(() => setIsVisible(true), 250);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY, isMobile, showOnDesktop]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollEndTimerRef.current) {
+        window.clearTimeout(scrollEndTimerRef.current);
+      }
+    };
+  }, [isMobile, showOnDesktop]);
 
   useEffect(() => {
     // Resolve active nav item by explicit sectionId mapping

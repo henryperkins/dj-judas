@@ -3,6 +3,14 @@ export type AnalyticsPayload = Record<string, unknown>;
 interface WindowWithAnalytics extends Window {
   gtag?: (...args: unknown[]) => void;
   fbq?: (...args: unknown[]) => void;
+  __metaPixelConsentGranted?: boolean;
+}
+
+function getMetaPixel(win: WindowWithAnalytics): ((...args: unknown[]) => void) | null {
+  if (win.__metaPixelConsentGranted !== true) {
+    return null;
+  }
+  return win.fbq || null;
 }
 
 export function track(event: string, data?: AnalyticsPayload) {
@@ -12,17 +20,18 @@ export function track(event: string, data?: AnalyticsPayload) {
     win.gtag('event', event, data || {});
   }
   // Meta Pixel (custom)
-  if (typeof window !== 'undefined' && win.fbq) {
-    win.fbq('trackCustom', event, data || {});
+  const fbq = typeof window !== 'undefined' ? getMetaPixel(win) : null;
+  if (fbq) {
+    fbq('trackCustom', event, data || {});
   }
 }
 
 export function trackStandard(event: string, data?: AnalyticsPayload) {
   const win = window as unknown as WindowWithAnalytics;
-  if (typeof window !== 'undefined' && win.fbq) {
-    win.fbq('track', event, data || {});
+  const fbq = typeof window !== 'undefined' ? getMetaPixel(win) : null;
+  if (fbq) {
+    fbq('track', event, data || {});
   }
   // mirror to GA as a custom event
   track(event, data);
 }
-

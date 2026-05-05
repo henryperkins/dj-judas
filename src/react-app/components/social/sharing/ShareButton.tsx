@@ -56,13 +56,16 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       buildUrl: (base) =>
         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
           utm(base, 'facebook')
-        )}`,
+        )}&quote=${encodeURIComponent(shareText)}`,
       onClick: async (base) => {
-        await shareWithTracking({
+        const result = await shareWithTracking({
           url: utm(base, 'facebook'),
           quote: shareText,
           source: utmSource
         });
+        if (result !== 'launched') {
+          throw new Error(`facebook_sdk_${result}`);
+        }
       }
     },
     {

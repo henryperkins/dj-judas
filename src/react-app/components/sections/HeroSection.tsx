@@ -45,15 +45,19 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
         <div className="hero-overlay"></div>
       </div>
       <div className="hero-content">
-        <motion.img
-          src={logoImage}
-          alt="DJ Lee & Voices of Judah"
-          style={{ maxWidth: '250px', marginBottom: '1.5rem', display: 'block', margin: '0 auto 1.5rem' }}
+        <motion.div
+          className="hero-logo-frame"
           initial={imageVariants.initial}
           animate={imageVariants.animate}
           transition={{ delay: isInitialLoad ? 0 : 0.1, duration: isInitialLoad ? 0 : 0.8 }}
-          fetchPriority="high"
-        />
+        >
+          <img
+            src={logoImage}
+            alt="DJ Lee & Voices of Judah"
+            className="hero-logo"
+            fetchPriority="high"
+          />
+        </motion.div>
         <motion.h1
           id="hero-heading"
           className="hero-title"

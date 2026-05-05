@@ -259,7 +259,7 @@ const PhotoGallery: React.FC = () => {
                 className="object-cover w-full h-full"
               />
               <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/50 to-transparent p-2">
-                <p className="text-xs text-white line-clamp-2 bg-black/80 px-2 py-1 rounded">{photo.caption}</p>
+                <p className="text-xs text-white line-clamp-2 bg-black px-2 py-1 rounded">{photo.caption}</p>
               </div>
             </motion.button>
           ))}
@@ -287,7 +287,7 @@ const PhotoGallery: React.FC = () => {
 
             {selectedPhoto && (
               <motion.div
-                className="relative flex items-center gap-3 select-none"
+                className="relative flex max-w-[calc(100vw-2rem)] items-center gap-2 select-none sm:gap-3"
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.2}
@@ -313,7 +313,7 @@ const PhotoGallery: React.FC = () => {
                   height={600}
                   alt={selectedPhoto.alt}
                   decoding="async"
-                  className="max-h-[90vh] object-contain"
+                  className="max-h-[82vh] max-w-[calc(100vw-7rem)] object-contain sm:max-h-[90vh] sm:max-w-[calc(100vw-10rem)]"
                 />
 
                 {/* Next button */}

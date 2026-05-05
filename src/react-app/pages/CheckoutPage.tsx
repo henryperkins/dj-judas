@@ -312,7 +312,7 @@ export default function CheckoutPage() {
             <div key={promo.id} className="text-sm text-success flex items-center justify-between">
               <span>
                 {promo.code || 'Auto-applied'}
-                {promo.is_automatic && <span className="text-muted ml-1">(automatic)</span>}
+                {promo.is_automatic && <span className="text-muted-foreground ml-1">(automatic)</span>}
               </span>
               {promo.application_method && (
                 <span className="text-xs">
@@ -363,7 +363,7 @@ export default function CheckoutPage() {
     <div className="checkout-footer">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-muted" style={{ fontSize: '0.875rem' }}>Total</div>
+          <div className="text-muted-foreground" style={{ fontSize: '0.875rem' }}>Total</div>
           <div style={{ fontWeight: 700 }}>{formatAmount(cart?.total ?? 0, cart?.region?.currency_code || 'usd')}</div>
         </div>
         <Button className={busy ? 'btn-loading' : undefined} onClick={completeMedusa} disabled={!cartId || busy || !cart?.items?.length} aria-busy={busy}>{!busy ? (cart?.items?.length ? 'Pay Now' : 'Cart Empty') : ''}</Button>

@@ -141,9 +141,9 @@ export default function AdminEditProduct(props: { id: string }) {
     setBusy(false)
   }
 
-  if (auth === null) return <div className="container section-py"><div className="text-muted">Checking session…</div></div>
+  if (auth === null) return <div className="container section-py"><div className="text-muted-foreground">Checking session…</div></div>
   if (!auth) { navigate('/admin/login'); return null }
-  if (!p) return <div className="container section-py"><div className="text-muted">Loading product…</div></div>
+  if (!p) return <div className="container section-py"><div className="text-muted-foreground">Loading product…</div></div>
 
   return (
     <div className="container section-py admin-compact" style={{ maxWidth: 900 }}>
@@ -183,7 +183,7 @@ export default function AdminEditProduct(props: { id: string }) {
           <h2 className="checkout-section__title">Variants</h2>
           <Button size="sm" onClick={addVariant} disabled={busy}>Add Variant</Button>
         </div>
-        {!p.variants?.length ? <div className="text-muted">No variants</div> : (
+        {!p.variants?.length ? <div className="text-muted-foreground">No variants</div> : (
           <div className="stack">
             {p.variants!.map(v => (
               <div className="card" key={v.id} style={{ padding: 12 }}>
@@ -218,7 +218,7 @@ export default function AdminEditProduct(props: { id: string }) {
       <section className="checkout-section" style={{ marginTop: 16 }}>
         <h2 className="checkout-section__title">Images</h2>
         <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-          <div className="text-sm text-muted" style={{ marginBottom: 6 }}>Add image from URL (stored on R2, then attached to this product)</div>
+          <div className="text-sm text-muted-foreground" style={{ marginBottom: 6 }}>Add image from URL (stored on R2, then attached to this product)</div>
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             <input className="form-input" style={{ minWidth: 280 }} placeholder="https://.../image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
             <input className="form-input" style={{ width: 160 }} placeholder="path (optional)" value={imagePath} onChange={e => setImagePath(e.target.value)} />
@@ -233,11 +233,11 @@ export default function AdminEditProduct(props: { id: string }) {
           >
             <div className="flex items-center gap-3">
               <input type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
-              <span className="text-muted">Drag & drop or click to upload</span>
+              <span className="text-muted-foreground">Drag & drop or click to upload</span>
             </div>
           </div>
         </div>
-        <div className="text-muted" style={{ marginBottom: 6 }}>Current images (click Set thumbnail to pick):</div>
+        <div className="text-muted-foreground" style={{ marginBottom: 6 }}>Current images (click Set thumbnail to pick):</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
           {(p.images || []).map((url, idx) => (
             <div key={idx} className="card" style={{ padding: 8 }}>
@@ -257,7 +257,7 @@ export default function AdminEditProduct(props: { id: string }) {
         </div>
         {newImages.length > 0 && (
           <>
-            <div className="text-muted" style={{ margin: '8px 0 6px' }}>New uploads (click “Save” to add to product):</div>
+            <div className="text-muted-foreground" style={{ margin: '8px 0 6px' }}>New uploads (click “Save” to add to product):</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {newImages.map((img, idx) => (
                 <div key={idx} className="card" style={{ padding: 8 }}>

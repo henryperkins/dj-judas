@@ -19,7 +19,7 @@ export default function SuccessPage() {
         </svg>
         <div>
           <h1 className="text-2xl font-bold mb-1">Thank you for your order!</h1>
-          <p className="text-muted">Your order was received and is being processed.</p>
+          <p className="text-muted-foreground">Your order was received and is being processed.</p>
         </div>
       </div>
 

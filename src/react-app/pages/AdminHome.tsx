@@ -23,7 +23,7 @@ export default function AdminHome() {
     navigate('/admin/login')
   }
 
-  if (auth === null) return <div className="container section-py"><div className="text-muted">Checking session…</div></div>
+  if (auth === null) return <div className="container section-py"><div className="text-muted-foreground">Checking session…</div></div>
   if (!auth) {
     navigate('/admin/login')
     return null
@@ -44,7 +44,7 @@ export default function AdminHome() {
       <section className="checkout-section" style={{ marginTop: 20 }}>
         <h2 className="checkout-section__title">Events</h2>
         <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-          <div className="text-sm text-muted" style={{ marginBottom: 6 }}>Update flyer for an event (uploads to R2 and updates D1)</div>
+          <div className="text-sm text-muted-foreground" style={{ marginBottom: 6 }}>Update flyer for an event (uploads to R2 and updates D1)</div>
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             <input className="form-input" style={{ width: 200 }} placeholder="slug" value={slug} onChange={e => setSlug(e.target.value)} />
             <input className="form-input" style={{ minWidth: 320 }} placeholder="https://.../flyer.jpg" value={flyerUrl} onChange={e => setFlyerUrl(e.target.value)} />
@@ -61,7 +61,7 @@ export default function AdminHome() {
         </div>
 
         <div className="card" style={{ padding: 12 }}>
-          <div className="text-sm text-muted" style={{ marginBottom: 6 }}>Import events (paste JSON array). Optional: upload flyers to R2 and replace existing.</div>
+          <div className="text-sm text-muted-foreground" style={{ marginBottom: 6 }}>Import events (paste JSON array). Optional: upload flyers to R2 and replace existing.</div>
           <textarea className="form-input" style={{ width: '100%', minHeight: 120, marginBottom: 8 }} placeholder='[ { "id": "...", "slug": "...", "title": "...", "startDateTime": "2026-..." } ]' value={importJson} onChange={e => setImportJson(e.target.value)} />
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
             <Button variant="outline" size="sm" disabled={importBusy} onClick={async () => {
@@ -82,7 +82,7 @@ export default function AdminHome() {
                 setImportBusy(false)
               }
             }}>Import & Upload Flyers</Button>
-            {msg && <span className="text-sm text-muted">{msg}</span>}
+            {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
           </div>
         </div>
       </section>

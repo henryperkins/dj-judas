@@ -11,10 +11,16 @@ export async function initMeta() {
 
 export function pageView() {
   try {
-    const win = window as unknown as { fbq?: (...args: unknown[]) => void };
-    win.fbq?.('track', 'PageView');
+    metaSDK.trackPageView();
   } catch {
     // ignore
   }
 }
 
+export function grantMetaConsent() {
+  metaSDK.grantPixelConsent();
+}
+
+export function revokeMetaConsent() {
+  metaSDK.revokePixelConsent();
+}

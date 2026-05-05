@@ -1,9 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { waitForNetworkIdle } from './helpers/test-helpers';
 
 const FUTURE_EVENT_ISO = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
 test.describe('Social / Sharing Regressions', () => {
+  test('CSP allows streaming and universal embed origins', async () => {
+    const workerSource = readFileSync('src/worker/index.ts', 'utf8');
+
+    expect(workerSource).toContain('https://open.spotify.com');
+    expect(workerSource).toContain('https://platform.twitter.com');
+    expect(workerSource).toContain('https://www.tiktok.com');
+    expect(workerSource).toContain('https://www.youtube.com');
+  });
+
   test('renders dynamic social feed when hashtags are empty', async ({ page }) => {
     let feedRequested = false;
     let hashtagsParam: string | null = null;
@@ -48,6 +58,74 @@ test.describe('Social / Sharing Regressions', () => {
 
     await expect(page.locator('.dynamic-social-feed')).toBeVisible();
     await expect(page.locator('.social-post-card').first()).toBeVisible();
+  });
+
+  test('renders shoppable product tags from social feed contract', async ({ page }) => {
+    await page.route('**/api/social/feed**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          posts: [
+            {
+              id: 'ig_shop_1',
+              platform: 'instagram',
+              type: 'photo',
+              mediaUrl: 'https://example.com/test-image.jpg',
+              caption: 'Shop this look',
+              permalink: 'https://www.instagram.com/p/shop-test',
+              timestamp: FUTURE_EVENT_ISO,
+              likes: 20,
+              comments: 5,
+              shares: 0,
+              isShoppable: true,
+              products: [
+                {
+                  id: 'prod_1',
+                  title: 'Tour Tee',
+                  price: 29.99,
+                  imageUrl: 'https://example.com/product.jpg',
+                  productUrl: '/products#tour-tee',
+                  x: 35,
+                  y: 45,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const tag = page.getByRole('button', { name: /View Tour Tee for \$29.99/i }).first();
+    await expect(tag).toBeVisible();
+  });
+
+  test('falls back to Facebook sharer when SDK sharing is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'FB', {
+        configurable: true,
+        value: undefined,
+      });
+    });
+
+    await page.route('**/connect.facebook.net/en_US/sdk.js', async (route) => {
+      await route.abort();
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const panel = page.locator('.creator-media-panel');
+    await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: /^Share$/ }).click();
+    await expect(panel.getByRole('button', { name: 'Share on Facebook' })).toBeVisible();
+
+    const popupPromise = page.waitForEvent('popup');
+    await panel.getByRole('button', { name: 'Share on Facebook' }).click();
+    const popup = await popupPromise;
+
+    expect(popup.url()).toContain('facebook.com/sharer/sharer.php');
   });
 
   test('shows clipboard error feedback for Spotify share when copy fails', async ({ page, isMobile }) => {

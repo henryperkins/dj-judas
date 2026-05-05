@@ -28,7 +28,6 @@ app.use('*', async (c, next) => {
     c.header('Link', [
       '</index.css>; rel=preload; as=style',
       '</assets/logo-7ACBzA0r.jpeg>; rel=preload; as=image',
-      'https://sdk.scdn.co; rel=preconnect',
       'https://js-cdn.music.apple.com; rel=preconnect'
     ].join(', '));
   }
@@ -38,7 +37,7 @@ app.use('*', async (c, next) => {
 // CSP - XSS protection while allowing streaming embeds
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://sdk.scdn.co https://js-cdn.music.apple.com",
+  "script-src 'self' 'unsafe-inline' https://open.spotify.com https://js-cdn.music.apple.com",
   "frame-src https://open.spotify.com https://embed.music.apple.com",
   "upgrade-insecure-requests"
 ].join('; ');
@@ -597,11 +596,12 @@ See `docs/PHASE1_TESTING.md` for detailed test procedures.
 
 ## Backend APIs
 
-- Spotify PKCE: `/api/spotify/login|callback|session|save|follow`
+- Spotify: artist metrics use Client Credentials through `/api/social/metrics`; PKCE login/save/follow endpoints are not implemented in this Worker.
 - Apple Music developer token: `/api/apple/developer-token`
 - Email (Resend preferred, SendGrid fallback): `/api/booking`
 - Stripe Checkout (optional): `/api/stripe/checkout`, `/api/stripe/webhook`
 - Instagram oEmbed proxy: `/api/instagram/oembed`
+- Facebook data deletion callback: `POST /api/facebook/data-deletion`
 - Medusa Admin proxies: see "Admin Product Management".
 - Cloudflare Images: `/api/images/*`; AI suggest: `/api/ai/suggest-product`.
 - Events + ICS feed: `/api/events`, `/events.ics`, `/events/:slug.ics`

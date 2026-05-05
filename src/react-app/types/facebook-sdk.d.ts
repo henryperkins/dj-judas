@@ -22,6 +22,7 @@ declare global {
     // Meta Pixel
     fbq?: (...args: unknown[]) => void;
     _fbq?: unknown;
+    __metaPixelConsentGranted?: boolean;
 
     // Google Analytics gtag
     gtag?: (...args: unknown[]) => void;

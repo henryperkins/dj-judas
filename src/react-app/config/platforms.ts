@@ -3,6 +3,8 @@
  * Consolidates all platform IDs, URLs, and settings in one place
  */
 
+const META_GRAPH_VERSION = import.meta.env.VITE_FACEBOOK_GRAPH_VERSION || import.meta.env.VITE_FACEBOOK_SDK_VERSION || 'v22.0';
+
 // Platform IDs and core configuration
 export const PLATFORM_CONFIG = {
   spotify: {
@@ -17,7 +19,8 @@ export const PLATFORM_CONFIG = {
   appleMusic: {
     name: 'Apple Music',
     color: '#FC3C44',
-    artistId: '1540816224', // DJ Lee & Voices of Judah Apple Music ID
+    artistId: import.meta.env.VITE_APPLE_MUSIC_ARTIST_ID || '18270857',
+    artistSlug: import.meta.env.VITE_APPLE_MUSIC_ARTIST_SLUG || 'dj-lee',
     deepLinkPrefix: 'music://music.apple.com/artist/',
     webLinkPrefix: 'https://music.apple.com/us/artist/',
     embedBaseUrl: 'https://embed.music.apple.com/',
@@ -32,7 +35,7 @@ export const PLATFORM_CONFIG = {
     pageId: import.meta.env.VITE_FACEBOOK_PAGE || 'MidWestScreamers',
     deepLinkPrefix: 'fb://page/',
     webLinkPrefix: 'https://www.facebook.com/',
-    oembedEndpoint: 'https://graph.facebook.com/v18.0/oembed_page',
+    oembedEndpoint: `https://graph.facebook.com/${META_GRAPH_VERSION}/oembed_page`,
   },
   instagram: {
     name: 'Instagram',
@@ -194,7 +197,7 @@ export function getPlatformWebLink(platformId: keyof typeof PLATFORM_CONFIG): st
     }
     case 'appleMusic': {
       const p = PLATFORM_CONFIG.appleMusic;
-      return `${p.webLinkPrefix}djlee/${p.artistId}`;
+      return `${p.webLinkPrefix}${p.artistSlug}/${p.artistId}`;
     }
     case 'facebook': {
       const p = PLATFORM_CONFIG.facebook;

@@ -11,9 +11,10 @@ const CreatorMediaPanel = lazy(() => import('./CreatorMediaPanel'));
 const FeaturedProducts = lazy(() => import('./FeaturedProducts'));
 const NextEventBanner = lazy(() => import('./events/NextEventBanner'));
 const DynamicSocialFeed = lazy(() => import('./social/feeds/DynamicSocialFeed'));
-const FacebookEvents = lazy(() => import('./social/feeds/FacebookEvents'));
-import { isMobileDevice } from '../utils/platformDetection';
+const EventGrid = lazy(() => import('./events/EventGrid'));
+import { isMobileViewport } from '../utils/platformDetection';
 import { navigate } from '../utils/nav';
+import { getPlatformWebLink } from '../config/platforms';
 import logoImage from '../assets/images/logo.jpeg';
 import { Button } from '@/components/ui/button';
 
@@ -31,10 +32,12 @@ const LoadingFallback = () => (
 const EnhancedLandingPageV2: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const [socialFeedAvailable, setSocialFeedAvailable] = useState<boolean | null>(null);
+  const appleMusicArtistUrl = getPlatformWebLink('appleMusic');
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(isMobileDevice());
+      setIsMobile(isMobileViewport());
     };
 
     checkMobile();
@@ -44,31 +47,53 @@ const EnhancedLandingPageV2: React.FC = () => {
 
   // Track active section for mobile nav
   useEffect(() => {
-    // Include 'events' so the Events section can be highlighted/navigated to
-    // Use 'media' instead of legacy 'music'
-    const sections = ['home', 'about', 'media', 'events', 'gallery', 'services', 'booking'];
-    const observers = new Map<string, IntersectionObserver>();
+    const sections = ['home', 'events', 'media', 'social', 'gallery', 'services', 'booking'];
+    let frame: number | null = null;
 
-    sections.forEach(id => {
-      const element = document.getElementById(id);
-      if (element) {
-        const observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-                setActiveSection(id);
-              }
-            });
-          },
-          { threshold: [0.5] }
-        );
-        observer.observe(element);
-        observers.set(id, observer);
+    const updateActiveSection = () => {
+      frame = null;
+      const anchor = window.innerHeight * 0.5;
+      let best: { id: string; distance: number } | null = null;
+
+      for (const id of sections) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+
+        const rect = element.getBoundingClientRect();
+        if (rect.height <= 0 || rect.bottom < 0 || rect.top > window.innerHeight) continue;
+
+        const distance = rect.top <= anchor && rect.bottom >= anchor
+          ? 0
+          : Math.min(Math.abs(rect.top - anchor), Math.abs(rect.bottom - anchor));
+
+        if (!best || distance < best.distance) {
+          best = { id, distance };
+        }
       }
-    });
+
+      if (best) {
+        setActiveSection(best.id);
+      }
+    };
+
+    const scheduleUpdate = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(updateActiveSection);
+    };
+
+    scheduleUpdate();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    const mutationObserver = new MutationObserver(scheduleUpdate);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      observers.forEach(observer => observer.disconnect());
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      mutationObserver.disconnect();
     };
   }, []);
 
@@ -96,25 +121,9 @@ const EnhancedLandingPageV2: React.FC = () => {
         </Suspense>
 
         {/* Events Section first for quick access */}
-        <section id="events" className="events-section">
-          <div className="container">
-            <h2 className="section-title">Upcoming Events</h2>
-            
-            {/* Facebook Events Integration */}
-            <div className="facebook-events-wrapper">
-              <Suspense fallback={<LoadingFallback />}>
-                <FacebookEvents 
-                  layout="grid"
-                  limit={3}
-                  showPastEvents={false}
-                  autoRefresh={true}
-                  refreshInterval={1800}
-                />
-              </Suspense>
-            </div>
-            
-          </div>
-        </section>
+        <Suspense fallback={<LoadingFallback />}>
+          <EventGrid />
+        </Suspense>
 
         {/* Stats Section moved below events */}
         <StatsSection />
@@ -141,7 +150,7 @@ const EnhancedLandingPageV2: React.FC = () => {
               tagline="Gospel Ministry from Gary, Indiana • Established 2008"
               // Actual music content
               spotifyUrl="https://open.spotify.com/embed/artist/5WICYLl8MXvOY2x3mkoSqK" // DJ Lee & Voices of Judah artist page
-              appleMusicUrl="https://music.apple.com/us/artist/dj-lee/18270857"
+              appleMusicUrl={appleMusicArtistUrl}
               // Social media - actual verified accounts
               facebookPageUrl="https://www.facebook.com/MidWestScreamers/"
               // Sample public video for demo purposes
@@ -170,9 +179,19 @@ const EnhancedLandingPageV2: React.FC = () => {
                   enableShoppable={true}
                   autoRefresh={true}
                   refreshInterval={300}
+                  onAvailabilityChange={setSocialFeedAvailable}
                 />
               </Suspense>
             </div>
+
+            {socialFeedAvailable === false && (
+              <div className="social-fallback">
+                <p className="social-fallback__title">Instagram updates are available off-site.</p>
+                <p className="social-fallback__description">
+                  Follow the ministry for new photos, reels, and announcements.
+                </p>
+              </div>
+            )}
             
             {/* Follow CTA */}
             <div className="social-cta">

@@ -70,14 +70,13 @@ Client (Vite-exposed):
 - `VITE_FACEBOOK_APP_ID`
 - `VITE_FACEBOOK_PIXEL_ID`
 - `VITE_SPOTIFY_ARTIST_ID` (optional)
+- `VITE_META_CONSENT_DEFAULT_REVOKE` (defaults to `true`; call the Meta consent helpers before Pixel tracking)
 
 Endpoints:
-- Spotify PKCE: `/api/spotify/login` → `/api/spotify/callback` (sets `spotify_session` cookie)
-- Session check: `/api/spotify/session`
-- Save track: `POST /api/spotify/save` { ids: string[], type: 'tracks'|'albums' }
-- Follow artist: `POST /api/spotify/follow` { artistIds: string[] }
+- Spotify artist metrics: `GET /api/social/metrics` (Client Credentials; no PKCE endpoints are implemented)
 - Apple developer token: `GET /api/apple/developer-token`
 - Aggregated metrics: `GET /api/metrics`
+- Facebook data deletion callback: `POST /api/facebook/data-deletion`
 
 Notes:
 - Never expose Apple private key or Spotify secrets to the client; this template uses PKCE (no client secret) and server-side token minting for Apple.

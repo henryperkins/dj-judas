@@ -124,36 +124,10 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
   const loadSpotifySDK = useCallback(() => {
     if (isLoaded.spotify) return;
 
-    return new Promise<void>((resolve) => {
-      if (!mergedConfig.spotify?.clientId) {
-        console.warn('Spotify client ID not configured');
-        resolve();
-        return;
-      }
-
-      if (document.getElementById('spotify-player-js')) {
-        setIsLoaded(prev => ({ ...prev, spotify: true }));
-        resolve();
-        return;
-      }
-
-      window.onSpotifyWebPlaybackSDKReady = () => {
-        setIsLoaded(prev => ({ ...prev, spotify: true }));
-        socialMetrics.trackSDKLoad('spotify');
-        resolve();
-      };
-
-      const script = document.createElement('script');
-      script.id = 'spotify-player-js';
-      script.src = 'https://sdk.scdn.co/spotify-player.js';
-      script.async = true;
-      script.onerror = () => {
-        console.error('Failed to load Spotify SDK');
-        resolve();
-      };
-      document.body.appendChild(script);
-    });
-  }, [isLoaded.spotify, mergedConfig.spotify]);
+    setIsLoaded(prev => ({ ...prev, spotify: true }));
+    socialMetrics.trackSDKLoad('spotify');
+    return Promise.resolve();
+  }, [isLoaded.spotify]);
 
   const loadSDK = useCallback(async (platform: keyof SocialSDKState) => {
     switch (platform) {
@@ -192,14 +166,10 @@ export const SocialProvider: React.FC<{ children: ReactNode; config?: SocialSDKC
     </SocialProviderContext.Provider>
   );
 };
-
-
-
 declare global {
   interface Window {
     MusicKit?: {
       configure: (config: Record<string, unknown>) => void;
     };
-    onSpotifyWebPlaybackSDKReady?: () => void;
   }
 }

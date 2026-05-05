@@ -41,7 +41,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="container section-py">
-        <div className="text-center text-muted">Loading products...</div>
+        <div className="text-center text-muted-foreground">Loading products...</div>
       </div>
     )
   }
@@ -55,7 +55,10 @@ export default function ProductsPage() {
       <h1 className="section-title">Products</h1>
       
       {products.length === 0 ? (
-        <p className="text-center text-muted">No products available</p>
+        <div className="empty-state">
+          <p className="empty-state__title">No products available</p>
+          <p className="empty-state__description">Merch and music will appear here when the store is ready.</p>
+        </div>
       ) : (
         <div className="product-grid">
           {products.map(product => (
@@ -70,7 +73,7 @@ export default function ProductsPage() {
               <div className="product-card__content">
                 <h3 className="product-card__title">{product.title}</h3>
                 {product.description && (
-                  <p className="text-muted text-sm mb-2">
+                  <p className="text-muted-foreground text-sm mb-2">
                     {product.description.slice(0, 100)}
                     {product.description.length > 100 && '...'}
                   </p>

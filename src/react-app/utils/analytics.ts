@@ -39,7 +39,7 @@ class Analytics {
 
     // Wait for providers to be available
     const checkProviders = () => {
-      if (window.gtag || window.fbq) {
+      if (window.gtag || this.getMetaPixel()) {
         this.initialized = true;
         this.log('Analytics providers initialized');
       }
@@ -56,6 +56,13 @@ class Analytics {
     if (this.debug) {
       console.log('[Analytics]', ...args);
     }
+  }
+
+  private getMetaPixel(): ((...args: unknown[]) => void) | null {
+    if (typeof window === 'undefined' || window.__metaPixelConsentGranted !== true) {
+      return null;
+    }
+    return window.fbq || null;
   }
 
   /**
@@ -76,7 +83,8 @@ class Analytics {
     }
 
     // Facebook Pixel - Convert to appropriate FB event
-    if (typeof window !== 'undefined' && window.fbq) {
+    const fbq = this.getMetaPixel();
+    if (fbq) {
       // Map common events to Facebook standard events
       const fbEventMap: Record<string, string> = {
         'page_view': 'PageView',
@@ -91,7 +99,7 @@ class Analytics {
       const fbMethod = fbEventMap[action] ? 'track' : 'trackCustom';
       const fbEventName = fbEventMap[action] || action;
 
-      window.fbq(fbMethod, fbEventName, {
+      fbq(fbMethod, fbEventName, {
         category,
         label,
         value,
@@ -116,8 +124,9 @@ class Analytics {
       this.log('Page View:', pageData);
     }
 
-    if (window.fbq) {
-      window.fbq('track', 'PageView');
+    const fbq = this.getMetaPixel();
+    if (fbq) {
+      fbq('track', 'PageView');
     }
   }
 
@@ -136,8 +145,9 @@ class Analytics {
       });
     }
 
-    if (window.fbq) {
-      window.fbq('trackCustom', 'Error', {
+    const fbq = this.getMetaPixel();
+    if (fbq) {
+      fbq('trackCustom', 'Error', {
         message: err.message,
         fatal,
         stack: err.stack,
@@ -174,8 +184,9 @@ class Analytics {
     });
 
     // Special Facebook Pixel event for music platforms
-    if (window.fbq) {
-      window.fbq('trackCustom', 'MusicPlatformClick', {
+    const fbq = this.getMetaPixel();
+    if (fbq) {
+      fbq('trackCustom', 'MusicPlatformClick', {
         platform,
         action,
         value: (platform === 'spotify' || platform === 'apple' || platform === 'appleMusic') ? 1.0 : 0.5,
@@ -209,7 +220,8 @@ class Analytics {
       }
 
       // Facebook Pixel Ecommerce
-      if (window.fbq) {
+      const fbq = this.getMetaPixel();
+      if (fbq) {
         const fbEvents: Record<string, string> = {
           'view_item': 'ViewContent',
           'add_to_cart': 'AddToCart',
@@ -217,7 +229,7 @@ class Analytics {
           'purchase': 'Purchase'
         };
 
-        window.fbq('track', fbEvents[action] || action, {
+        fbq('track', fbEvents[action] || action, {
           currency: data.currency || 'USD',
           value: data.value,
           content_ids: (data.items as Array<{ id: string }> | undefined)?.map((i) => i.id),
@@ -243,8 +255,9 @@ class Analytics {
       window.gtag('event', eventName, parameters);
     }
 
-    if (window.fbq) {
-      window.fbq('trackCustom', eventName, parameters);
+    const fbq = this.getMetaPixel();
+    if (fbq) {
+      fbq('trackCustom', eventName, parameters);
     }
 
     this.log('Custom Event:', eventName, parameters);

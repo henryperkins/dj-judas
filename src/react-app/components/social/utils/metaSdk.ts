@@ -14,14 +14,15 @@ class MetaSDKLoader {
   private fbLoadingPromise: Promise<void> | null = null;
   private igLoaded = false;
   private pixelLoaded = false;
+  private pixelConsentGranted = false;
   private config: MetaSDKConfig;
 
   private constructor(config: MetaSDKConfig = {}) {
     // Allow env-provided defaults (Vite exposes import.meta.env)
-  const envAppId = import.meta.env?.VITE_FACEBOOK_APP_ID;
-  const envPixelId = import.meta.env?.VITE_FACEBOOK_PIXEL_ID;
-  const envSdkVersion = import.meta.env?.VITE_FACEBOOK_SDK_VERSION as string | undefined;
-  const consentRevoke = (import.meta.env?.VITE_META_CONSENT_DEFAULT_REVOKE as string | undefined) === 'true';
+	  const envAppId = import.meta.env?.VITE_FACEBOOK_APP_ID;
+	  const envPixelId = import.meta.env?.VITE_FACEBOOK_PIXEL_ID;
+	  const envSdkVersion = import.meta.env?.VITE_FACEBOOK_SDK_VERSION as string | undefined;
+	  const consentDefaultRevoke = (import.meta.env?.VITE_META_CONSENT_DEFAULT_REVOKE as string | undefined) !== 'false';
     this.config = {
       version: envSdkVersion || 'v22.0',
       enableAnalytics: true,
@@ -29,8 +30,10 @@ class MetaSDKLoader {
       pixelId: envPixelId || config.pixelId,
       ...config
     };
-    // Store consent revoke flag using type assertion to avoid explicit any
-    (this as MetaSDKLoader & { _consentRevoke?: boolean })._consentRevoke = consentRevoke;
+    this.pixelConsentGranted = !consentDefaultRevoke;
+    if (typeof window !== 'undefined') {
+      window.__metaPixelConsentGranted = this.pixelConsentGranted;
+    }
   }
 
   static getInstance(config?: MetaSDKConfig): MetaSDKLoader {
@@ -103,10 +106,10 @@ class MetaSDKLoader {
           }
           FB.init(initCfg);
 
-          if (this.config.enableAnalytics) {
-            FB.AppEvents.logPageView();
-            socialMetrics.trackEntry({ source: 'facebook', medium: 'sdk_load' });
-          }
+	          if (this.config.enableAnalytics && this.pixelConsentGranted) {
+	            FB.AppEvents.logPageView();
+	            socialMetrics.trackEntry({ source: 'facebook', medium: 'sdk_load' });
+	          }
 
           FB.Event.subscribe('edge.create', (url: string) => {
             socialMetrics.trackSocialInteraction('facebook', 'like', { url });
@@ -177,6 +180,8 @@ class MetaSDKLoader {
 
     return new Promise((resolve) => {
       const script = document.createElement('script');
+      const pixelId = JSON.stringify(this.config.pixelId);
+      const initialConsent = this.pixelConsentGranted ? 'grant' : 'revoke';
       script.innerHTML = `
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -190,12 +195,11 @@ class MetaSDKLoader {
         // Ensure SPA manual control to avoid duplicate PageView on pushState
         fbq.disablePushState = true;
         // Disable autoConfig for this pixel to keep manual control
-        try { fbq('set','autoConfig','false','${this.config.pixelId}'); } catch (e) {}
-        // Optional: start with consent revoked; grant later via UI
-        ${((this as MetaSDKLoader & { _consentRevoke?: boolean })._consentRevoke) ? "try { fbq('consent','revoke'); } catch(e) {}" : ''}
+        try { fbq('set','autoConfig','false',${pixelId}); } catch (e) {}
+        try { fbq('consent','${initialConsent}'); } catch(e) {}
 
-        fbq('init', '${this.config.pixelId}');
-        fbq('track', 'PageView');
+        fbq('init', ${pixelId});
+        ${this.pixelConsentGranted ? "fbq('track', 'PageView');" : ''}
       `;
       document.head.appendChild(script);
 
@@ -206,6 +210,30 @@ class MetaSDKLoader {
 
       resolve();
     });
+  }
+
+  setPixelConsent(granted: boolean): void {
+    this.pixelConsentGranted = granted;
+    if (typeof window !== 'undefined') {
+      window.__metaPixelConsentGranted = granted;
+      window.fbq?.('consent', granted ? 'grant' : 'revoke');
+    }
+  }
+
+  grantPixelConsent(): void {
+    this.setPixelConsent(true);
+    this.trackPageView();
+  }
+
+  revokePixelConsent(): void {
+    this.setPixelConsent(false);
+  }
+
+  trackPageView(): void {
+    if (typeof window === 'undefined' || !this.pixelConsentGranted) {
+      return;
+    }
+    window.fbq?.('track', 'PageView');
   }
 
   private setupConversionTracking(): void {
@@ -274,11 +302,15 @@ class MetaSDKLoader {
     quote?: string;
     hashtag?: string;
     source: string;
-  }): Promise<void> {
-    await this.loadFacebookSDK();
-  const FB = window.FB as unknown as { ui?: (cfg: Record<string, unknown>, cb: (resp: unknown) => void) => void };
+  }): Promise<'launched' | 'unavailable' | 'failed'> {
+    try {
+      await this.loadFacebookSDK();
+    } catch {
+      return 'unavailable';
+    }
+  const FB = window.FB as unknown as { ui?: (cfg: Record<string, unknown>, cb: (resp: unknown) => void) => void } | undefined;
 
-    if (!FB) return;
+    if (!FB?.ui) return 'unavailable';
 
     // Replaced manual UTM construction with helper
     const shareUrl = addUtm(data.url, {
@@ -287,21 +319,30 @@ class MetaSDKLoader {
       campaign: data.source
     });
 
-  if (!FB || !FB.ui) return;
-  FB.ui({
-      method: 'share',
-      href: shareUrl,
-      quote: data.quote,
-      hashtag: data.hashtag
-    }, (response: unknown) => {
-      const r = response as { error_message?: string } | undefined;
-      if (r && !r.error_message) {
-        socialMetrics.trackSocialInteraction('facebook', 'share_complete', {
-          url: shareUrl,
-          source: data.source
-        });
-      }
-    });
+    try {
+      FB.ui({
+        method: 'share',
+        href: shareUrl,
+        quote: data.quote,
+        hashtag: data.hashtag
+      }, (response: unknown) => {
+        const r = response as { error_message?: string } | undefined;
+        if (r && !r.error_message) {
+          socialMetrics.trackSocialInteraction('facebook', 'share_complete', {
+            url: shareUrl,
+            source: data.source
+          });
+        }
+      });
+      return 'launched';
+    } catch (error) {
+      socialMetrics.trackSocialInteraction('facebook', 'share_failed', {
+        url: shareUrl,
+        source: data.source,
+        message: error instanceof Error ? error.message : 'unknown_error'
+      });
+      return 'failed';
+    }
   }
 }
 
@@ -318,4 +359,8 @@ export const loadFacebookSDK = () => metaSDK.loadFacebookSDK();
 export const loadInstagramEmbed = () => metaSDK.loadInstagramEmbed();
 export const parseFBML = (element?: HTMLElement) => metaSDK.parseFBML(element);
 export const processInstagramEmbeds = () => metaSDK.processInstagramEmbeds();
+export const grantMetaPixelConsent = () => metaSDK.grantPixelConsent();
+export const revokeMetaPixelConsent = () => metaSDK.revokePixelConsent();
+export const setMetaPixelConsent = (granted: boolean) => metaSDK.setPixelConsent(granted);
+export const trackMetaPixelPageView = () => metaSDK.trackPageView();
 export const shareWithTracking = (data: { url: string; quote?: string; hashtag?: string; source: string }) => metaSDK.shareWithTracking(data);

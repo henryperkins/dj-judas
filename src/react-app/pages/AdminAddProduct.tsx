@@ -173,7 +173,7 @@ export default function AdminAddProduct() {
     }
   }
 
-  if (auth === null) return <div className="container section-py"><div className="text-muted">Checking session…</div></div>
+  if (auth === null) return <div className="container section-py"><div className="text-muted-foreground">Checking session…</div></div>
   if (!auth) { navigate('/admin/login'); return null }
 
   return (
@@ -192,7 +192,7 @@ export default function AdminAddProduct() {
               <input type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
               <Button variant="outline" size="sm" onClick={aiSuggest} disabled={!thumbnail}>Suggest title & description</Button>
             </div>
-            <div className="text-muted" style={{ marginTop: 6 }}>Drag & drop or click to upload. First image is used as thumbnail unless you choose one below.</div>
+            <div className="text-muted-foreground" style={{ marginTop: 6 }}>Drag & drop or click to upload. First image is used as thumbnail unless you choose one below.</div>
           </div>
           {images.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>

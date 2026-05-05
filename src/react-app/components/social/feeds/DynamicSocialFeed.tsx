@@ -19,7 +19,7 @@ interface SocialPost {
     id: string;
     title: string;
     price: number;
-    imageUrl: string;
+    imageUrl?: string;
     productUrl: string;
     x: number; // Position percentage for tagging
     y: number;
@@ -37,6 +37,7 @@ interface DynamicSocialFeedProps {
   autoRefresh?: boolean;
   refreshInterval?: number; // in seconds
   onPostClick?: (post: SocialPost) => void;
+  onAvailabilityChange?: (available: boolean) => void;
 }
 
 const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
@@ -47,7 +48,8 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   enableShoppable = true,
   autoRefresh = true,
   refreshInterval = 300, // 5 minutes default
-  onPostClick
+  onPostClick,
+  onAvailabilityChange
 }) => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,11 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   const [isNotConfigured, setIsNotConfigured] = useState(false); // Circuit breaker for 501 errors
   const platformKey = platforms.join(',');
   const hashtagKey = hashtags.join(',');
+
+  useEffect(() => {
+    if (loading) return;
+    onAvailabilityChange?.(posts.length > 0);
+  }, [loading, onAvailabilityChange, posts.length]);
 
   // Allow retries if requested feed filters change.
   useEffect(() => {
@@ -234,7 +241,7 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
                     <span className="sr-only">{`View ${product.title} for $${product.price}`}</span>
                     {hoveredProduct === product.id && (
                       <div className="product-tooltip">
-                        <img src={product.imageUrl} alt={product.title} />
+                        {product.imageUrl && <img src={product.imageUrl} alt={product.title} />}
                         <div className="product-info">
                           <p className="product-title">{product.title}</p>
                           <p className="product-price">${product.price}</p>

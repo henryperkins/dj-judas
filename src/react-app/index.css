@@ -247,21 +247,16 @@
     @apply flex flex-wrap items-center gap-3;
   }
 
-  /* Text utility aliases to existing class names */
-  .text-primary {
-    @apply text-foreground;
+  .empty-state {
+    @apply mx-auto max-w-xl rounded-[var(--radius)] border border-border bg-card px-6 py-8 text-center shadow-xs;
   }
 
-  .text-secondary {
-    @apply text-muted-foreground;
+  .empty-state__title {
+    @apply text-base font-semibold text-foreground;
   }
 
-  .text-muted {
-    @apply text-muted-foreground;
-  }
-
-  .text-sm {
-    @apply text-sm;
+  .empty-state__description {
+    @apply mt-2 text-sm text-muted-foreground;
   }
 
   /* Buttons (base + variants) */
@@ -601,7 +596,9 @@
 
   /* Ensure solid background for contrast-sensitive areas */
   .social-section {
-    @apply bg-card;
+    @apply bg-background;
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
   }
 
   .social-section .section-title,
@@ -610,9 +607,40 @@
     @apply text-foreground;
   }
 
+  .social-fallback {
+    @apply mx-auto mb-5 max-w-xl rounded-[var(--radius)] border border-border bg-card px-5 py-4 text-center;
+  }
+
+  .social-fallback__title {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  .social-fallback__description {
+    @apply mt-1 text-sm text-muted-foreground;
+  }
+
+  .social-cta {
+    @apply flex justify-center;
+  }
+
   .hero-content {
     @apply text-center text-foreground p-8 md:p-12 max-w-[800px] bg-card rounded-[var(--radius)] border border-border;
     z-index: var(--z-base);
+  }
+
+  .hero-logo-frame {
+    @apply mx-auto mb-6 grid place-items-center rounded-[calc(var(--radius)*0.75)] border border-border/40 bg-white p-4 shadow-xs;
+    width: min(220px, 70vw);
+    aspect-ratio: 1;
+  }
+
+  .hero-logo {
+    @apply block h-auto w-full object-contain;
+  }
+
+  .dark .hero-logo-frame {
+    border-color: color-mix(in oklab, var(--color-accent), transparent 55%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
   }
 
   .hero-title {
@@ -1090,7 +1118,13 @@
   }
 
   .social-feed-grid {
-    @apply grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] sm:grid-cols-1;
+    @apply grid gap-6 grid-cols-1;
+  }
+
+  @media (min-width: 30rem) {
+    .social-feed-grid {
+      @apply grid-cols-[repeat(auto-fill,minmax(min(250px,100%),1fr))];
+    }
   }
 
   .social-feed-loading {
@@ -2227,14 +2261,9 @@
 
   /* Booking — minimal CTA + full form */
   .booking-section-minimal {
-    background: linear-gradient(135deg, color-mix(in oklab, var(--color-primary) 5%, transparent) 0%, color-mix(in oklab, var(--color-accent) 5%, transparent) 100%);
-    @apply py-12 md:py-16;
+    @apply py-12 md:py-16 bg-background;
     content-visibility: auto;
     contain-intrinsic-size: 460px;
-  }
-
-  .dark .booking-section-minimal {
-    background: linear-gradient(135deg, color-mix(in oklab, var(--color-primary) 10%, transparent) 0%, color-mix(in oklab, var(--color-accent) 10%, transparent) 100%);
   }
 
   .booking-content {
@@ -2275,7 +2304,11 @@
   }
 
   .form-group label {
-    @apply block text-sm font-medium text-foreground mb-2;
+    @apply inline-flex w-fit items-center gap-2 text-sm font-medium text-foreground mb-2;
+  }
+
+  .form-group label svg {
+    @apply size-4 shrink-0 text-muted-foreground;
   }
 
   .form-group input,
@@ -2468,7 +2501,13 @@
   }
 
   /* Touch-target guarantee (WCAG-friendly) for interactive buttons */
-  .btn, .platform-btn { min-height: 44px; min-width: 44px; }
+  .btn,
+  .platform-btn,
+  [data-slot="button"] {
+    height: auto;
+    min-height: 44px;
+    min-width: 44px;
+  }
 
   /* Remove nested card spacing collapse */
   [data-slot="card-content"] > .overflow-hidden + .overflow-hidden { margin-top: 1rem; }
@@ -2714,10 +2753,14 @@
   /* Ensure all buttons meet 44x44px minimum */
   .btn,
   button:not(.unstyled),
-  a.btn {
+  a.btn,
+  [data-slot="button"],
+  a[data-slot="button"] {
+    height: auto;
     min-height: 44px;
     min-width: 44px;
     padding: 0.625rem 1rem; /* 10px 16px */
+    touch-action: manipulation;
   }
 
   /* Small buttons - increase from current ~32x28px */
@@ -2907,10 +2950,9 @@
 
 /* Checkout Summary - Convert from desktop-first to mobile-first */
 .checkout-summary {
-  /* Mobile base: sticky at bottom */
-  position: sticky;
-  bottom: 0;
-  background: var(--color-background);
+  /* Mobile base: inline summary; fixed CTA is handled by .checkout-footer. */
+  position: static;
+  background: var(--color-card);
   border-top: 2px solid var(--color-border);
   margin-inline: -1rem;
   padding: 1rem;
@@ -2922,6 +2964,7 @@
   .checkout-summary {
     position: sticky;
     top: 1.5rem;
+    background: var(--color-card);
     border-top: none;
     margin-inline: 0;
   }
@@ -3300,12 +3343,19 @@
     margin-top: 0.5rem;
   }
 
-  /* Checkout footer - full width CTA */
+}
+
+.checkout-footer {
+  display: none;
+}
+
+@media (max-width: 768px) {
   .checkout-footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    display: block;
     padding: 1rem 0.75rem;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     background: var(--color-card);
@@ -3321,14 +3371,13 @@
     font-weight: 600;
   }
 
-  /* Add bottom padding to prevent content hiding behind footer */
   body.has-checkout-footer {
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
 
 /* Tablet optimization */
-@media (min-width: 641px) and (max-width: 1023px) {
+@media (min-width: 969px) and (max-width: 1023px) {
   .checkout-grid {
     grid-template-columns: 1fr;
     max-width: 700px;

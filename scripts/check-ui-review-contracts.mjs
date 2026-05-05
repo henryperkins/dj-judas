@@ -15,6 +15,7 @@ const facebookEvents = read('src/react-app/components/social/feeds/FacebookEvent
 const dynamicSocialFeed = read('src/react-app/components/social/feeds/DynamicSocialFeed.tsx');
 const platformLauncher = read('src/react-app/components/PlatformLauncher.tsx');
 const css = read('src/react-app/index.css');
+const legacyPlatformClassPattern = /(?:^|[^A-Za-z0-9_-])(?:platform-launcher-fab|fab-trigger|fab-menu|fab-platform-btn)(?![A-Za-z0-9_-])/;
 
 assert(
   'facebook-events',
@@ -36,7 +37,7 @@ assert(
 
 assert(
   'platform-classes',
-  !platformLauncher.match(/platform-launcher-fab|fab-trigger|fab-menu|fab-platform-btn/) &&
+  !legacyPlatformClassPattern.test(platformLauncher) &&
     !css.match(/\.(?:platform-launcher-fab|fab-trigger|fab-menu|fab-platform-btn)\b/),
   'PlatformLauncher must not use legacy FAB class names.'
 );

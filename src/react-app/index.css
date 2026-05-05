@@ -1164,7 +1164,7 @@
   }
 
   .social-post-card {
-    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition cursor-pointer hover:-translate-y-1 hover:shadow-lg;
+    @apply bg-card border border-border rounded-[var(--radius)] overflow-hidden transition hover:-translate-y-1 hover:shadow-lg;
   }
 
   .social-post-card.shoppable {
@@ -1197,8 +1197,21 @@
     @apply relative aspect-square overflow-hidden bg-muted;
   }
 
-  .post-media img {
-    @apply w-full h-full object-cover transition-transform duration-300 group-hover:scale-105;
+  .post-media-open {
+    @apply absolute inset-0 block w-full h-full cursor-pointer bg-transparent border-0 p-0 text-left;
+  }
+
+  .post-media-open:focus-visible {
+    @apply outline-2 outline-offset-[-2px] outline-ring;
+  }
+
+  .post-media-open > img {
+    @apply w-full h-full object-cover transition-transform duration-300;
+  }
+
+  .social-post-card:hover .post-media-open > img,
+  .post-media-open:focus-visible > img {
+    @apply scale-105;
   }
 
   .media-type-indicator {
@@ -1219,7 +1232,7 @@
   }
 
   .product-tooltip {
-    @apply absolute -bottom-3 left-1/2 -translate-x-1/2 translate-y-full bg-white border border-border rounded-[var(--radius)] p-2 min-w-[150px] shadow-lg pointer-events-none;
+    @apply absolute -bottom-3 left-1/2 -translate-x-1/2 translate-y-full bg-popover text-popover-foreground border border-border rounded-[var(--radius)] p-2 min-w-[150px] shadow-lg pointer-events-none;
   }
 
   .product-tooltip img {
@@ -1227,7 +1240,7 @@
   }
 
   .product-title {
-    @apply text-[0.85rem] font-semibold text-foreground mb-1;
+    @apply text-[0.85rem] font-semibold text-popover-foreground mb-1;
   }
 
   .product-price {
@@ -1252,6 +1265,42 @@
 
   .post-caption p {
     @apply m-0 text-[0.9rem] text-foreground leading-relaxed;
+  }
+
+  .post-open-link {
+    @apply mt-3 inline-flex text-[0.875rem] font-semibold text-accent underline-offset-4 transition hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+  }
+
+  .social-post-lightbox {
+    @apply fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/75 p-4;
+  }
+
+  .lightbox-content {
+    @apply relative w-full max-w-3xl max-h-[90vh] overflow-auto rounded-[var(--radius)] border border-border bg-card text-card-foreground shadow-2xl;
+  }
+
+  .lightbox-content > img {
+    @apply block w-full max-h-[70vh] object-contain bg-black;
+  }
+
+  .lightbox-info {
+    @apply p-4;
+  }
+
+  .lightbox-info h3 {
+    @apply m-0 mb-2 text-lg font-semibold text-foreground;
+  }
+
+  .lightbox-info p {
+    @apply m-0 text-sm leading-relaxed text-foreground;
+  }
+
+  .view-original {
+    @apply mt-3 inline-flex font-semibold text-accent underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+  }
+
+  .close-btn {
+    @apply absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-full bg-black/70 text-2xl leading-none text-white transition hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
   }
 
   /* Next Event Banner ---------------------------------------------------- */

@@ -28,6 +28,11 @@ type Address = {
 const MEDUSA_URL = import.meta.env.VITE_MEDUSA_URL as string | undefined
 const MEDUSA_PUB = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY as string | undefined
 
+const readCheckoutError = async (res: Response, fallback: string) => {
+  const data = await res.json().catch(() => null) as { message?: string; error?: string } | null
+  return data?.message || data?.error || `${fallback} (${res.status})`
+}
+
 export default function CheckoutPage() {
   const [cartId, setCartId] = useState<string | null>(null)
   const [cart, setCart] = useState<Cart | null>(null)
@@ -55,6 +60,7 @@ export default function CheckoutPage() {
         const id = d?.cart?.id
         if (id) { localStorage.setItem('medusa_cart_id', id); setCartId(id) }
       })
+      .catch(() => setMsg('Unable to start checkout. Please refresh and try again.'))
       .finally(() => setBusy(false))
   }, [headers])
 
@@ -79,35 +85,57 @@ export default function CheckoutPage() {
   const saveAddress = async () => {
     if (!MEDUSA_URL || !cartId) return
     setBusy(true)
-    await fetch(`${MEDUSA_URL}/store/carts/${cartId}`, {
-      method: 'POST', headers, body: JSON.stringify({
-        email: addr.email,
-        shipping_address: {
-          first_name: addr.first_name, last_name: addr.last_name,
-          address_1: addr.address_1, city: addr.city, postal_code: addr.postal_code, country_code: addr.country_code
-        }
+    setMsg(null)
+    try {
+      const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}`, {
+        method: 'POST', headers, body: JSON.stringify({
+          email: addr.email,
+          shipping_address: {
+            first_name: addr.first_name, last_name: addr.last_name,
+            address_1: addr.address_1, city: addr.city, postal_code: addr.postal_code, country_code: addr.country_code
+          }
+        })
       })
-    })
-    const updated = await getCart(cartId)
-    setCart(updated)
-    setBusy(false)
+      if (!res.ok) throw new Error(await readCheckoutError(res, 'Unable to save address'))
+      const updated = await getCart(cartId)
+      setCart(updated)
+    } catch (error) {
+      console.error('Failed to save checkout address:', error)
+      setMsg(error instanceof Error ? error.message : 'Unable to save address. Please try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const loadOptions = async () => {
     if (!MEDUSA_URL || !cartId) return
-    const list = await listShippingOptions(cartId)
-    setOptions(list as ShippingOption[])
+    setShippingBusy(true)
+    setMsg(null)
+    try {
+      const list = await listShippingOptions(cartId)
+      setOptions(list as ShippingOption[])
+    } catch (error) {
+      console.error('Failed to load shipping options:', error)
+      setMsg('Unable to load shipping options. Please try again.')
+    } finally {
+      setShippingBusy(false)
+    }
   }
 
   const addShippingMethod = async (option_id: string) => {
     if (!MEDUSA_URL || !cartId) return
     setShippingBusy(true)
+    setMsg(null)
     try {
-      await fetch(`${MEDUSA_URL}/store/carts/${cartId}/shipping-methods`, {
+      const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/shipping-methods`, {
         method: 'POST', headers, body: JSON.stringify({ option_id })
       })
+      if (!res.ok) throw new Error(await readCheckoutError(res, 'Unable to apply shipping option'))
       const updated = await getCart(cartId)
       setCart(updated)
+    } catch (error) {
+      console.error('Failed to add shipping method:', error)
+      setMsg(error instanceof Error ? error.message : 'Unable to apply that shipping option. Please try again.')
     } finally {
       setShippingBusy(false)
     }
@@ -116,18 +144,26 @@ export default function CheckoutPage() {
   const completeMedusa = async () => {
     if (!MEDUSA_URL || !cartId) return
     setBusy(true)
-    // Ensure payment sessions exist (no-op if already created)
-    try { await createPaymentSessions(cartId) } catch { /* ignore */ }
-    const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/complete`, { method: 'POST', headers })
-    const json = await res.json() as { type?: string; order?: { id?: string }; data?: { id?: string }; id?: string };
-    setBusy(false)
-    if (json?.type === 'order') {
-      const oid = json?.order?.id || json?.data?.id || json?.id
-      try { localStorage.removeItem('medusa_cart_id') } catch { /* ignore */ }
-      navigate(`/success${oid ? `?order_id=${encodeURIComponent(oid)}` : ''}`)
-      return
+    setMsg(null)
+    try {
+      // Ensure payment sessions exist (no-op if already created)
+      try { await createPaymentSessions(cartId) } catch { /* ignore */ }
+      const res = await fetch(`${MEDUSA_URL}/store/carts/${cartId}/complete`, { method: 'POST', headers })
+      if (!res.ok) throw new Error(await readCheckoutError(res, 'Unable to complete order'))
+      const json = await res.json() as { type?: string; order?: { id?: string }; data?: { id?: string }; id?: string };
+      if (json?.type === 'order') {
+        const oid = json?.order?.id || json?.data?.id || json?.id
+        try { localStorage.removeItem('medusa_cart_id') } catch { /* ignore */ }
+        navigate(`/success${oid ? `?order_id=${encodeURIComponent(oid)}` : ''}`)
+        return
+      }
+      setMsg('Unable to complete order. Please check payment and address details.')
+    } catch (error) {
+      console.error('Failed to complete checkout:', error)
+      setMsg(error instanceof Error ? error.message : 'Unable to complete order. Please try again.')
+    } finally {
+      setBusy(false)
     }
-    else setMsg('Unable to complete order. Please check payment and address details.')
   }
 
   const payWithStripe = async () => {
@@ -223,7 +259,7 @@ export default function CheckoutPage() {
           <section className="checkout-section">
             <h2 className="checkout-section__title">Shipping Options</h2>
             <div className="stack">
-              <Button variant="outline" onClick={loadOptions} disabled={!cartId}>Load options</Button>
+              <Button variant="outline" onClick={loadOptions} disabled={!cartId || shippingBusy}>Load options</Button>
               {options?.length ? options.map((o: ShippingOption) => {
                 interface ShippingMethod {
                   shipping_option_id?: string;

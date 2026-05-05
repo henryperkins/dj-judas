@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, MotionValue } from 'framer-motion';
+import { motion, MotionValue, useReducedMotion } from 'framer-motion';
 
 import { LuChevronDown } from 'react-icons/lu';
 import { navigate } from '../../utils/nav';
@@ -14,6 +14,8 @@ interface HeroSectionProps {
 const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
   // Skip animations on initial page load to optimize LCP
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const shouldReduceMotion = useReducedMotion();
+  const allowMotion = !isInitialLoad && !shouldReduceMotion;
 
   useEffect(() => {
     // After initial render, enable animations for subsequent navigations
@@ -22,15 +24,15 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
   }, []);
 
   // Skip animations on first load to prevent LCP re-measurement
-  const sectionVariants = isInitialLoad
+  const sectionVariants = !allowMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0 }, animate: { opacity: 1 } };
 
-  const imageVariants = isInitialLoad
+  const imageVariants = !allowMotion
     ? { initial: { scale: 1, opacity: 1 }, animate: { scale: 1, opacity: 1 } }
     : { initial: { scale: 0.8, opacity: 0 }, animate: { scale: 1, opacity: 1 } };
 
-  const textVariants = isInitialLoad
+  const textVariants = !allowMotion
     ? { initial: { y: 0 }, animate: { y: 0 } }
     : { initial: { y: 30 }, animate: { y: 0 } };
 
@@ -39,7 +41,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
       className={`hero-section ${className}`}
       initial={sectionVariants.initial}
       animate={sectionVariants.animate}
-      transition={{ duration: isInitialLoad ? 0 : 0.8 }}
+      transition={{ duration: allowMotion ? 0.8 : 0 }}
     >
       <div className="hero-background with-pattern" style={{ backgroundImage: `url(${pattern1})` }}>
         <div className="hero-overlay"></div>
@@ -49,7 +51,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           className="hero-logo-frame"
           initial={imageVariants.initial}
           animate={imageVariants.animate}
-          transition={{ delay: isInitialLoad ? 0 : 0.1, duration: isInitialLoad ? 0 : 0.8 }}
+          transition={{ delay: allowMotion ? 0.1 : 0, duration: allowMotion ? 0.8 : 0 }}
         >
           <img
             src={logoImage}
@@ -63,7 +65,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           className="hero-title"
           initial={textVariants.initial}
           animate={textVariants.animate}
-          transition={{ delay: isInitialLoad ? 0 : 0.2, duration: isInitialLoad ? 0 : 0.8 }}
+          transition={{ delay: allowMotion ? 0.2 : 0, duration: allowMotion ? 0.8 : 0 }}
         >
           DJ Lee & Voices of Judah
         </motion.h1>
@@ -71,7 +73,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           className="hero-subtitle"
           initial={textVariants.initial}
           animate={textVariants.animate}
-          transition={{ delay: isInitialLoad ? 0 : 0.4, duration: isInitialLoad ? 0 : 0.8 }}
+          transition={{ delay: allowMotion ? 0.4 : 0, duration: allowMotion ? 0.8 : 0 }}
         >
           High-energy gospel DJ and vocal ensemble for weddings, reunions, and ministry events.
         </motion.p>
@@ -79,7 +81,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           className="hero-cta"
           initial={textVariants.initial}
           animate={textVariants.animate}
-          transition={{ delay: isInitialLoad ? 0 : 0.6, duration: isInitialLoad ? 0 : 0.8 }}
+          transition={{ delay: allowMotion ? 0.6 : 0, duration: allowMotion ? 0.8 : 0 }}
         >
           <button className="btn btn-primary" onClick={() => navigate('/book')}>Book Us</button>
           <a href="#media" className="btn btn-secondary">Listen</a>
@@ -87,8 +89,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
       </div>
       <motion.div
         className="scroll-indicator"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ repeat: Infinity, duration: 2 }}
+        animate={shouldReduceMotion ? { y: 0 } : { y: [0, 10, 0] }}
+        transition={shouldReduceMotion ? { duration: 0 } : { repeat: Infinity, duration: 2 }}
       >
         <LuChevronDown size={32} />
       </motion.div>

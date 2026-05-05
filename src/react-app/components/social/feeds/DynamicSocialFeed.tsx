@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LuInstagram, LuFacebook, LuShoppingBag, LuHeart, LuMessageCircle, LuShare2, LuRefreshCw } from 'react-icons/lu';
 import { socialMetrics } from '../utils/socialMetrics';
 
@@ -59,6 +59,9 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
   const [selectedPost, setSelectedPost] = useState<SocialPost | null>(null);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [isNotConfigured, setIsNotConfigured] = useState(false); // Circuit breaker for 501 errors
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lightboxRef = useRef<HTMLDivElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const platformKey = platforms.join(',');
   const hashtagKey = hashtags.join(',');
 
@@ -174,29 +177,70 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     }
   };
 
+  const openPost = useCallback((post: SocialPost) => {
+    if (onPostClick) {
+      onPostClick(post);
+    } else {
+      setSelectedPost(post);
+    }
+  }, [onPostClick]);
+
+  const closeLightbox = useCallback(() => {
+    setSelectedPost(null);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPost) return;
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeLightbox();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+      previousFocusRef.current?.focus();
+    };
+  }, [closeLightbox, selectedPost]);
+
+  const handleLightboxKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') return;
+
+    const focusable = lightboxRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable?.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   // Render based on layout
   const renderGrid = () => (
     <div className="social-feed-grid">
       {posts.map((post) => (
-        <div
+        <article
           key={post.id}
           className={`social-post-card ${post.isShoppable ? 'shoppable' : ''}`}
           data-testid="social-post-card"
-          onClick={() => onPostClick ? onPostClick(post) : setSelectedPost(post)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (onPostClick) {
-                onPostClick(post);
-              } else {
-                setSelectedPost(post);
-              }
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label={`Open ${post.platform} post`}
         >
           {/* Platform Badge */}
           <div className="post-header">
@@ -214,17 +258,30 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
 
           {/* Media */}
           <div className="post-media">
-            <img
-              src={post.thumbnailUrl || post.mediaUrl}
-              alt={post.caption.substring(0, 50)}
-              loading="lazy"
-            />
+            <button
+              type="button"
+              className="post-media-open"
+              onClick={() => openPost(post)}
+              aria-label={`Open ${post.platform} post`}
+            >
+              <img
+                src={post.thumbnailUrl || post.mediaUrl}
+                alt={post.caption.substring(0, 50)}
+                loading="lazy"
+              />
+
+              {/* Video/Reel Indicator */}
+              {(post.type === 'video' || post.type === 'reel') && (
+                <span className="media-type-indicator" aria-hidden="true">▶</span>
+              )}
+            </button>
 
             {/* Product Tags */}
             {post.isShoppable && post.products && (
               <div className="product-tags">
                 {post.products.map((product) => (
                   <button
+                    type="button"
                     key={product.id}
                     className={`product-tag ${hoveredProduct === product.id ? 'active' : ''}`}
                     style={{ left: `${product.x}%`, top: `${product.y}%` }}
@@ -252,17 +309,14 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
                 ))}
               </div>
             )}
-
-            {/* Video/Reel Indicator */}
-            {(post.type === 'video' || post.type === 'reel') && (
-              <div className="media-type-indicator">▶</div>
-            )}
           </div>
 
           {/* Engagement */}
           <div className="post-engagement">
             <button
+              type="button"
               className="engagement-btn"
+              aria-label={`Like ${post.platform} post${post.likes != null ? ` (${post.likes.toLocaleString()} likes)` : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handlePostInteraction(post, 'like');
@@ -272,7 +326,9 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
               <span>{post.likes?.toLocaleString()}</span>
             </button>
             <button
+              type="button"
               className="engagement-btn"
+              aria-label={`Comment on ${post.platform} post${post.comments != null ? ` (${post.comments.toLocaleString()} comments)` : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handlePostInteraction(post, 'comment');
@@ -282,7 +338,9 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
               <span>{post.comments?.toLocaleString()}</span>
             </button>
             <button
+              type="button"
               className="engagement-btn"
+              aria-label={`Share ${post.platform} post${post.shares != null ? ` (${post.shares.toLocaleString()} shares)` : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handlePostInteraction(post, 'share');
@@ -296,8 +354,11 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
           {/* Caption Preview */}
           <div className="post-caption">
             <p>{post.caption.substring(0, 100)}...</p>
+            <button type="button" className="post-open-link" onClick={() => openPost(post)}>
+              View post
+            </button>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   );
@@ -320,9 +381,11 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
     <div className="social-feed-stories">
       {posts.slice(0, 10).map((post) => (
         <button
+          type="button"
           key={post.id}
           className="story-bubble"
           onClick={() => setSelectedPost(post)}
+          aria-label={`Open ${post.platform} story`}
         >
           <img src={post.thumbnailUrl || post.mediaUrl} alt="" />
           <span className="story-platform">
@@ -392,18 +455,31 @@ const DynamicSocialFeed: React.FC<DynamicSocialFeedProps> = ({
       {selectedPost && (
         <div
           className="social-post-lightbox"
-          onClick={() => setSelectedPost(null)}
+          onClick={closeLightbox}
         >
-          <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+          <div
+            ref={lightboxRef}
+            className="lightbox-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="social-post-lightbox-title"
+            aria-describedby="social-post-lightbox-caption"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={handleLightboxKeyDown}
+          >
             <button
+              ref={closeButtonRef}
+              type="button"
               className="close-btn"
-              onClick={() => setSelectedPost(null)}
+              onClick={closeLightbox}
+              aria-label="Close social post"
             >
-              ×
+              <span aria-hidden="true">×</span>
             </button>
             <img src={selectedPost.mediaUrl} alt={selectedPost.caption} />
             <div className="lightbox-info">
-              <p>{selectedPost.caption}</p>
+              <h3 id="social-post-lightbox-title">Latest from {selectedPost.platform}</h3>
+              <p id="social-post-lightbox-caption">{selectedPost.caption}</p>
               <a
                 href={selectedPost.permalink}
                 target="_blank"

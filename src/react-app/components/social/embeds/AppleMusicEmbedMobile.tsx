@@ -5,8 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { LuPlay, LuPause, LuPlus, LuExternalLink, LuChevronDown, LuWifi, LuWifiOff } from 'react-icons/lu';
-import { appleMusicKit } from '@/react-app/utils/appleMusicKit';
-import { buildAppleMusicLink } from '@/react-app/utils/appleMusicUrls';
+import { buildAppleMusicLink, extractAppleMusicContentFromUrl } from '@/react-app/utils/appleMusicUrls';
 import { socialMetrics } from '../utils/socialMetrics';
 import { haptics } from '@/react-app/utils/haptics';
 
@@ -17,6 +16,11 @@ interface AppleMusicEmbedMobileProps {
   campaignToken?: string;
   autoExpand?: boolean;
 }
+
+const loadAppleMusicKitManager = async () => {
+  const { appleMusicKit } = await import('@/react-app/utils/appleMusicKit');
+  return appleMusicKit;
+};
 
 const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
   url,
@@ -34,7 +38,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
   const [musicKitError, setMusicKitError] = useState<string | null>(null);
 
   // Extract content from URL
-  const content = appleMusicKit.extractIdFromUrl(url);
+  const content = extractAppleMusicContentFromUrl(url);
 
   // Build affiliate link
   const buildAffiliateLink = (action?: string) =>
@@ -58,12 +62,22 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
 
   // Initialize MusicKit
   useEffect(() => {
+    let isCancelled = false;
+    let unsubscribe: (() => void) | undefined;
+
     const initMusicKit = async () => {
       try {
+        const appleMusicKit = await loadAppleMusicKitManager();
         await appleMusicKit.loadMusicKit();
+        if (isCancelled) return;
         setMusicKitReady(true);
         setIsAuthorized(appleMusicKit.isAuthorized());
+
+        unsubscribe = appleMusicKit.onAuthChange((authorized) => {
+          setIsAuthorized(authorized);
+        });
       } catch (error) {
+        if (isCancelled) return;
         console.error('MusicKit initialization failed:', error);
         setMusicKitError('Apple Music unavailable');
       }
@@ -71,17 +85,17 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
 
     initMusicKit();
 
-    const unsubscribe = appleMusicKit.onAuthChange((authorized) => {
-      setIsAuthorized(authorized);
-    });
-
-    return unsubscribe;
+    return () => {
+      isCancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const handleAuthorize = useCallback(async () => {
     haptics.trigger('light');
     setAuthLoading(true);
     try {
+      const appleMusicKit = await loadAppleMusicKitManager();
       const authorized = await appleMusicKit.authorize();
       if (!authorized) {
         setMusicKitError('Authorization failed');
@@ -114,6 +128,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
         return;
       }
 
+      const appleMusicKit = await loadAppleMusicKitManager();
       await appleMusicKit.addToLibrary([content]);
       haptics.trigger('success');
     } catch (error) {
@@ -135,6 +150,7 @@ const AppleMusicEmbedMobile: React.FC<AppleMusicEmbedMobileProps> = ({
     }
 
     try {
+      const appleMusicKit = await loadAppleMusicKitManager();
       if (isPlaying) {
         appleMusicKit.pause();
         setIsPlaying(false);

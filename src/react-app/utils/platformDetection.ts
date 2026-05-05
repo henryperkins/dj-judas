@@ -148,15 +148,18 @@ export const generatePlatformLinks = (): PlatformLink[] => {
   ];
 };
 
-// Analytics helper
-import { trackMusic } from './analytics';
-
 export const trackPlatformClick = (platform: string, context: string = 'launcher'): void => {
   // normalize legacy keys to canonical
   const normalized = platform === 'apple-music' || platform === 'apple_music' ? 'appleMusic' : platform;
-  trackMusic(normalized, 'click', {
-    context,
-    is_mobile: isMobileDevice(),
-    device_type: isIOS() ? 'ios' : isAndroid() ? 'android' : 'desktop'
-  });
+  void import('./analytics')
+    .then(({ trackMusic }) => {
+      trackMusic(normalized, 'click', {
+        context,
+        is_mobile: isMobileDevice(),
+        device_type: isIOS() ? 'ios' : isAndroid() ? 'android' : 'desktop'
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to track platform click:', error);
+    });
 };

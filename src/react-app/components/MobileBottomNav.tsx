@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, KeyboardEvent, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { LuHouse, LuMusic, LuCalendar, LuTicket, LuShoppingCart, LuUsers } from 'react-icons/lu';
 import { navigate } from '../utils/nav';
 import { isMobileViewport } from '@/react-app/utils/platformDetection';
@@ -77,6 +77,7 @@ export function MobileBottomNav({
   const listRef = useRef<HTMLUListElement | null>(null);
   const lastScrollYRef = useRef(0);
   const scrollEndTimerRef = useRef<number | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const navItems = customItems || NAV_ITEMS;
 
@@ -219,10 +220,10 @@ export function MobileBottomNav({
             className="mobile-bottom-nav"
             role="navigation"
             aria-label="Primary"
-            initial={{ y: 100 }}
+            initial={shouldReduceMotion ? false : { y: 100 }}
             animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            exit={shouldReduceMotion ? undefined : { y: 100 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
           >
             <ul
               ref={listRef}
@@ -242,7 +243,7 @@ export function MobileBottomNav({
                       data-id={item.id}
                       className={`nav-item ${isActive ? 'active' : ''}`}
                       onClick={() => handleItemClick(item)}
-                      whileTap={{ scale: 0.9 }}
+                      whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
                       aria-label={item.label}
                       aria-current={isActive ? 'page' : undefined}
                       aria-controls={ariaControls}
@@ -250,7 +251,8 @@ export function MobileBottomNav({
                     >
                       <motion.div
                         className="nav-item-content"
-                        animate={isActive ? { y: -2 } : { y: 0 }}
+                        animate={shouldReduceMotion ? { y: 0 } : isActive ? { y: -2 } : { y: 0 }}
+                        transition={shouldReduceMotion ? { duration: 0 } : undefined}
                       >
                         <div className="nav-icon-wrapper" aria-hidden="true">
                           <Icon
@@ -265,12 +267,12 @@ export function MobileBottomNav({
                         {isActive && (
                           <motion.div
                             className="nav-indicator"
-                            layoutId="nav-indicator"
+                            layoutId={shouldReduceMotion ? undefined : "nav-indicator"}
                             initial={false}
                             transition={{
-                              type: 'spring',
-                              stiffness: 500,
-                              damping: 30
+                              ...(shouldReduceMotion
+                                ? { duration: 0 }
+                                : { type: 'spring' as const, stiffness: 500, damping: 30 })
                             }}
                             aria-hidden="true"
                           />

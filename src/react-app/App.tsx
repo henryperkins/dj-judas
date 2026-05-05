@@ -5,6 +5,7 @@ import { onNavigate, navigate } from './utils/nav';
 import { SocialProvider } from './providers/SocialProvider';
 import { useMetaPixelPageViews } from './hooks/useMetaPixelPageViews';
 import Router from './Router';
+import { MotionConfig } from 'framer-motion';
 
 function App() {
   const [path, setPath] = useState<string>(typeof window !== 'undefined' ? window.location.pathname : '/');
@@ -37,17 +38,19 @@ function App() {
   // SDK initialization handled by SocialProvider for all platforms
   return (
     <SocialProvider>
-      <div className="min-h-svh admin-compact">
-        <ErrorBoundary>
-          <ThemeToggle />
-        </ErrorBoundary>
-        
-        <ErrorBoundary>
-          <Suspense fallback={<div className="container section-py"><div className="skeleton-title" /><div className="skeleton-text" /><div className="skeleton-text" /></div>}>
-            <Router path={path} />
-          </Suspense>
-        </ErrorBoundary>
-      </div>
+      <MotionConfig reducedMotion="user">
+        <div className="min-h-svh admin-compact">
+          <ErrorBoundary>
+            <ThemeToggle />
+          </ErrorBoundary>
+
+          <ErrorBoundary>
+            <Suspense fallback={<div className="container section-py"><div className="skeleton-title" /><div className="skeleton-text" /><div className="skeleton-text" /></div>}>
+              <Router path={path} />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+      </MotionConfig>
     </SocialProvider>
   );
 }

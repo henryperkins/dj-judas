@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PlatformIcon, PLATFORM_COLORS, ACTION_ICONS } from './icons/PlatformIcons';
 import {
   openPlatform,
@@ -29,6 +29,7 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [platforms, setPlatforms] = useState<PlatformLink[]>([]);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const ids = ['spotify','appleMusic','facebook','instagram'] as const;
@@ -118,8 +119,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               key={link.platform}
               className="platform-card"
               onClick={() => handlePlatformClick(link)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
               aria-label={`Open ${link.label}`}
               style={{
                 '--platform-color': getPlatformColor(link.platform)
@@ -152,16 +153,18 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
           <>
             <motion.div
               className="platform-launcher-overlay"
-              initial={{ opacity: 0 }}
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : undefined}
               onClick={() => setIsOpen(false)}
             />
             <motion.div
               className="platform-launcher-modal"
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={shouldReduceMotion ? false : { scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={shouldReduceMotion ? undefined : { scale: 0.9, opacity: 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : undefined}
             >
               <button
                 className="platform-modal-close"
@@ -177,8 +180,8 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                     key={link.platform}
                     className="platform-modal-button"
                     onClick={() => handlePlatformClick(link)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+                    whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
                     style={{
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
@@ -216,11 +219,12 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
               key="fab-closed"
               className="fab-trigger"
               onClick={() => setIsOpen(true)}
-              initial={{ scale: 0 }}
+              initial={shouldReduceMotion ? false : { scale: 0 }}
               animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              exit={shouldReduceMotion ? undefined : { scale: 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : undefined}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.1 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
               aria-label="Open platform menu"
               aria-expanded={isOpen}
               aria-controls="platform-fab-menu"
@@ -231,9 +235,10 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
             <motion.div
               key="fab-open"
               className="fab-menu"
-              initial={{ scale: 0, opacity: 0 }}
+              initial={shouldReduceMotion ? false : { scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
+              exit={shouldReduceMotion ? undefined : { scale: 0, opacity: 0 }}
+              transition={shouldReduceMotion ? { duration: 0 } : undefined}
               id="platform-fab-menu"
               role="menu"
             >
@@ -250,13 +255,13 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
                     key={link.platform}
                     className="fab-platform-btn"
                     onClick={() => handlePlatformClick(link)}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
                     animate={{
                       opacity: 1,
                       y: 0,
-                      transition: { delay: index * 0.05 }
+                      transition: shouldReduceMotion ? { duration: 0 } : { delay: index * 0.05 }
                     }}
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
                     style={{
                       '--platform-color': getPlatformColor(link.platform)
                     } as React.CSSProperties}
@@ -286,9 +291,10 @@ const PlatformLauncher: React.FC<PlatformLauncherProps> = ({
         {isOpen && (
           <motion.div
             className="platform-launcher__fab-backdrop"
-            initial={{ opacity: 0 }}
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+            transition={shouldReduceMotion ? { duration: 0 } : undefined}
             onClick={() => setIsOpen(false)}
           />
         )}

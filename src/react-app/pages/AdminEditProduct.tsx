@@ -152,24 +152,24 @@ export default function AdminEditProduct(props: { id: string }) {
 
       <div className="form-grid-2" style={{ gap: 12 }}>
         <div className="form-field">
-          <label className="form-label">Title</label>
-          <input className="form-input form-input-sm" value={p.title} onChange={e => setP({ ...p, title: e.target.value })} />
+          <label className="form-label" htmlFor="edit-product-title">Title</label>
+          <input id="edit-product-title" className="form-input form-input-sm" value={p.title} onChange={e => setP({ ...p, title: e.target.value })} />
         </div>
         <div className="form-field">
-          <label className="form-label">Handle</label>
-          <input className="form-input form-input-sm" value={p.handle || ''} onChange={e => setP({ ...p, handle: e.target.value })} />
+          <label className="form-label" htmlFor="edit-product-handle">Handle</label>
+          <input id="edit-product-handle" className="form-input form-input-sm" value={p.handle || ''} onChange={e => setP({ ...p, handle: e.target.value })} />
         </div>
         <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-          <label className="form-label">Description</label>
-          <textarea className="form-input form-textarea-sm" rows={4} value={p.description || ''} onChange={e => setP({ ...p, description: e.target.value })} />
+          <label className="form-label" htmlFor="edit-product-description">Description</label>
+          <textarea id="edit-product-description" className="form-input form-textarea-sm" rows={4} value={p.description || ''} onChange={e => setP({ ...p, description: e.target.value })} />
         </div>
         <div className="form-field">
-          <label className="form-label">Thumbnail URL</label>
-          <input className="form-input form-input-sm" value={p.thumbnail || ''} onChange={e => setP({ ...p, thumbnail: e.target.value })} />
+          <label className="form-label" htmlFor="edit-product-thumbnail">Thumbnail URL</label>
+          <input id="edit-product-thumbnail" className="form-input form-input-sm" value={p.thumbnail || ''} onChange={e => setP({ ...p, thumbnail: e.target.value })} />
         </div>
         <div className="form-field">
-          <label className="form-label">Status</label>
-          <select className="form-input form-input-sm" value={p.status || 'draft'} onChange={e => setP({ ...p, status: e.target.value as 'draft' | 'published' })}>
+          <label className="form-label" htmlFor="edit-product-status">Status</label>
+          <select id="edit-product-status" className="form-input form-input-sm" value={p.status || 'draft'} onChange={e => setP({ ...p, status: e.target.value as 'draft' | 'published' })}>
             <option value="draft">Draft</option>
             <option value="published">Published</option>
           </select>
@@ -189,20 +189,20 @@ export default function AdminEditProduct(props: { id: string }) {
               <div className="card" key={v.id} style={{ padding: 12 }}>
                 <div className="form-grid-4" style={{ gap: 8 }}>
                   <div className="form-field">
-                    <label className="form-label">Title</label>
-                    <input className="form-input form-input-sm" value={v.title || ''} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, title: e.target.value }: x) })} />
+                    <label className="form-label" htmlFor={`edit-product-variant-${v.id}-title`}>Title</label>
+                    <input id={`edit-product-variant-${v.id}-title`} className="form-input form-input-sm" value={v.title || ''} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, title: e.target.value }: x) })} />
                   </div>
                   <div className="form-field">
-                    <label className="form-label">SKU</label>
-                    <input className="form-input form-input-sm" value={v.sku || ''} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, sku: e.target.value }: x) })} />
+                    <label className="form-label" htmlFor={`edit-product-variant-${v.id}-sku`}>SKU</label>
+                    <input id={`edit-product-variant-${v.id}-sku`} className="form-input form-input-sm" value={v.sku || ''} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, sku: e.target.value }: x) })} />
                   </div>
                   <div className="form-field">
-                    <label className="form-label">Inventory</label>
-                    <input className="form-input form-input-sm" inputMode="numeric" value={String(v.inventory_quantity ?? '')} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, inventory_quantity: parseInt(e.target.value||'0', 10) }: x) })} />
+                    <label className="form-label" htmlFor={`edit-product-variant-${v.id}-inventory`}>Inventory</label>
+                    <input id={`edit-product-variant-${v.id}-inventory`} className="form-input form-input-sm" inputMode="numeric" value={String(v.inventory_quantity ?? '')} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, inventory_quantity: parseInt(e.target.value||'0', 10) }: x) })} />
                   </div>
                   <div className="form-field">
-                    <label className="form-label">Price (USD cents)</label>
-                    <input className="form-input form-input-sm" inputMode="numeric" value={String(v.prices?.[0]?.amount ?? 0)} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, prices: [{ currency_code: 'usd', amount: parseInt(e.target.value||'0', 10) }] }: x) })} />
+                    <label className="form-label" htmlFor={`edit-product-variant-${v.id}-price`}>Price (USD cents)</label>
+                    <input id={`edit-product-variant-${v.id}-price`} className="form-input form-input-sm" inputMode="numeric" value={String(v.prices?.[0]?.amount ?? 0)} onChange={e => setP(cur => !cur ? cur : { ...cur, variants: cur.variants?.map(x => x.id===v.id? { ...x, prices: [{ currency_code: 'usd', amount: parseInt(e.target.value||'0', 10) }] }: x) })} />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -220,8 +220,10 @@ export default function AdminEditProduct(props: { id: string }) {
         <div className="card" style={{ padding: 12, marginBottom: 12 }}>
           <div className="text-sm text-muted-foreground" style={{ marginBottom: 6 }}>Add image from URL (stored on R2, then attached to this product)</div>
           <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
-            <input className="form-input" style={{ minWidth: 280 }} placeholder="https://.../image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-            <input className="form-input" style={{ width: 160 }} placeholder="path (optional)" value={imagePath} onChange={e => setImagePath(e.target.value)} />
+            <label className="sr-only" htmlFor="edit-product-image-url">Image URL</label>
+            <input id="edit-product-image-url" className="form-input" style={{ minWidth: 280 }} placeholder="https://.../image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+            <label className="sr-only" htmlFor="edit-product-image-path">Image path</label>
+            <input id="edit-product-image-path" className="form-input" style={{ width: 160 }} placeholder="path (optional)" value={imagePath} onChange={e => setImagePath(e.target.value)} />
             <Button disabled={busy} onClick={attachImageFromUrl}>Add from URL</Button>
           </div>
         </div>
@@ -232,8 +234,8 @@ export default function AdminEditProduct(props: { id: string }) {
             style={{ padding: 12, border: '1px dashed var(--border-color, #ccc)', borderRadius: 8, marginBottom: 8 }}
           >
             <div className="flex items-center gap-3">
-              <input type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
-              <span className="text-muted-foreground">Drag & drop or click to upload</span>
+              <input id="edit-product-image-upload" type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
+              <label className="text-muted-foreground" htmlFor="edit-product-image-upload">Drag & drop or click to upload</label>
             </div>
           </div>
         </div>

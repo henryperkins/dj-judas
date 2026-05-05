@@ -182,14 +182,14 @@ export default function AdminAddProduct() {
       <h1 className="section-title">Add Product</h1>
       <div className="form-grid-2">
         <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-          <label className="form-label">Product Photos</label>
+          <label className="form-label" htmlFor="add-product-photos">Product Photos</label>
           <div
             onDragOver={(e) => { e.preventDefault(); }}
             onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) uploadPhoto(file) }}
             style={{ padding: 12, border: '1px dashed var(--border-color, #ccc)', borderRadius: 8, marginBottom: 8 }}
           >
             <div className="flex items-center gap-3">
-              <input type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
+              <input id="add-product-photos" type="file" accept="image/*" multiple onChange={e => { const files = Array.from(e.target.files || []); files.forEach(f => uploadPhoto(f)) }} />
               <Button variant="outline" size="sm" onClick={aiSuggest} disabled={!thumbnail}>Suggest title & description</Button>
             </div>
             <div className="text-muted-foreground" style={{ marginTop: 6 }}>Drag & drop or click to upload. First image is used as thumbnail unless you choose one below.</div>
@@ -200,8 +200,8 @@ export default function AdminAddProduct() {
                 <div key={idx} className="card" style={{ padding: 8 }}>
                   <img src={img.url} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
                   <div className="flex items-center gap-2 mt-2">
-                    <label className="flex items-center gap-1 text-sm">
-                      <input type="radio" name="thumb" checked={(thumbnail || images[0]?.url) === img.url} onChange={() => setThumbnail(img.url)} /> Thumbnail
+                    <label className="flex items-center gap-1 text-sm" htmlFor={`add-product-thumbnail-${idx}`}>
+                      <input id={`add-product-thumbnail-${idx}`} type="radio" name="thumb" checked={(thumbnail || images[0]?.url) === img.url} onChange={() => setThumbnail(img.url)} /> Thumbnail
                     </label>
                   </div>
                   <div className="flex gap-2 mt-2">
@@ -238,20 +238,20 @@ export default function AdminAddProduct() {
           )}
         </div>
         <div className="form-field">
-          <label className="form-label form-label--required">Title</label>
-          <input className="form-input form-input-sm" value={title} onChange={e => setTitle(e.target.value)} placeholder="Product title" />
+          <label className="form-label form-label--required" htmlFor="add-product-title">Title</label>
+          <input id="add-product-title" className="form-input form-input-sm" value={title} onChange={e => setTitle(e.target.value)} placeholder="Product title" />
         </div>
         <div className="form-field">
-          <label className="form-label">Handle</label>
-          <input className="form-input form-input-sm" value={slug} readOnly />
+          <label className="form-label" htmlFor="add-product-handle">Handle</label>
+          <input id="add-product-handle" className="form-input form-input-sm" value={slug} readOnly />
         </div>
         <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-          <label className="form-label">Description</label>
-          <textarea className="form-input form-textarea-sm" rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
+          <label className="form-label" htmlFor="add-product-description">Description</label>
+          <textarea id="add-product-description" className="form-input form-textarea-sm" rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
         </div>
         <div className="form-field">
-          <label className="form-label">Price (USD)</label>
-          <input className="form-input form-input-sm" inputMode="decimal" placeholder="19.99" value={simplePrice}
+          <label className="form-label" htmlFor="add-product-price">Price (USD)</label>
+          <input id="add-product-price" className="form-input form-input-sm" inputMode="decimal" placeholder="19.99" value={simplePrice}
             onChange={e => {
               const val = e.target.value; setSimplePrice(val)
               setVariants(prev => {
@@ -264,16 +264,16 @@ export default function AdminAddProduct() {
             }} />
         </div>
         <div className="form-field">
-          <label className="form-label">Inventory Quantity (default variant)</label>
-          <input className="form-input form-input-sm" inputMode="numeric" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g., 100" />
+          <label className="form-label" htmlFor="add-product-inventory">Inventory Quantity (default variant)</label>
+          <input id="add-product-inventory" className="form-input form-input-sm" inputMode="numeric" value={qty} onChange={e => setQty(e.target.value)} placeholder="e.g., 100" />
         </div>
-        <div className="form-field">
-          <label className="form-label">Publish</label>
+        <fieldset className="form-field" style={{ border: 0, margin: 0, padding: 0 }}>
+          <legend className="form-label">Publish</legend>
           <div className="flex gap-3 items-center">
-            <label className="flex items-center gap-1"><input type="radio" name="pub" checked={status==='published'} onChange={() => setStatus('published')} /> <span className="text-sm">Live</span></label>
-            <label className="flex items-center gap-1"><input type="radio" name="pub" checked={status==='draft'} onChange={() => setStatus('draft')} /> <span className="text-sm">Preview</span></label>
+            <label className="flex items-center gap-1" htmlFor="add-product-status-published"><input id="add-product-status-published" type="radio" name="pub" checked={status==='published'} onChange={() => setStatus('published')} /> <span className="text-sm">Live</span></label>
+            <label className="flex items-center gap-1" htmlFor="add-product-status-draft"><input id="add-product-status-draft" type="radio" name="pub" checked={status==='draft'} onChange={() => setStatus('draft')} /> <span className="text-sm">Preview</span></label>
           </div>
-        </div>
+        </fieldset>
       </div>
       <section className="checkout-section" style={{ marginTop: 16 }}>
         <h2 className="checkout-section__title">Variants</h2>
@@ -282,26 +282,28 @@ export default function AdminAddProduct() {
             <div key={i} className="card" style={{ padding: 12 }}>
               <div className="form-grid-4">
                 <div className="form-field">
-                  <label className="form-label">Title</label>
-                  <input className="form-input form-input-sm" value={v.title} onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, title: e.target.value }: p))} />
+                  <label className="form-label" htmlFor={`add-product-variant-${i}-title`}>Title</label>
+                  <input id={`add-product-variant-${i}-title`} className="form-input form-input-sm" value={v.title} onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, title: e.target.value }: p))} />
                 </div>
                 <div className="form-field">
-                  <label className="form-label">SKU</label>
-                  <input className="form-input form-input-sm" value={v.sku || ''} onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, sku: e.target.value }: p))} />
+                  <label className="form-label" htmlFor={`add-product-variant-${i}-sku`}>SKU</label>
+                  <input id={`add-product-variant-${i}-sku`} className="form-input form-input-sm" value={v.sku || ''} onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, sku: e.target.value }: p))} />
                 </div>
                 <div className="form-field">
-                  <label className="form-label">Inventory</label>
-                  <input className="form-input form-input-sm" inputMode="numeric" value={v.inventory_quantity || ''} onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, inventory_quantity: e.target.value }: p))} />
+                  <label className="form-label" htmlFor={`add-product-variant-${i}-inventory`}>Inventory</label>
+                  <input id={`add-product-variant-${i}-inventory`} className="form-input form-input-sm" inputMode="numeric" value={v.inventory_quantity || ''} onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, inventory_quantity: e.target.value }: p))} />
                 </div>
-                <div className="form-field">
-                  <label className="form-label">Prices</label>
+                <fieldset className="form-field" style={{ border: 0, margin: 0, padding: 0 }}>
+                  <legend className="form-label">Prices</legend>
                   <div className="stack">
                     {v.prices.map((pr, j) => (
                       <div key={j} style={{ display: 'flex', gap: 8 }}>
-                        <input className="form-input form-input-sm" style={{ width: 100 }} value={pr.currency_code}
+                        <label className="sr-only" htmlFor={`add-product-variant-${i}-price-${j}-currency`}>Currency code</label>
+                        <input id={`add-product-variant-${i}-price-${j}-currency`} className="form-input form-input-sm" style={{ width: 100 }} value={pr.currency_code}
                           onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: p.prices.map((pp, jj) => jj===j? { ...pp, currency_code: e.target.value }: pp) }: p))}
                         />
-                        <input className="form-input form-input-sm" placeholder="19.99" value={pr.amount}
+                        <label className="sr-only" htmlFor={`add-product-variant-${i}-price-${j}-amount`}>Price amount</label>
+                        <input id={`add-product-variant-${i}-price-${j}-amount`} className="form-input form-input-sm" placeholder="19.99" value={pr.amount}
                           onChange={e => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: p.prices.map((pp, jj) => jj===j? { ...pp, amount: e.target.value }: pp) }: p))}
                         />
                         <Button variant="outline" size="sm" onClick={() => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: p.prices.filter((_, jj) => jj!==j) }: p))}>Remove</Button>
@@ -309,7 +311,7 @@ export default function AdminAddProduct() {
                     ))}
                     <Button size="sm" onClick={() => setVariants(prev => prev.map((p, idx) => idx===i? { ...p, prices: [...p.prices, { currency_code: 'usd', amount: '' }] }: p))}>Add Price</Button>
                   </div>
-                </div>
+                </fieldset>
               </div>
               {variants.length > 1 && <Button variant="outline" size="sm" className="mt-2" onClick={() => setVariants(prev => prev.filter((_, idx) => idx !== i))}>Delete Variant</Button>}
             </div>

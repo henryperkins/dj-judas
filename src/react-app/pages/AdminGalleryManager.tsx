@@ -358,10 +358,11 @@ const AdminGalleryManager: React.FC = () => {
               <div className="md:col-span-2">
                 {uploadMode === 'url' ? (
                   <>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-sm font-medium mb-1" htmlFor="gallery-image-url">
                       Image URL <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="gallery-image-url"
                       type="url"
                       required
                       value={formData.url}
@@ -375,10 +376,11 @@ const AdminGalleryManager: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-sm font-medium mb-1" htmlFor="gallery-image-file">
                       Upload Image File <span className="text-red-500">*</span>
                     </label>
                     <input
+                      id="gallery-image-file"
                       type="file"
                       accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                       required
@@ -411,10 +413,11 @@ const AdminGalleryManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1" htmlFor="gallery-image-alt">
                   Alt Text <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="gallery-image-alt"
                   type="text"
                   required
                   value={formData.alt}
@@ -425,10 +428,11 @@ const AdminGalleryManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1" htmlFor="gallery-image-category">
                   Category <span className="text-red-500">*</span>
                 </label>
                 <select
+                  id="gallery-image-category"
                   value={formData.category}
                   onChange={(e) =>
                     setFormData({
@@ -447,10 +451,11 @@ const AdminGalleryManager: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1" htmlFor="gallery-image-caption">
                   Caption <span className="text-red-500">*</span>
                 </label>
                 <textarea
+                  id="gallery-image-caption"
                   required
                   value={formData.caption}
                   onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
@@ -461,8 +466,9 @@ const AdminGalleryManager: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2" htmlFor="gallery-image-published">
                   <input
+                    id="gallery-image-published"
                     type="checkbox"
                     checked={formData.is_published}
                     onChange={(e) =>
@@ -520,7 +526,9 @@ const AdminGalleryManager: React.FC = () => {
                   {editingId === photo.id ? (
                     /* Edit Mode */
                     <div className="space-y-2">
+                      <label className="sr-only" htmlFor={`gallery-photo-${photo.id}-alt`}>Alt text</label>
                       <input
+                        id={`gallery-photo-${photo.id}-alt`}
                         type="text"
                         value={photo.alt}
                         onChange={(e) => {
@@ -532,7 +540,9 @@ const AdminGalleryManager: React.FC = () => {
                         className="w-full px-2 py-1 border border-input rounded bg-background text-sm"
                         placeholder="Alt text"
                       />
+                      <label className="sr-only" htmlFor={`gallery-photo-${photo.id}-caption`}>Caption</label>
                       <textarea
+                        id={`gallery-photo-${photo.id}-caption`}
                         value={photo.caption}
                         onChange={(e) => {
                           const updated = photos.map((p) =>
@@ -544,7 +554,9 @@ const AdminGalleryManager: React.FC = () => {
                         rows={2}
                         placeholder="Caption"
                       />
+                      <label className="sr-only" htmlFor={`gallery-photo-${photo.id}-category`}>Category</label>
                       <select
+                        id={`gallery-photo-${photo.id}-category`}
                         value={photo.category}
                         onChange={(e) => {
                           const updated = photos.map((p) =>

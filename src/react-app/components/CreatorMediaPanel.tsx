@@ -11,6 +11,7 @@ import ListenTabs from './ListenTabs';
 import ListenTabsMobile from './ListenTabsMobile';
 import InstagramEmbedMobile from './social/embeds/InstagramEmbedMobile';
 import { ShareManager } from './social';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DeepLink } from './social/sharing/ShareManager';
 import { useIsMobile } from '@/react-app/hooks/useMediaQuery';
 
@@ -127,37 +128,33 @@ export default function CreatorMediaPanel({
   return (
     <section className="creator-media-panel relative mx-auto w-full max-w-5xl">
       <div className="rounded-xl border bg-card p-6 sm:p-8 text-card-foreground">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{artist}</h2>
-            <p className="text-muted-foreground">{tagline}</p>
+        <Tabs
+          value={tab}
+          onValueChange={(value) => setTab(value as "listen" | "watch" | "social" | "share")}
+          className="grid gap-6"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{artist}</h2>
+              <p className="text-muted-foreground">{tagline}</p>
+            </div>
+
+            <TabsList aria-label="Media sections" className="w-full flex-wrap sm:w-auto">
+              {[
+                { key: "listen", label: "Listen", icon: LuMusic },
+                { key: "watch", label: "Watch", icon: LuCirclePlay },
+                { key: "social", label: "Social", icon: LuMic },
+                { key: "share", label: "Share", icon: LuShare2 },
+              ].map(({ key, label, icon: Icon }) => (
+                <TabsTrigger key={key} value={key} className="gap-2">
+                  <Icon size={18} aria-hidden="true" />
+                  <span>{label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
 
-          {/* Tabs */}
-          <div className="inline-flex rounded-lg border bg-background p-1">
-            {[
-              { key: "listen", label: "Listen", icon: LuMusic },
-              { key: "watch", label: "Watch", icon: LuCirclePlay },
-              { key: "social", label: "Social", icon: LuMic },
-              { key: "share", label: "Share", icon: LuShare2 },
-            ].map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key as "listen" | "watch" | "social" | "share")}
-                className={`group relative inline-flex items-center gap-2 rounded-md px-3 sm:px-4 py-2 text-sm font-semibold transition
-                  ${tab === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"}`}
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="grid gap-6">
-            {tab === "listen" && (
+            <TabsContent value="listen" aria-label="Listen">
               <SectionCard title="Listen" hint="Choose your streaming platform">
                 {isMobile ? (
                   <ListenTabsMobile
@@ -172,9 +169,9 @@ export default function CreatorMediaPanel({
                   />
                 )}
               </SectionCard>
-            )}
+            </TabsContent>
 
-            {tab === "watch" && (
+            <TabsContent value="watch" aria-label="Watch">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Facebook Watch" hint="On-demand videos">
                   {facebookVideoHref ? (
@@ -214,9 +211,9 @@ export default function CreatorMediaPanel({
                   )}
                 </SectionCard>
               </div>
-            )}
+            </TabsContent>
 
-            {tab === "social" && (
+            <TabsContent value="social" aria-label="Social">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SectionCard title="Instagram" hint="Latest posts and reels">
                   {instagramPermalink ? (
@@ -262,9 +259,9 @@ export default function CreatorMediaPanel({
                   )}
                 </SectionCard>
               </div>
-            )}
+            </TabsContent>
 
-            {tab === "share" && (
+            <TabsContent value="share" aria-label="Share">
               <ShareManager
                 url={canonical}
                 title={artist}
@@ -279,8 +276,8 @@ export default function CreatorMediaPanel({
                 className="share-manager-panel"
                 layout="auto"
               />
-            )}
-        </div>
+            </TabsContent>
+        </Tabs>
       </div>
     </section>
   );

@@ -1201,6 +1201,44 @@
     }
   }
 
+  .social-feed-masonry {
+    columns: 1;
+    column-gap: 1rem;
+  }
+
+  .social-feed-masonry .social-post-card {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .social-feed-masonry {
+      columns: 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .social-feed-masonry {
+      columns: 3;
+    }
+  }
+
+  .social-feed-carousel {
+    @apply grid gap-4;
+  }
+
+  .social-feed-carousel__viewport {
+    @apply mx-auto w-full max-w-md;
+  }
+
+  .social-feed-carousel__controls {
+    @apply flex items-center justify-center gap-3;
+  }
+
+  .social-feed-carousel__count {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+
   .social-feed-loading {
     @apply flex flex-col items-center justify-center gap-4 bg-card border border-border rounded-[var(--radius)] text-foreground;
     min-height: 320px;

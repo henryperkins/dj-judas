@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const webServerEnv: Record<string, string> = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+);
+
+webServerEnv.VITE_MEDUSA_URL ??= 'https://medusa.test';
+
 /**
  * Playwright E2E Testing Configuration
  *
@@ -77,7 +83,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npx wrangler dev --local',
+    command: 'npm run build && npx wrangler dev --local',
+    env: webServerEnv,
     url: 'http://localhost:8787',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

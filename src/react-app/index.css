@@ -4116,6 +4116,52 @@ img[loading='lazy'] {
   display: none;
 }
 
+.about-section + .media-section {
+  padding-top: 1rem;
+}
+
+.creator-media-panel > div {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.creator-media-panel [data-slot="tabs"] {
+  gap: 1rem;
+}
+
+.creator-media-panel [data-slot="tabs-list"] {
+  align-content: center;
+  gap: 0.25rem;
+  height: auto;
+  min-height: 2.75rem;
+}
+
+.creator-media-panel [data-slot="tabs-trigger"] {
+  min-height: 2.375rem;
+}
+
+.creator-media-panel .share-manager-panel {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  gap: 1rem;
+}
+
+.creator-media-panel .share-primary-actions,
+.creator-media-panel .share-platform-buttons,
+.creator-media-panel .deep-links-list {
+  gap: 0.625rem;
+}
+
+.creator-media-panel .share-deep-links {
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .about-section + .media-section {
+    padding-top: 1.5rem;
+  }
+}
+
 
 /* 6) Print minimal overrides --------------------------------------------- */
 @media print {
